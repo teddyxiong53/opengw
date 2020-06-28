@@ -16,7 +16,7 @@ ARM版本：GOOS=linux GOARCH=arm GOARM=5 go build -ldflags "-s -w"
 
 #### 使用说明
 
-1、将生成的可执行文件拷贝到板子内，同时把selfpara webroot这2个文件夹内全部文件也拷贝到板子内
+1、将生成的可执行文件拷贝到板子内，同时把“selfpara”、“webroot”这2个文件夹内全部文件也拷贝到板子内
 2、修改selfpara文件夹中的networkpara.json,修改IP地址
 3、在浏览器中输入修改后的IP地址，同时加上端口即可，比如192.168.1.1:8090
 
