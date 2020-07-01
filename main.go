@@ -37,6 +37,7 @@ func main(){
 		log.Println("set network ",v.Name)
 		setNetworkParam(v.ID,v)
 	}
+	networkParamList = getNetworkParam()
 
 	/**************变量模板初始化****************/
 	CommunicationManageInit()

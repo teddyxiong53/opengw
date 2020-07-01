@@ -202,6 +202,7 @@ func GetNetInformation(netName string) (NetInformation, error) {
 	if err != nil {
 		return info, err
 	}
+
 	info.HardwareAddr = inter.HardwareAddr
 	info.Mac = hex.EncodeToString(inter.HardwareAddr)
 
