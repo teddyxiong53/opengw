@@ -51,17 +51,17 @@ func CommunicationManageDel(){
 				log.Println("emergency chan")
 				log.Printf("funName %s\n", cmd.funName)
 				var status bool = false
-				for _,v := range DeviceNodeManageMap[cmd.interfaceID].DeviceNodeMap{
-					switch v.(type) {
-					case FCUDeviceNodeTemplate:
-						{
-							if v.(FCUDeviceNodeTemplate).Addr == cmd.deviceAddr{
-								//fcu := v.(FCUDeviceNodeTemplate)
-
-							}
-						}
-					}
-				}
+				//for _,v := range DeviceNodeManageMap[cmd.interfaceID].DeviceNodeMap{
+				//	switch v.(type) {
+				//	case DeviceNodeTemplate:
+				//		{
+				//			if v.(DeviceNodeTemplate).Addr == cmd.deviceAddr{
+				//				//fcu := v.(DeviceNodeTemplate)
+				//
+				//			}
+				//		}
+				//	}
+				//}
 				emergencyAckChan<- status
 
 				//通信帧延时
@@ -76,15 +76,9 @@ func CommunicationManageDel(){
 						log.Println("common chan")
 						log.Printf("funName %s\n", cmd.funName)
 
-						for _,v := range DeviceNodeManageMap[cmd.interfaceID].DeviceNodeMap{
-							switch v.(type) {
-							case FCUDeviceNodeTemplate:
-								{
-									if v.(FCUDeviceNodeTemplate).Addr == cmd.deviceAddr{
-
-									}
-								}
-							}
+						for k,v := range DeviceInterfaceMap[cmd.interfaceID].DeviceNodeMap{
+							log.Printf("index is %d\n",k)
+							v.GetDeviceRealVariables(cmd.deviceAddr)
 						}
 
 						//通信帧延时
@@ -116,12 +110,12 @@ func CommunicationManagePoll(){
 
 	cmd := CommunicationCmd{}
 
-	for i:=0;i<DeviceNodeManageMap[InterFaceID1].DeviceNodeCnt;i++{
+	for i:=0;i<DeviceInterfaceMap[InterFaceID0].DeviceNodeCnt;i++{
 
-		cmd.interfaceID = InterFaceID1
-		cmd.deviceAddr = DeviceNodeManageMap[InterFaceID1].DeviceNodeAddrMap[i]
-		cmd.deviceType = DeviceNodeManageMap[InterFaceID1].DeviceNodeTypeMap[i]
-		cmd.funName = "FCUGetRealData"
+		cmd.interfaceID = InterFaceID0
+		cmd.deviceAddr = DeviceInterfaceMap[InterFaceID0].DeviceNodeAddrMap[i]
+		cmd.deviceType = DeviceInterfaceMap[InterFaceID0].DeviceNodeTypeMap[i]
+		cmd.funName = "modbus test"
 
 		CommunicationManageAdd(cmd)
 	}

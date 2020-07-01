@@ -54,7 +54,7 @@ func main(){
 	cronGetNetStatus.AddFunc("*/5 * * * * *", getNetworkStatus)
 
 	// 定时60秒
-	//cronGetNetStatus.AddFunc("*/10 * * * * *", CommunicationManagePoll)
+	cronGetNetStatus.AddFunc("*/10 * * * * *", CommunicationManagePoll)
 
 	// 定时60秒
 	//cronGetNetStatus.AddFunc("*/10 * * * * *", CommunicationManageAddEmergencyTest)

@@ -42,9 +42,11 @@ func apiAddInterface(context *gin.Context){
 		return
 	}
 
-	DeviceNodeManageMap[interfaceInfo.InterfaceID] = NewDeviceNodeManage(interfaceInfo.InterfaceID,
+	DeviceInterfaceMap[interfaceInfo.InterfaceID] = NewDeviceInterface(interfaceInfo.InterfaceID,
 		interfaceInfo.PollPeriod,
 		interfaceInfo.OfflinePeriod,0)
+
+	WriteDeviceInterfaceManageToJson()
 
 	aParam.Code = "0"
 	aParam.Data = ""
@@ -87,7 +89,7 @@ func apiModifyInterface(context *gin.Context){
 		return
 	}
 
-	DeviceNodeManageMap[interfaceInfo.InterfaceID].ModifyDeviceNodeManage(interfaceInfo.PollPeriod,
+	DeviceInterfaceMap[interfaceInfo.InterfaceID].ModifyDeviceInterface(interfaceInfo.PollPeriod,
 		interfaceInfo.OfflinePeriod)
 
 	aParam.Code = "0"
@@ -106,36 +108,20 @@ func apiGetInterfaceInfo(context *gin.Context){
 	aParam := &struct{
 		Code 	string
 		Message string
-		Data    interface{}
+		Data    DeviceInterfaceTemplate
 	}{}
 
 	iID,_ := strconv.Atoi(sID)
 
-	nodeManage := struct{
-		InterfaceID 		int										`json:"InterfaceID"`			//通信接口
-		PollPeriod 			int										`json:"PollPeriod"`				//采集周期
-		OfflinePeriod 		int      								`json:"OfflinePeriod"`			//离线超时周期
-		DeviceNodeCnt       int                 					`json:"DeviceNodeCnt"`			//设备数量
-		DeviceNodeMap       []interface{} 							`json:"DeviceNodeMap"`			//节点链表
-		DeviceUseMap       	[50]bool 									`json:"DeviceUseMap"`			//节点使用
-	}{
-		InterfaceID:DeviceNodeManageMap[iID].InterfaceID,
-		PollPeriod:DeviceNodeManageMap[iID].PollPeriod,
-		OfflinePeriod:DeviceNodeManageMap[iID].OfflinePeriod,
-		DeviceNodeCnt:DeviceNodeManageMap[iID].DeviceNodeCnt,
-		DeviceUseMap:DeviceNodeManageMap[iID].DeviceNodeUseMap,
+	if iID < len(DeviceInterfaceMap){
+		aParam.Code = "0"
+		aParam.Message = ""
+		aParam.Data = *DeviceInterfaceMap[iID]
+	}else{
+		aParam.Code = "1"
+		aParam.Message = "interface is noexist"
+		aParam.Data = DeviceInterfaceTemplate{}
 	}
-
-	nodeManage.DeviceNodeMap = make([]interface{},0)
-	for k,v := range DeviceNodeManageMap[iID].DeviceNodeUseMap{
-		if v == true{
-			nodeManage.DeviceNodeMap = append(nodeManage.DeviceNodeMap,DeviceNodeManageMap[iID].DeviceNodeMap[k])
-		}
-	}
-
-	aParam.Code = "0"
-	aParam.Message = ""
-	aParam.Data = nodeManage
 
 	sJson, _ := json.Marshal(aParam)
 
@@ -148,12 +134,12 @@ func apiGetAllInterfaceInfo(context *gin.Context){
 	aParam := &struct{
 		Code 	string
 		Message string
-		Data    [8]*DeviceNodeManage
+		Data    [MaxDeviceInterfaceManage]*DeviceInterfaceTemplate
 	}{}
 
 	aParam.Code = "0"
 	aParam.Message = ""
-	aParam.Data = DeviceNodeManageMap
+	aParam.Data = DeviceInterfaceMap
 
 	sJson, _ := json.Marshal(aParam)
 
@@ -195,7 +181,7 @@ func apiAddNode(context *gin.Context){
 	}
 
 	var status bool
-	status,aParam.Message = DeviceNodeManageMap[nodeInfo.InterfaceID].AddDeviceNode(nodeInfo.DAddr,nodeInfo.DType)
+	status,aParam.Message = DeviceInterfaceMap[nodeInfo.InterfaceID].AddDeviceNode(nodeInfo.DAddr,nodeInfo.DType)
 	if status == true{
 		WriteDeviceInterfaceManageToJson()
 
@@ -288,7 +274,7 @@ func apiDeleteNode(context *gin.Context){
 		return
 	}
 
-	DeviceNodeManageMap[nodeInfo.InterfaceID].DeleteDeviceNode(nodeInfo.DAddr,nodeInfo.DType)
+	DeviceInterfaceMap[nodeInfo.InterfaceID].DeleteDeviceNode(nodeInfo.DAddr,nodeInfo.DType)
 
 	WriteDeviceInterfaceManageToJson()
 
