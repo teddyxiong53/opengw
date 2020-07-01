@@ -45,9 +45,21 @@ type DeviceInterfaceTemplate struct{
 	DeviceNodeTypeMap   []string 								`json:"DeviceTypeMap"`			//节点类型
 }
 
-type DeviceInterfaceManageTemplate struct{
-	InterfaceManage 	[MaxDeviceInterfaceManage]DeviceInterfaceTemplate
+//配置参数
+type DeviceInterfaceParamTemplate struct{
+	InterfaceID 		int										`json:"InterfaceID"`			//通信接口
+	PollPeriod 			int										`json:"PollPeriod"`				//采集周期
+	OfflinePeriod 		int      								`json:"OfflinePeriod"`			//离线超时周期
+	DeviceNodeCnt       int										`json:"DeviceNodeCnt"`			//设备数量
+	DeviceNodeAddrMap   []string 								`json:"DeviceAddrMap"`			//节点地址
+	DeviceNodeTypeMap   []string 								`json:"DeviceTypeMap"`			//节点类型
 }
+
+//配置参数
+type DeviceInterfaceParamMapTemplate struct {
+	DeviceInterfaceParam [MaxDeviceInterfaceManage]DeviceInterfaceParamTemplate
+}
+
 
 const (
 	MaxDeviceInterfaceManage int = 2
@@ -66,14 +78,14 @@ const (
 
 
 var DeviceInterfaceMap	[MaxDeviceInterfaceManage]*DeviceInterfaceTemplate
-var deviceInterfaceManage DeviceInterfaceManageTemplate
+var DeviceInterfaceParamMap DeviceInterfaceParamMapTemplate
 
 func DeviceNodeManageInit(){
 
 	if ReadDeviceInterfaceManageFromJson() == true{
 		log.Println("read interface json ok")
 
-		for k,v := range deviceInterfaceManage.InterfaceManage{
+		for k,v := range DeviceInterfaceParamMap.DeviceInterfaceParam{
 
 			//创建接口实例
 			DeviceInterfaceMap[k] = NewDeviceInterface(k,
@@ -81,9 +93,8 @@ func DeviceNodeManageInit(){
 				v.OfflinePeriod,
 				v.DeviceNodeCnt)
 
-			//DeviceInterfaceMap[k].DeviceNodeMap = make([]DeviceNodeInterface,0)
-			//DeviceInterfaceMap[k].DeviceNodeAddrMap = make([]string,0)
-			//DeviceInterfaceMap[k].DeviceNodeTypeMap = make([]string,0)
+			DeviceInterfaceMap[k].DeviceNodeAddrMap = v.DeviceNodeAddrMap
+			DeviceInterfaceMap[k].DeviceNodeTypeMap = v.DeviceNodeTypeMap
 
 			//创建设备实例
 			for i:=0;i<v.DeviceNodeCnt;i++{
@@ -99,10 +110,6 @@ func DeviceNodeManageInit(){
 				60,
 				180,
 				0)
-
-			//DeviceInterfaceMap[i].DeviceNodeMap = make([]DeviceNodeInterface,0)
-			//DeviceInterfaceMap[i].DeviceNodeAddrMap = make([]string,0)
-			//DeviceInterfaceMap[i].DeviceNodeTypeMap = make([]string,0)
 		}
 	}
 }
@@ -160,12 +167,17 @@ func WriteDeviceInterfaceManageToJson(){
 	defer fp.Close()
 
 	for k,v := range DeviceInterfaceMap{
+		DeviceInterfaceParamMap.DeviceInterfaceParam[k].InterfaceID = v.InterfaceID
+		DeviceInterfaceParamMap.DeviceInterfaceParam[k].PollPeriod = v.PollPeriod
+		DeviceInterfaceParamMap.DeviceInterfaceParam[k].OfflinePeriod = v.OfflinePeriod
+		DeviceInterfaceParamMap.DeviceInterfaceParam[k].DeviceNodeCnt = v.DeviceNodeCnt
+		DeviceInterfaceParamMap.DeviceInterfaceParam[k].DeviceNodeAddrMap = v.DeviceNodeAddrMap
+		DeviceInterfaceParamMap.DeviceInterfaceParam[k].DeviceNodeTypeMap = v.DeviceNodeTypeMap
 
-		deviceInterfaceManage.InterfaceManage[k] = *v
+
 	}
 
-
-	sJson,_ := json.Marshal(deviceInterfaceManage)
+	sJson,_ := json.Marshal(DeviceInterfaceParamMap)
 
 	_, err = fp.Write(sJson)
 	if err != nil {
@@ -189,14 +201,14 @@ func ReadDeviceInterfaceManageFromJson() bool{
 		data := make([]byte, 20480)
 		dataCnt, err := fp.Read(data)
 
-		err = json.Unmarshal(data[:dataCnt],&deviceInterfaceManage)
+		err = json.Unmarshal(data[:dataCnt],&DeviceInterfaceParamMap)
 		if err != nil {
 			log.Println("deviceNodeManage unmarshal err", err)
 
 			return false
 		}
 
-		log.Printf("%+v\n",deviceInterfaceManage)
+		log.Printf("%+v\n",DeviceInterfaceParamMap)
 
 		return true
 	}else{
