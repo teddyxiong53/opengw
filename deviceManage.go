@@ -24,7 +24,7 @@ type VariableTemplate struct{
 
 type DeviceNodeInterface interface {
 	//获取设备变量
-	GetDeviceRealVariables(deviceAddr string) int
+	GetDeviceRealVariables(deviceAddr string) []byte
 	//设置设备变量
 	SetDeviceRealVariables(deviceAddr string) int
 	//创建设备变量
@@ -151,6 +151,9 @@ func NewDeviceInterface(interfaceID,pollPeriod,offlinePeriod int,deviceNodeCnt i
 		DeviceNodeAddrMap   : make([]string,0),
 		DeviceNodeTypeMap   : make([]string,0),
 	}
+
+	//打开串口
+	serialOpen(nodeManage.InterfaceID)
 
 	return nodeManage
 }

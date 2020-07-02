@@ -1,1 +1,1 @@
-{"SerialParam":[{"ID":"1","Name":"/dev/ttyS0","BaudRate":"9600","DataBits":"8","StopBits":"1","Parity":"N","Timeout":"3000","Interval":"300"}]}
+{"SerialParam":[{"ID":"1","Name":"/dev/ttyS1","BaudRate":"9600","DataBits":"8","StopBits":"1","Parity":"N","Timeout":"3000","Interval":"300"},{"ID":"2","Name":"/dev/ttyS2","BaudRate":"9600","DataBits":"8","StopBits":"1","Parity":"N","Timeout":"3000","Interval":"300"}]}

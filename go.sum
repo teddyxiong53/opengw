@@ -52,8 +52,11 @@ github.com/tarm/serial v0.0.0-20180830185346-98f6abe2eb07 h1:UyzmZLoiDWMRywV4DUY
 github.com/tarm/serial v0.0.0-20180830185346-98f6abe2eb07/go.mod h1:kDXzergiv9cbyO7IOYJZWg1U88JhDg3PB6klq9Hg2pA=
 github.com/thinkgos/gomodbus v1.5.2 h1:zmFEzXILpCtBYB8FwcAuLnb8Rrr3NcdX8oukmyB9hwE=
 github.com/thinkgos/gomodbus v1.5.2/go.mod h1:HX6B+W3xV/oKinltblD+aqr9LnQuh9mWT4kMul5hYvE=
+github.com/thinkgos/gomodbus/v2 v2.1.7 h1:LfY0est0EmomgmN1Hi0AsbwgG+DPcZquCyJi8mlfD9o=
+github.com/thinkgos/gomodbus/v2 v2.1.7/go.mod h1:5My3qSLTiay46Da2REB5+t89DoJHh+MteTQwVu7eSC4=
 github.com/thinkgos/timing v1.1.2 h1:Gkpht/YViWFl/ADWy85VAQygaKcn8K8q/WLWcE5Rfag=
 github.com/thinkgos/timing v1.1.2/go.mod h1:zS1qzRn2ISTjI1xJc6AHNfWAvCtc7FylwWjt32L8qvo=
+github.com/thinkgos/timing/v3 v3.0.1/go.mod h1:n5ZN2E7S3paqqnTY2gKAeepr535MPBNdg4bnlVvuPJk=
 github.com/ugorji/go v1.1.7 h1:/68gy2h+1mWMrwZFeD1kQialdSzAb432dtpeJ42ovdo=
 github.com/ugorji/go v1.1.7/go.mod h1:kZn38zHttfInRq0xu/PH0az30d+z6vm202qpg1oXVMw=
 github.com/ugorji/go/codec v1.1.7 h1:2SvQaVZ1ouYrrKKwoSk2pzd4A9evlKJb9oTL+OaLUSs=

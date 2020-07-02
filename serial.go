@@ -161,12 +161,27 @@ func SerialInterfaceInit(){
 	//打开串口
 	serialInterface.SerialPort = make([]*serial.Port,0)
 	serialInterface.SerialStatus = make([]bool,0)
-	for _,v := range serialInterface.SerialParam{
+	//for _,v := range serialInterface.SerialParam{
+	//
+	//	status,port := newSerialInterface(v)
+	//	serialInterface.SerialStatus = append(serialInterface.SerialStatus,status)
+	//	if status == true{
+	//		serialInterface.SerialPort = append(serialInterface.SerialPort,port)
+	//	}
+	//}
+}
 
-		status,port := newSerialInterface(v)
-		serialInterface.SerialStatus = append(serialInterface.SerialStatus,status)
-		if status == true{
-			serialInterface.SerialPort = append(serialInterface.SerialPort,port)
-		}
+func serialOpen(index int){
+
+	if index > len(serialInterface.SerialParam){
+		log.Println("serial index is noexist")
+		return
+	}
+
+	status,port := newSerialInterface(serialInterface.SerialParam[index])
+	serialInterface.SerialStatus = append(serialInterface.SerialStatus,status)
+	if status == true{
+		serialInterface.SerialPort = append(serialInterface.SerialPort,port)
 	}
 }
+

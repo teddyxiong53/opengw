@@ -13,6 +13,7 @@ require (
 	github.com/shirou/gopsutil v2.20.5+incompatible
 	github.com/tarm/serial v0.0.0-20180830185346-98f6abe2eb07
 	github.com/thinkgos/gomodbus v1.5.2
+	github.com/thinkgos/gomodbus/v2 v2.1.7 // indirect
 	golang.org/x/net v0.0.0-20200625001655-4c5254603344 // indirect
 	golang.org/x/sync v0.0.0-20200625203802-6e8e738ad208
 )

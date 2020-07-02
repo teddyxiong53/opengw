@@ -78,12 +78,40 @@ func CommunicationManageDel(){
 
 						for k,v := range DeviceInterfaceMap[cmd.interfaceID].DeviceNodeMap{
 							log.Printf("index is %d\n",k)
-							v.GetDeviceRealVariables(cmd.deviceAddr)
-						}
+							//组包
+							txBuf := v.GetDeviceRealVariables(cmd.deviceAddr)
+							log.Printf("buf is %+v\n",txBuf)
+							//发送
+							serialInterface.SerialPort[cmd.interfaceID].Write(txBuf)
+							//等待接收
+							rxBufTemp  := make([]byte, 256)
+							rxBufTotal := make([]byte, 0)
+							var (
+								err           	error
+								curRxBufCnt   	int 	= 0
+								totalRxBufCnt 	int 	= 0
+							)
+							for {
+								//阻塞读
+								curRxBufCnt, err = serialInterface.SerialPort[cmd.interfaceID].Read(rxBufTemp)
+								if err != nil{
+									log.Println("threadModule read err,",err)
+									break
+								}
+								if curRxBufCnt > 0 {
+									totalRxBufCnt += curRxBufCnt
+									//追加接收的数据到接收缓冲区
+									rxBufTotal = append(rxBufTotal, rxBufTemp[:curRxBufCnt]...)
+									//清除数据
+									curRxBufCnt = 0
+								}
+							}
 
-						//通信帧延时
-						interval,_ := strconv.Atoi(serialInterface.SerialParam[0].Interval)
-						time.Sleep(time.Duration(interval)*time.Millisecond)
+
+							//通信帧延时
+							interval,_ := strconv.Atoi(serialInterface.SerialParam[0].Interval)
+							time.Sleep(time.Duration(interval)*time.Millisecond)
+						}
 					}
 				default:
 					time.Sleep(10*time.Millisecond)
