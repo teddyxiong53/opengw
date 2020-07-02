@@ -107,6 +107,12 @@ func routerWeb() http.Handler {
 			//
 			//删除节点
 			deviceRouter.DELETE("/node",apiDeleteNode)
+
+			//增加设备模板
+			deviceRouter.POST("/template",apiAddTemplate)
+
+			//获取设备模板
+			deviceRouter.GET("/template",apiGetTemplate)
 		}
 
 		remoteRouter := router.Group("/api/v1/remote")

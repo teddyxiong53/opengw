@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/gin-gonic/gin"
+	"log"
 	"net/http"
 	"strconv"
 )
@@ -283,4 +284,76 @@ func apiDeleteNode(context *gin.Context){
 
 	sJson,_ := json.Marshal(aParam)
 	context.String(http.StatusOK,string(sJson))
+}
+
+func apiAddTemplate(context *gin.Context){
+
+	aParam := struct{
+		Code string			`json:"Code"`
+		Message string		`json:"Message"`
+		Data string			`json:"Data"`
+	}{
+		Code:"1",
+		Message:"",
+		Data:"",
+	}
+
+	bodyBuf := make([]byte,1024)
+	n,_ := context.Request.Body.Read(bodyBuf)
+	fmt.Println(string(bodyBuf[:n]))
+
+	interfaceInfo := &struct{
+		TemplateName string					`json:"templateName"`		//模板名称
+		TemplateType string					`json:"templateType"`		//模板型号
+		TemplateMessage string              `json:"templateMessage"`	//备注信息
+	}{}
+
+	err := json.Unmarshal(bodyBuf[:n],interfaceInfo)
+	if err != nil {
+		fmt.Println("interfaceInfo json unMarshall err,",err)
+
+		aParam.Code = "1"
+		aParam.Message = "json unMarshall err"
+
+		sJson,_ := json.Marshal(aParam)
+		context.String(http.StatusOK,string(sJson))
+		return
+	}
+
+	index := len(DeviceInterfaceParamMap.DeviceNodeTypeMap)
+	template := DeviceNodeTypeTemplate{
+		TemplateName:interfaceInfo.TemplateName,
+		TemplateType:interfaceInfo.TemplateType,
+		TemplateID: index,
+		TemplateMessage:interfaceInfo.TemplateMessage,
+	}
+
+	DeviceInterfaceParamMap.DeviceNodeTypeMap = append(DeviceInterfaceParamMap.DeviceNodeTypeMap,template)
+
+	WriteDeviceInterfaceManageToJson()
+
+	aParam.Code = "0"
+	aParam.Data = ""
+
+	sJson,_ := json.Marshal(aParam)
+	context.String(http.StatusOK,string(sJson))
+}
+
+func apiGetTemplate(context *gin.Context){
+
+	aParam := &struct{
+		Code 	string
+		Message string
+		Data    []DeviceNodeTypeTemplate
+	}{}
+
+	log.Printf("%+v\n",DeviceInterfaceParamMap.DeviceNodeTypeMap)
+
+	aParam.Code = "0"
+	aParam.Message = ""
+	aParam.Data = DeviceInterfaceParamMap.DeviceNodeTypeMap
+
+	sJson, _ := json.Marshal(aParam)
+
+	context.String(http.StatusOK, string(sJson))
 }

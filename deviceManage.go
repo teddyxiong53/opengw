@@ -6,6 +6,13 @@ import (
 	"os"
 )
 
+type DeviceNodeTypeTemplate struct{
+	TemplateID   int					`json:"templateID"`			//模板ID
+	TemplateName string					`json:"templateName"`		//模板名称
+	TemplateType string					`json:"templateType"`		//模板型号
+	TemplateMessage string              `json:"templateMessage"`	//备注信息
+}
+
 type VariableTemplate struct{
 	Index   	int      										`json:"index"`			//变量偏移量
 	Name 		string											`json:"name"`			//变量名
@@ -20,6 +27,8 @@ type DeviceNodeInterface interface {
 	GetDeviceRealVariables(deviceAddr string) int
 	//设置设备变量
 	SetDeviceRealVariables(deviceAddr string) int
+	//创建设备变量
+	NewVariables()
 }
 
 //设备模板
@@ -58,6 +67,7 @@ type DeviceInterfaceParamTemplate struct{
 //配置参数
 type DeviceInterfaceParamMapTemplate struct {
 	DeviceInterfaceParam [MaxDeviceInterfaceManage]DeviceInterfaceParamTemplate
+	DeviceNodeTypeMap 	 []DeviceNodeTypeTemplate
 }
 
 
@@ -74,9 +84,12 @@ const (
 	InterFaceID7 int = 7
 
 	MaxDeviceNodeCnt int = 50
+
+	//最大设备模板数
+	MaxDeviceNodeTypeCnt int = 10
 )
 
-
+//var DeviceNodeTypeMap [MaxDeviceNodeTypeCnt]DeviceNodeTypeTemplate
 var DeviceInterfaceMap	[MaxDeviceInterfaceManage]*DeviceInterfaceTemplate
 var DeviceInterfaceParamMap DeviceInterfaceParamMapTemplate
 
@@ -104,6 +117,9 @@ func DeviceNodeManageInit(){
 			}
 		}
 	}else{
+		//初始化设备模板
+		DeviceInterfaceParamMap.DeviceNodeTypeMap = make([]DeviceNodeTypeTemplate,0)
+
 		for i:=0;i<MaxDeviceInterfaceManage;i++{
 			//创建接口实例
 			DeviceInterfaceMap[i] = NewDeviceInterface(i,
@@ -166,6 +182,7 @@ func WriteDeviceInterfaceManageToJson(){
 	}
 	defer fp.Close()
 
+
 	for k,v := range DeviceInterfaceMap{
 		DeviceInterfaceParamMap.DeviceInterfaceParam[k].InterfaceID = v.InterfaceID
 		DeviceInterfaceParamMap.DeviceInterfaceParam[k].PollPeriod = v.PollPeriod
@@ -201,6 +218,8 @@ func ReadDeviceInterfaceManageFromJson() bool{
 		data := make([]byte, 20480)
 		dataCnt, err := fp.Read(data)
 
+		DeviceInterfaceParamMap.DeviceNodeTypeMap = make([]DeviceNodeTypeTemplate,0)
+
 		err = json.Unmarshal(data[:dataCnt],&DeviceInterfaceParamMap)
 		if err != nil {
 			log.Println("deviceNodeManage unmarshal err", err)
@@ -232,12 +251,14 @@ func (d *DeviceInterfaceTemplate)NewDeviceNode(dAddr string,dType string){
 
 
 	if dType == "modbus"{
-		node := DeviceNodeModbusTemplate{}
+		index := len(d.DeviceNodeMap)
+		node := &DeviceNodeModbusTemplate{}
 		node.Addr = dAddr
 		node.Type = dType
+		node.Index = index
 		d.DeviceNodeMap = append(d.DeviceNodeMap,node)
+		d.DeviceNodeMap[index].NewVariables()
 	}
-
 
 }
 
@@ -249,21 +270,18 @@ func (d *DeviceInterfaceTemplate)AddDeviceNode(dAddr string,dType string) (bool,
 		}
 	}
 	if dType == "modbus"{
-		node := DeviceNodeModbusTemplate{}
+		index := len(d.DeviceNodeMap)
+		node := &DeviceNodeModbusTemplate{}
 		node.Addr = dAddr
 		node.Type = dType
+		node.Index = index
 		d.DeviceNodeMap = append(d.DeviceNodeMap,node)
 		d.DeviceNodeAddrMap = append(d.DeviceNodeAddrMap,dAddr)
 		d.DeviceNodeTypeMap = append(d.DeviceNodeTypeMap,dType)
+		d.DeviceNodeMap[index].NewVariables()
 		d.DeviceNodeCnt++
 	}else if dType == "modbus2"{
-		node := DeviceNodeModbus2Template{}
-		node.Addr = dAddr
-		node.Type = dType
-		d.DeviceNodeMap = append(d.DeviceNodeMap,node)
-		d.DeviceNodeAddrMap = append(d.DeviceNodeAddrMap,dAddr)
-		d.DeviceNodeTypeMap = append(d.DeviceNodeTypeMap,dType)
-		d.DeviceNodeCnt++
+
 	}
 
 

@@ -115,7 +115,7 @@ func CommunicationManagePoll(){
 		cmd.interfaceID = InterFaceID0
 		cmd.deviceAddr = DeviceInterfaceMap[InterFaceID0].DeviceNodeAddrMap[i]
 		cmd.deviceType = DeviceInterfaceMap[InterFaceID0].DeviceNodeTypeMap[i]
-		cmd.funName = "modbus test"
+		cmd.funName = "GetDeviceRealVariables"
 
 		CommunicationManageAdd(cmd)
 	}
