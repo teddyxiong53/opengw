@@ -7,6 +7,7 @@ import (
 	"log"
 	"os"
 	"strconv"
+	"time"
 )
 
 type SerialParamTemplate struct{
@@ -57,6 +58,7 @@ func newSerialInterface(param SerialParamTemplate) (bool,*serial.Port){
 		Baud: serialBaud,
 		Parity:serialParity,
 		StopBits: serialStop,
+		ReadTimeout: time.Millisecond*1,
 	}
 
 	serial, err := serial.OpenPort(serialConfig)

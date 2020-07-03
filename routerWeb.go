@@ -101,10 +101,10 @@ func routerWeb() http.Handler {
 
 			//修改节点
 			deviceRouter.PUT("/node",apiModifyNode)
-			//
-			////查看节点
-			//deviceRouter.GET("/node",apiCheckNode)
-			//
+
+			//查看节点
+			deviceRouter.GET("/node",apiGetNode)
+
 			//删除节点
 			deviceRouter.DELETE("/node",apiDeleteNode)
 

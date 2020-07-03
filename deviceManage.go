@@ -29,6 +29,10 @@ type DeviceNodeInterface interface {
 	SetDeviceRealVariables(deviceAddr string) int
 	//创建设备变量
 	NewVariables()
+	//接收解析
+	ProcessRx(rxChan chan bool,rxBuf []byte,rxBufCnt int) chan bool
+	//获取设备变量值
+	GetDeviceVariablesValue() []VariableTemplate
 }
 
 //设备模板

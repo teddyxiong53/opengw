@@ -5,6 +5,7 @@ import (
 	"log"
 	"strconv"
 	"sync"
+	"time"
 )
 
 type DeviceNodeModbusTemplate struct{
@@ -55,90 +56,52 @@ func crc16(bs []byte) uint16 {
 	return val
 }
 
-func (d *DeviceNodeModbusTemplate)ProcessRx(){
+func (d *DeviceNodeModbusTemplate)ProcessRx(rxChan chan bool,rxBuf []byte,rxBufCnt int) chan bool{
 
-
-	var (
-		curRxBufCnt   	int 	= 0
-		totalRxBufCnt 	int 	= 0
-		err           	error
-		index         	int 	= 0
-		frameLen        byte    = 0
-		frameHeader   	uint16 	= 0
-		frameType    	byte 	= 0
-		framePayloadLen byte  	= 0
-		frameParam      ThreadModuleFrameParam
-		crc             byte
-	)
-
-	rxBufTemp := make([]byte, 256)
-	rxBufTotal := make([]byte, 0)
-
-	framePayload := make([]byte,0)
-
+	index := 0
+	//status := false
 	for {
-		//阻塞读
-		curRxBufCnt, err = serialInterface.SerialPort[0].Read(rxBufTemp)
-		if err != nil{
-			log.Println("threadModule read err,",err)
-			return
-		}
-		if curRxBufCnt > 0{
-			totalRxBufCnt += curRxBufCnt
-
-			//追加接收的数据到接收缓冲区
-			rxBufTotal = append(rxBufTotal,rxBufTemp[:curRxBufCnt]...)
-			//清除数据
-			curRxBufCnt = 0
-
-			//log.Println("totalRxBufCnt:",totalRxBufCnt)
-			//threadModuleLogHex(1,rxBufTotal)
-
-			index = 0
-			for {
-				//log.Printf("index:%d\n",index)
-				if index < totalRxBufCnt{
-					if (totalRxBufCnt>=5) && (index+5<=totalRxBufCnt) {
-						frameHeader = binary.BigEndian.Uint16(rxBufTotal[index:])
-						frameType = rxBufTotal[2+index]
-						framePayloadLen = rxBufTotal[3+index]
-						if frameHeader == 0xFEA5{
-							//log.Println("header sucess")
-							//估算完整数据帧的长度
-							frameLen = framePayloadLen + 5
-							if int(frameLen)+index <= totalRxBufCnt{
-								crc = threadModuleGetCRC(rxBufTotal[2+index:],int(framePayloadLen+2))
-								if crc == rxBufTotal[index+int(framePayloadLen)+4]{
-									//log.Println("crc sucess")
-
-									framePayload = append(framePayload,rxBufTotal[index+4:index+4+int(framePayloadLen)]...)
-
-									frameParam.FrameType = frameType
-									frameParam.FramePayloadLen = framePayloadLen
-									frameParam.FramePayload = framePayload
-									//log.Printf("FrameType:%v,FramePayloadLen:%v,FramePayload:%v \n",
-									//	frameParam.FrameType,frameParam.FramePayloadLen,frameParam.FramePayload)
-
-									FrameParamChan <- frameParam
-
-									framePayload = framePayload[0:0]
-									rxBufTotal = rxBufTotal[0:0]
-									framePayloadLen = 0
-									//totalRxBufCnt -= int(frameLen)
-									totalRxBufCnt = 0
-
-									break
-								}
-							}
-						}
-					}
-					index++
-				}else{
-					break
-				}
+		//log.Printf("proRX index:%d\n",index)
+		if index < rxBufCnt{
+			if rxBufCnt < 4{
+				//rxChan<- false
+				return rxChan
 			}
+			crc := crc16(rxBuf[0:len(rxBuf)-2])
+			expect := binary.LittleEndian.Uint16(rxBuf[len(rxBuf)-2:])
+			if crc != expect{
+				//rxChan<- false
+				return rxChan
+			}
+			addr,_ := strconv.Atoi(d.Addr)
+			if rxBuf[0] != byte(addr){
+				//rxChan<- false
+				return rxChan
+			}
+			if rxBuf[1] != 0x03{
+				//rxChan<- false
+				return rxChan
+					}
+			if rxBuf[2] != 4{
+				//rxChan<- false
+				return rxChan
+			}
+			log.Println("processRx ok")
+			d.CommSuccessCnt++
+
+			timeNowStr := time.Now().Format("2006-01-02 15:04:05")
+			d.VariableMap[0].Value = "1"
+			d.VariableMap[0].TimeStamp = timeNowStr
+
+			rxChan<- true
+			return rxChan
+		}else{
+			break
 		}
+		index++
 	}
+	//rxChan<- false
+	return rxChan
 }
 
 func (d *DeviceNodeModbusTemplate)GetDeviceRealVariables(deviceAddr string) []byte{
@@ -153,6 +116,8 @@ func (d *DeviceNodeModbusTemplate)GetDeviceRealVariables(deviceAddr string) []by
 
 	checksum := crc16(requestAdu)
 	requestAdu = append(requestAdu,byte(checksum),byte(checksum>>8))
+
+	d.CommTotalCnt++
 
 	return requestAdu
 }
@@ -201,5 +166,8 @@ func (d *DeviceNodeModbusTemplate)NewVariables() {
 	d.AddVariable(20,"HighTotalTime","高速累计时间","uint32")
 }
 
+func (d *DeviceNodeModbusTemplate)GetDeviceVariablesValue() []VariableTemplate{
 
+	return d.VariableMap
+}
 

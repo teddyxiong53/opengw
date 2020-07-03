@@ -241,6 +241,34 @@ func apiModifyNode(context *gin.Context){
 	context.String(http.StatusOK,string(sJson))
 }
 
+func apiGetNode(context *gin.Context){
+
+	sID := context.Query("interfaceID")
+	sAddr := context.Query("addr")
+
+	aParam := &struct{
+		Code 	string
+		Message string
+		Data    []VariableTemplate
+	}{}
+
+	iID,_ := strconv.Atoi(sID)
+	for k,v := range DeviceInterfaceMap[iID].DeviceNodeAddrMap{
+		if v == sAddr{
+			aParam.Code = "0"
+			aParam.Message = ""
+			aParam.Data = DeviceInterfaceMap[iID].DeviceNodeMap[k].GetDeviceVariablesValue()
+			sJson, _ := json.Marshal(aParam)
+			context.String(http.StatusOK, string(sJson))
+			return
+		}
+	}
+	aParam.Code = "1"
+	aParam.Message = "node is noexist"
+	sJson, _ := json.Marshal(aParam)
+	context.String(http.StatusOK, string(sJson))
+}
+
 func apiDeleteNode(context *gin.Context){
 
 	aParam := struct{
