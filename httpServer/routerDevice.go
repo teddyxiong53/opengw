@@ -258,7 +258,7 @@ func apiGetNode(context *gin.Context){
 		if v == sAddr{
 			aParam.Code = "0"
 			aParam.Message = ""
-			aParam.Data = device.DeviceInterfaceMap[iID].DeviceNodeMap[k].VariableMap
+			aParam.Data = device.DeviceInterfaceMap[iID].DeviceNodeMap[k].GetDeviceVariablesValue()
 			sJson, _ := json.Marshal(aParam)
 			context.String(http.StatusOK, string(sJson))
 			return

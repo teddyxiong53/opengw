@@ -56,6 +56,18 @@ func crc16(bs []byte) uint16 {
 	return val
 }
 
+func (d *DeviceNodeModbusTemplate)New(index int,dType string,dAddr string) DeviceNodeInterface{
+	node := &DeviceNodeModbusTemplate{
+		DeviceNodeTemplate: DeviceNodeTemplate{
+			Addr: dAddr,
+			Type: dType,
+			Index: index,
+		},
+	}
+	node.NewVariables()
+	return node
+}
+
 func (d *DeviceNodeModbusTemplate)ProcessRx(rxChan chan bool,rxBuf []byte,rxBufCnt int) chan bool{
 
 	index := 0

@@ -35,6 +35,12 @@ type DeviceNodeInterface interface {
 	ProcessRx(rxChan chan bool,rxBuf []byte,rxBufCnt int) chan bool
 	//获取设备变量值
 	GetDeviceVariablesValue() []VariableTemplate
+
+	//New(index int,dType string,dAddr string)DeviceNodeInterface
+}
+
+type Build interface{
+	New(index int,dAddr string,dType string)DeviceNodeInterface
 }
 
 //设备模板
@@ -47,7 +53,6 @@ type DeviceNodeTemplate struct{
 	CommSuccessCnt 		int										`json:"CommSuccessCnt"`			//通信成功次数
 	CommStatus 			string         							`json:"CommStatus"`				//通信状态
 	VariableMap    		[]VariableTemplate						`json:"-"`						//变量列表
-	DeviceNodeInterface                                         `json:"-"`
 }
 
 //接口模板
@@ -56,7 +61,7 @@ type DeviceInterfaceTemplate struct{
 	PollPeriod 			int										`json:"PollPeriod"`				//采集周期
 	OfflinePeriod 		int      								`json:"OfflinePeriod"`			//离线超时周期
 	DeviceNodeCnt       int                 					`json:"DeviceNodeCnt"`			//设备数量
-	DeviceNodeMap       []*DeviceNodeTemplate 					`json:"DeviceNodeMap"`			//节点表
+	DeviceNodeMap       []DeviceNodeInterface 					`json:"DeviceNodeMap"`			//节点表
 	DeviceNodeAddrMap   []string 								`json:"DeviceAddrMap"`			//节点地址
 	DeviceNodeTypeMap   []string 								`json:"DeviceTypeMap"`			//节点类型
 }
@@ -229,7 +234,7 @@ func NewDeviceInterface(interfaceID,pollPeriod,offlinePeriod int,deviceNodeCnt i
 		PollPeriod		: pollPeriod,
 		OfflinePeriod	: offlinePeriod,
 		DeviceNodeCnt	: deviceNodeCnt,
-		DeviceNodeMap   : make([]*DeviceNodeTemplate,0),
+		DeviceNodeMap   : make([]DeviceNodeInterface,0),
 		DeviceNodeAddrMap   : make([]string,0),
 		DeviceNodeTypeMap   : make([]string,0),
 	}
@@ -256,6 +261,12 @@ func (d *DeviceInterfaceTemplate)ModifyDeviceInterface(pollPeriod,offlinePeriod 
 	d.OfflinePeriod = offlinePeriod
 }
 
+var DeviceTemplateMap = map[string]Build{
+	"modbus": &DeviceNodeModbusTemplate{},
+}
+
+DeviceTemplateMap
+
 /********************************************************
 功能描述：	增加单个节点
 参数说明：
@@ -266,45 +277,52 @@ func (d *DeviceInterfaceTemplate)ModifyDeviceInterface(pollPeriod,offlinePeriod 
 注意事项：
 日期    ：
 ********************************************************/
-func (d *DeviceInterfaceTemplate)NewDeviceNode(dAddr string,dType string){
+func (d *DeviceInterfaceTemplate)NewDeviceNode(dType string,dAddr string){
 
-
-	if dType == "modbus"{
-		index := len(d.DeviceNodeMap)
-		node := &DeviceNodeTemplate{}
-		node.Addr = dAddr
-		node.Type = dType
-		node.Index = index
-		d.DeviceNodeMap = append(d.DeviceNodeMap,node)
-		d.DeviceNodeMap[index].DeviceNodeInterface = &DeviceNodeModbusTemplate{}
-		d.DeviceNodeMap[index].NewVariables()
+	builder,ok := DeviceTemplateMap[dType]
+	if !ok{
+		log.Println("deviceNodeType is not exist")
 	}
+
+	index := len(d.DeviceNodeMap)
+	node := builder.New(index,dType,dAddr)
+	d.DeviceNodeMap = append(d.DeviceNodeMap,node)
 
 }
 
-func (d *DeviceInterfaceTemplate)AddDeviceNode(dAddr string,dType string) (bool,string){
+func (d *DeviceInterfaceTemplate)AddDeviceNode(dType string,dAddr string) (bool,string){
 
-	for _,v := range d.DeviceNodeAddrMap{
-		if v == dAddr{
-			return false,"addr is exist"
-		}
+	//for _,v := range d.DeviceNodeAddrMap{
+	//	if v == dAddr{
+	//		return false,"addr is exist"
+	//	}
+	//}
+	//if dType == "modbus"{
+	//	index := len(d.DeviceNodeMap)
+	//	node := &DeviceNodeModbusTemplate{}
+	//	node.Addr = dAddr
+	//	node.Type = dType
+	//	node.Index = index
+	//	d.DeviceNodeMap = append(d.DeviceNodeMap,node)
+	//	d.DeviceNodeAddrMap = append(d.DeviceNodeAddrMap,dAddr)
+	//	d.DeviceNodeTypeMap = append(d.DeviceNodeTypeMap,dType)
+	//	d.DeviceNodeMap[index].NewVariables()
+	//	d.DeviceNodeCnt++
+	//}else if dType == "modbus2"{
+	//
+	//}
+
+	builder,ok := DeviceTemplateMap[dType]
+	if !ok{
+		log.Println("deviceNodeType is not exist")
 	}
-	if dType == "modbus"{
-		index := len(d.DeviceNodeMap)
-		node := &DeviceNodeTemplate{}
-		node.Addr = dAddr
-		node.Type = dType
-		node.Index = index
-		d.DeviceNodeMap = append(d.DeviceNodeMap,node)
-		d.DeviceNodeMap[index].DeviceNodeInterface = &DeviceNodeModbusTemplate{}
-		d.DeviceNodeAddrMap = append(d.DeviceNodeAddrMap,dAddr)
-		d.DeviceNodeTypeMap = append(d.DeviceNodeTypeMap,dType)
-		d.DeviceNodeMap[index].NewVariables()
-		d.DeviceNodeCnt++
-	}else if dType == "modbus2"{
 
-	}
-
+	index := len(d.DeviceNodeMap)
+	node := builder.New(index,dType,dAddr)
+	d.DeviceNodeMap = append(d.DeviceNodeMap,node)
+	d.DeviceNodeAddrMap = append(d.DeviceNodeAddrMap,dAddr)
+	d.DeviceNodeTypeMap = append(d.DeviceNodeTypeMap,dType)
+	d.DeviceNodeCnt++
 
 	return true,"add success"
 }
