@@ -158,15 +158,15 @@ func CommunicationManageAddEmergencyTest(){
 
 func CommunicationManagePoll(){
 
-	cmd := CommunicationCmd{}
-
-	for i:=0;i<DeviceInterfaceMap[InterFaceID0].DeviceNodeCnt;i++{
-
-		cmd.interfaceID = InterFaceID0
-		cmd.deviceAddr = DeviceInterfaceMap[InterFaceID0].DeviceNodeAddrMap[i]
-		cmd.deviceType = DeviceInterfaceMap[InterFaceID0].DeviceNodeTypeMap[i]
-		cmd.funName = "GetDeviceRealVariables"
-
-		CommunicationManageAdd(cmd)
-	}
+	//cmd := CommunicationCmd{}
+	//
+	//for i:=0;i<DeviceInterfaceMap[InterFaceID0].DeviceNodeCnt;i++{
+	//
+	//	cmd.interfaceID = InterFaceID0
+	//	cmd.deviceAddr = DeviceInterfaceMap[InterFaceID0].DeviceNodeAddrMap[i]
+	//	cmd.deviceType = DeviceInterfaceMap[InterFaceID0].DeviceNodeTypeMap[i]
+	//	cmd.funName = "GetDeviceRealVariables"
+	//
+	//	CommunicationManageAdd(cmd)
+	//}
 }

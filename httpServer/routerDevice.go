@@ -183,7 +183,7 @@ func apiAddNode(context *gin.Context){
 	}
 
 	var status bool
-	status,aParam.Message = device.DeviceInterfaceMap[nodeInfo.InterfaceID].AddDeviceNode(nodeInfo.DAddr,nodeInfo.DType)
+	status,aParam.Message = device.DeviceInterfaceMap[nodeInfo.InterfaceID].AddDeviceNode(nodeInfo.DType,nodeInfo.DAddr)
 	if status == true{
 		device.WriteDeviceInterfaceManageToJson()
 

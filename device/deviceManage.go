@@ -35,8 +35,6 @@ type DeviceNodeInterface interface {
 	ProcessRx(rxChan chan bool,rxBuf []byte,rxBufCnt int) chan bool
 	//获取设备变量值
 	GetDeviceVariablesValue() []VariableTemplate
-
-	//New(index int,dType string,dAddr string)DeviceNodeInterface
 }
 
 type Build interface{
@@ -104,7 +102,9 @@ const (
 //var DeviceNodeTypeMap [MaxDeviceNodeTypeCnt]DeviceNodeTypeTemplate
 var DeviceInterfaceMap	[MaxDeviceInterfaceManage]*DeviceInterfaceTemplate
 var DeviceInterfaceParamMap DeviceInterfaceParamMapTemplate
-
+var DeviceTemplateMap = map[string]Build{
+	"modbus":&DeviceNodeModbusTemplate{},
+}
 
 func WriteDeviceInterfaceManageToJson(){
 
@@ -127,8 +127,6 @@ func WriteDeviceInterfaceManageToJson(){
 		DeviceInterfaceParamMap.DeviceInterfaceParam[k].DeviceNodeCnt = v.DeviceNodeCnt
 		DeviceInterfaceParamMap.DeviceInterfaceParam[k].DeviceNodeAddrMap = v.DeviceNodeAddrMap
 		DeviceInterfaceParamMap.DeviceInterfaceParam[k].DeviceNodeTypeMap = v.DeviceNodeTypeMap
-
-
 	}
 
 	sJson,_ := json.Marshal(DeviceInterfaceParamMap)
@@ -199,8 +197,8 @@ func DeviceNodeManageInit(){
 			//创建设备实例
 			for i:=0;i<v.DeviceNodeCnt;i++{
 				DeviceInterfaceMap[k].NewDeviceNode(
-					v.DeviceNodeAddrMap[i],
-					v.DeviceNodeTypeMap[i])
+					v.DeviceNodeTypeMap[i],
+					v.DeviceNodeAddrMap[i])
 			}
 		}
 	}else{
@@ -261,12 +259,6 @@ func (d *DeviceInterfaceTemplate)ModifyDeviceInterface(pollPeriod,offlinePeriod 
 	d.OfflinePeriod = offlinePeriod
 }
 
-var DeviceTemplateMap = map[string]Build{
-	"modbus": &DeviceNodeModbusTemplate{},
-}
-
-DeviceTemplateMap
-
 /********************************************************
 功能描述：	增加单个节点
 参数说明：
@@ -281,7 +273,7 @@ func (d *DeviceInterfaceTemplate)NewDeviceNode(dType string,dAddr string){
 
 	builder,ok := DeviceTemplateMap[dType]
 	if !ok{
-		log.Println("deviceNodeType is not exist")
+		panic("deviceNodeType is not exist")
 	}
 
 	index := len(d.DeviceNodeMap)
@@ -312,9 +304,10 @@ func (d *DeviceInterfaceTemplate)AddDeviceNode(dType string,dAddr string) (bool,
 	//
 	//}
 
+	log.Printf("dType is %s\n",dType)
 	builder,ok := DeviceTemplateMap[dType]
 	if !ok{
-		log.Println("deviceNodeType is not exist")
+		panic("deviceNodeType is not exist")
 	}
 
 	index := len(d.DeviceNodeMap)
