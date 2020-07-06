@@ -47,6 +47,7 @@ type DeviceNodeTemplate struct{
 	CommSuccessCnt 		int										`json:"CommSuccessCnt"`			//通信成功次数
 	CommStatus 			string         							`json:"CommStatus"`				//通信状态
 	VariableMap    		[]VariableTemplate						`json:"-"`						//变量列表
+	DeviceNodeInterface                                         `json:"-"`
 }
 
 //接口模板
@@ -55,7 +56,7 @@ type DeviceInterfaceTemplate struct{
 	PollPeriod 			int										`json:"PollPeriod"`				//采集周期
 	OfflinePeriod 		int      								`json:"OfflinePeriod"`			//离线超时周期
 	DeviceNodeCnt       int                 					`json:"DeviceNodeCnt"`			//设备数量
-	DeviceNodeMap       []DeviceNodeInterface 					`json:"DeviceNodeMap"`			//节点表
+	DeviceNodeMap       []*DeviceNodeTemplate 					`json:"DeviceNodeMap"`			//节点表
 	DeviceNodeAddrMap   []string 								`json:"DeviceAddrMap"`			//节点地址
 	DeviceNodeTypeMap   []string 								`json:"DeviceTypeMap"`			//节点类型
 }
@@ -99,86 +100,6 @@ const (
 var DeviceInterfaceMap	[MaxDeviceInterfaceManage]*DeviceInterfaceTemplate
 var DeviceInterfaceParamMap DeviceInterfaceParamMapTemplate
 
-func DeviceNodeManageInit(){
-
-	if ReadDeviceInterfaceManageFromJson() == true{
-		log.Println("read interface json ok")
-
-		for k,v := range DeviceInterfaceParamMap.DeviceInterfaceParam{
-
-			//创建接口实例
-			DeviceInterfaceMap[k] = NewDeviceInterface(k,
-				v.PollPeriod,
-				v.OfflinePeriod,
-				v.DeviceNodeCnt)
-
-			DeviceInterfaceMap[k].DeviceNodeAddrMap = v.DeviceNodeAddrMap
-			DeviceInterfaceMap[k].DeviceNodeTypeMap = v.DeviceNodeTypeMap
-
-			//创建设备实例
-			for i:=0;i<v.DeviceNodeCnt;i++{
-				DeviceInterfaceMap[k].NewDeviceNode(
-					v.DeviceNodeAddrMap[i],
-					v.DeviceNodeTypeMap[i])
-			}
-		}
-	}else{
-		//初始化设备模板
-		DeviceInterfaceParamMap.DeviceNodeTypeMap = make([]DeviceNodeTypeTemplate,0)
-
-		for i:=0;i<MaxDeviceInterfaceManage;i++{
-			//创建接口实例
-			DeviceInterfaceMap[i] = NewDeviceInterface(i,
-				60,
-				180,
-				0)
-		}
-	}
-}
-
-/********************************************************
-功能描述：	增加接口
-参数说明：
-返回说明：
-调用方式：
-全局变量：
-读写时间：
-注意事项：
-日期    ：
-********************************************************/
-func NewDeviceInterface(interfaceID,pollPeriod,offlinePeriod int,deviceNodeCnt int) *DeviceInterfaceTemplate{
-
-	nodeManage := &DeviceInterfaceTemplate{
-		InterfaceID		: interfaceID,
-		PollPeriod		: pollPeriod,
-		OfflinePeriod	: offlinePeriod,
-		DeviceNodeCnt	: deviceNodeCnt,
-		DeviceNodeMap   : make([]DeviceNodeInterface,0),
-		DeviceNodeAddrMap   : make([]string,0),
-		DeviceNodeTypeMap   : make([]string,0),
-	}
-
-	//打开串口
-	setting.SerialOpen(nodeManage.InterfaceID)
-
-	return nodeManage
-}
-
-/********************************************************
-功能描述：	修改接口
-参数说明：
-返回说明：
-调用方式：
-全局变量：
-读写时间：
-注意事项：
-日期    ：
-********************************************************/
-func (d *DeviceInterfaceTemplate)ModifyDeviceInterface(pollPeriod,offlinePeriod int){
-
-	d.PollPeriod = pollPeriod
-	d.OfflinePeriod = offlinePeriod
-}
 
 func WriteDeviceInterfaceManageToJson(){
 
@@ -254,6 +175,87 @@ func ReadDeviceInterfaceManageFromJson() bool{
 	}
 }
 
+func DeviceNodeManageInit(){
+
+	if ReadDeviceInterfaceManageFromJson() == true{
+		log.Println("read interface json ok")
+
+		for k,v := range DeviceInterfaceParamMap.DeviceInterfaceParam{
+
+			//创建接口实例
+			DeviceInterfaceMap[k] = NewDeviceInterface(k,
+				v.PollPeriod,
+				v.OfflinePeriod,
+				v.DeviceNodeCnt)
+
+			DeviceInterfaceMap[k].DeviceNodeAddrMap = v.DeviceNodeAddrMap
+			DeviceInterfaceMap[k].DeviceNodeTypeMap = v.DeviceNodeTypeMap
+
+			//创建设备实例
+			for i:=0;i<v.DeviceNodeCnt;i++{
+				DeviceInterfaceMap[k].NewDeviceNode(
+					v.DeviceNodeAddrMap[i],
+					v.DeviceNodeTypeMap[i])
+			}
+		}
+	}else{
+		//初始化设备模板
+		DeviceInterfaceParamMap.DeviceNodeTypeMap = make([]DeviceNodeTypeTemplate,0)
+
+		for i:=0;i<MaxDeviceInterfaceManage;i++{
+			//创建接口实例
+			DeviceInterfaceMap[i] = NewDeviceInterface(i,
+				60,
+				180,
+				0)
+		}
+	}
+}
+
+/********************************************************
+功能描述：	增加接口
+参数说明：
+返回说明：
+调用方式：
+全局变量：
+读写时间：
+注意事项：
+日期    ：
+********************************************************/
+func NewDeviceInterface(interfaceID,pollPeriod,offlinePeriod int,deviceNodeCnt int) *DeviceInterfaceTemplate{
+
+	nodeManage := &DeviceInterfaceTemplate{
+		InterfaceID		: interfaceID,
+		PollPeriod		: pollPeriod,
+		OfflinePeriod	: offlinePeriod,
+		DeviceNodeCnt	: deviceNodeCnt,
+		DeviceNodeMap   : make([]*DeviceNodeTemplate,0),
+		DeviceNodeAddrMap   : make([]string,0),
+		DeviceNodeTypeMap   : make([]string,0),
+	}
+
+	//打开串口
+	setting.SerialOpen(nodeManage.InterfaceID)
+
+	return nodeManage
+}
+
+/********************************************************
+功能描述：	修改接口
+参数说明：
+返回说明：
+调用方式：
+全局变量：
+读写时间：
+注意事项：
+日期    ：
+********************************************************/
+func (d *DeviceInterfaceTemplate)ModifyDeviceInterface(pollPeriod,offlinePeriod int){
+
+	d.PollPeriod = pollPeriod
+	d.OfflinePeriod = offlinePeriod
+}
+
 /********************************************************
 功能描述：	增加单个节点
 参数说明：
@@ -269,11 +271,12 @@ func (d *DeviceInterfaceTemplate)NewDeviceNode(dAddr string,dType string){
 
 	if dType == "modbus"{
 		index := len(d.DeviceNodeMap)
-		node := &DeviceNodeModbusTemplate{}
+		node := &DeviceNodeTemplate{}
 		node.Addr = dAddr
 		node.Type = dType
 		node.Index = index
 		d.DeviceNodeMap = append(d.DeviceNodeMap,node)
+		d.DeviceNodeMap[index].DeviceNodeInterface = &DeviceNodeModbusTemplate{}
 		d.DeviceNodeMap[index].NewVariables()
 	}
 
@@ -288,11 +291,12 @@ func (d *DeviceInterfaceTemplate)AddDeviceNode(dAddr string,dType string) (bool,
 	}
 	if dType == "modbus"{
 		index := len(d.DeviceNodeMap)
-		node := &DeviceNodeModbusTemplate{}
+		node := &DeviceNodeTemplate{}
 		node.Addr = dAddr
 		node.Type = dType
 		node.Index = index
 		d.DeviceNodeMap = append(d.DeviceNodeMap,node)
+		d.DeviceNodeMap[index].DeviceNodeInterface = &DeviceNodeModbusTemplate{}
 		d.DeviceNodeAddrMap = append(d.DeviceNodeAddrMap,dAddr)
 		d.DeviceNodeTypeMap = append(d.DeviceNodeTypeMap,dType)
 		d.DeviceNodeMap[index].NewVariables()
