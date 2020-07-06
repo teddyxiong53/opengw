@@ -1,8 +1,9 @@
-package main
+package config
 
 import (
 	"encoding/json"
 	"fmt"
+	"goAdapter/setting"
 	"log"
 	"os"
 	"path/filepath"
@@ -12,7 +13,7 @@ var exeCurDir    string
 
 
 /**************获取配置信息************************/
-func getConf(){
+func GetConf(){
 	exeCurDir, _ = filepath.Abs(filepath.Dir(os.Args[0]))
 	log.Println(exeCurDir)
 
@@ -20,8 +21,12 @@ func getConf(){
 	//	fmt.Println("read serialParam",serialParamList)
 	//}
 
-	if networkParaRead(&networkParamList) == true{
-		for _,v := range networkParamList.NetworkParam{
+	if SerialParaRead() == true{
+
+	}
+
+	if NetworkParaRead() == true{
+		for _,v := range setting.NetworkParamList.NetworkParam{
 			log.Printf("networkParam %s,%+v\n",v.Name,v)
 		}
 	}
@@ -33,8 +38,7 @@ func FileExist(path string) bool {
 	return !os.IsNotExist(err)
 }
 
-/*
-func serialParaRead(param *SerialParamList) bool{
+func SerialParaRead() bool{
 
 	fileDir := exeCurDir + "/selfpara/serialpara.json"
 
@@ -49,18 +53,10 @@ func serialParaRead(param *SerialParamList) bool{
 		data := make([]byte, 500)
 		dataCnt, err := fp.Read(data)
 
-		err = json.Unmarshal(data[:dataCnt],param)
+		setting.SerialInterface.SerialParam = make([]setting.SerialParamTemplate,0)
+		err = json.Unmarshal(data[:dataCnt],&setting.SerialInterface)
 		if err != nil{
 			fmt.Println("serialpara unmarshal err",err)
-
-			serialParamList.SerialParam = append(serialParamList.SerialParam,SerialParam{
-				Name     : "/dev/ttyUSB1",
-				BaudRate : "9600",
-				DataBits : "8",
-				StopBits : "1",
-				Parity   : "N",
-				Timeout  : "1000"})
-			serialParaWrite(serialParamList)
 
 			return false
 		}
@@ -77,30 +73,26 @@ func serialParaRead(param *SerialParamList) bool{
 		}
 		defer fp.Close()
 
-		serialParamList.SerialParam = append(serialParamList.SerialParam,SerialParam{
-			ID       : "1",
-			Name     : "/dev/ttyUSB1",
-			BaudRate : "9600",
-			DataBits : "8",
-			StopBits : "1",
-			Parity   : "N",
-			Timeout  : "1000"})
-		serialParamList.SerialParam = append(serialParamList.SerialParam,SerialParam{
-			ID       : "2",
-			Name     : "/dev/ttyUSB2",
-			BaudRate : "9600",
-			DataBits : "8",
-			StopBits : "1",
-			Parity   : "N",
-			Timeout  : "1000"})
-		serialParaWrite(serialParamList)
+		setting.SerialInterface.SerialParam = make([]setting.SerialParamTemplate,0)
 
-		return true
+		setting.SerialInterface.SerialParam = append(setting.SerialInterface.SerialParam,setting.SerialParamTemplate{
+			ID       : "1",
+			Name     : "/dev/ttyUSB0",
+			BaudRate : "9600",
+			DataBits : "8",
+			StopBits : "1",
+			Parity   : "N",
+			Timeout  : "1000",
+			Interval : "1000"})
+
+		SerialParaWrite()
+
+		return false
 	}
 }
 
 
-func serialParaWrite(param SerialParamList){
+func SerialParaWrite(){
 
 	fileDir := exeCurDir + "/selfpara/serialpara.json"
 
@@ -111,7 +103,7 @@ func serialParaWrite(param SerialParamList){
 	}
 	defer fp.Close()
 
-	sJson,_ := json.Marshal(param)
+	sJson,_ := json.Marshal(setting.SerialInterface)
 	fmt.Println(string(sJson))
 
 	_, err = fp.Write(sJson)
@@ -121,9 +113,7 @@ func serialParaWrite(param SerialParamList){
 	fmt.Println("write serialpara.json sucess")
 }
 
- */
-
-func networkParaRead(param *NetworkParamList) bool{
+func NetworkParaRead() bool{
 
 	fileDir := exeCurDir + "/selfpara/networkpara.json"
 
@@ -140,7 +130,7 @@ func networkParaRead(param *NetworkParamList) bool{
 
 		//fmt.Println(string(data[:dataCnt]))
 
-		err = json.Unmarshal(data[:dataCnt], param)
+		err = json.Unmarshal(data[:dataCnt], &setting.NetworkParamList)
 		if err != nil {
 			fmt.Println("networkpara unmarshal err", err)
 
@@ -159,27 +149,27 @@ func networkParaRead(param *NetworkParamList) bool{
 		}
 		defer fp.Close()
 
-		networkParamList.NetworkParam = append(networkParamList.NetworkParam,NetworkParam{
+		setting.NetworkParamList.NetworkParam = append(setting.NetworkParamList.NetworkParam,setting.NetworkParamTemplate{
 			ID        : "1",
 			Name      : "eth0",
 			DHCP      : "1",
 			IP        : "192.168.4.156",
 			Netmask   : "255.255.255.0",
 			Broadcast : "192.168.4.255"})
-		networkParamList.NetworkParam = append(networkParamList.NetworkParam,NetworkParam{
+		setting.NetworkParamList.NetworkParam = append(setting.NetworkParamList.NetworkParam,setting.NetworkParamTemplate{
 			ID        : "2",
 			Name      : "eth1",
 			DHCP      : "1",
 			IP        : "192.168.4.156",
 			Netmask   : "255.255.255.0",
 			Broadcast : "192.168.4.255"})
-		networkParaWrite(networkParamList)
+		NetworkParaWrite()
 
 		return true
 	}
 }
 
-func networkParaWrite(param NetworkParamList){
+func NetworkParaWrite(){
 
 	fileDir := exeCurDir + "/selfpara/networkpara.json"
 
@@ -189,7 +179,7 @@ func networkParaWrite(param NetworkParamList){
 	}
 	defer fp.Close()
 
-	sJson,_ := json.Marshal(param)
+	sJson,_ := json.Marshal(setting.NetworkParamList)
 	fmt.Println(string(sJson))
 
 	_, err = fp.Write(sJson)

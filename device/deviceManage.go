@@ -1,9 +1,11 @@
-package main
+package device
 
 import (
 	"encoding/json"
+	"goAdapter/setting"
 	"log"
 	"os"
+	"path/filepath"
 )
 
 type DeviceNodeTypeTemplate struct{
@@ -157,7 +159,7 @@ func NewDeviceInterface(interfaceID,pollPeriod,offlinePeriod int,deviceNodeCnt i
 	}
 
 	//打开串口
-	serialOpen(nodeManage.InterfaceID)
+	setting.SerialOpen(nodeManage.InterfaceID)
 
 	return nodeManage
 }
@@ -179,6 +181,8 @@ func (d *DeviceInterfaceTemplate)ModifyDeviceInterface(pollPeriod,offlinePeriod 
 }
 
 func WriteDeviceInterfaceManageToJson(){
+
+	exeCurDir,_ := filepath.Abs(filepath.Dir(os.Args[0]))
 
 	fileDir := exeCurDir + "/selfpara/deviceNodeManage.json"
 
@@ -210,11 +214,17 @@ func WriteDeviceInterfaceManageToJson(){
 	log.Println("write deviceNodeManage.json sucess")
 }
 
+func fileExist(path string) bool {
+	_, err := os.Lstat(path)
+	return !os.IsNotExist(err)
+}
+
 func ReadDeviceInterfaceManageFromJson() bool{
 
+	exeCurDir,_ := filepath.Abs(filepath.Dir(os.Args[0]))
 	fileDir := exeCurDir + "/selfpara/deviceNodeManage.json"
 
-	if FileExist(fileDir) == true {
+	if fileExist(fileDir) == true {
 		fp, err := os.OpenFile(fileDir, os.O_RDONLY, 0777)
 		if err != nil {
 			log.Println("open deviceNodeManage.json err", err)

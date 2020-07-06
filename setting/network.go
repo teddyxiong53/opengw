@@ -1,4 +1,4 @@
-package main
+package setting
 
 import (
 	"bytes"
@@ -12,7 +12,7 @@ import (
 	"strings"
 )
 
-type NetworkParam struct{
+type NetworkParamTemplate struct{
 	ID   string         `json:ID`
 	Name string         `json:"Name"`
 	DHCP string         `json:"DHCP"`
@@ -22,21 +22,21 @@ type NetworkParam struct{
 	MAC string          `json:"MAC"`
 }
 
-type NetworkParamList struct{
-	NetworkParam []NetworkParam
+type NetworkParamListTemplate struct{
+	NetworkParam []NetworkParamTemplate
 }
 
-type NetworkLinkState struct{
+type NetworkLinkStateTemplate struct{
 	State [2]uint32
 }
 
-var networkParamList NetworkParamList
-var networkLinkState NetworkLinkState
+var NetworkParamList NetworkParamListTemplate
+var NetworkLinkState NetworkLinkStateTemplate
 
 
 func cmdSetDHCP(id int){
 
-	cmd := exec.Command("udhcpc","-i",networkParamList.NetworkParam[id].Name,"5")
+	cmd := exec.Command("udhcpc","-i",NetworkParamList.NetworkParam[id].Name,"5")
 
 	var out bytes.Buffer
 	cmd.Stdout = &out
@@ -49,29 +49,29 @@ func cmdSetDHCP(id int){
 
 func cmdSetStaticIP(id int){
 
-	strNetMask   := "netmask " + networkParamList.NetworkParam[id].Netmask
+	strNetMask   := "netmask " + NetworkParamList.NetworkParam[id].Netmask
 	cmd := exec.Command("ifconfig",
-		networkParamList.NetworkParam[id].Name,
-		networkParamList.NetworkParam[id].IP,
+		NetworkParamList.NetworkParam[id].Name,
+		NetworkParamList.NetworkParam[id].IP,
 		strNetMask)
 
 	var out bytes.Buffer
 	cmd.Stdout = &out
 	cmd.Start()	//执行到此,直接往后执行
 
-	cmd2 := exec.Command("/sbin/route","add","default","gw",networkParamList.NetworkParam[id].Broadcast)
+	cmd2 := exec.Command("/sbin/route","add","default","gw",NetworkParamList.NetworkParam[id].Broadcast)
 	cmd2.Stdout = &out
 	cmd2.Start()	//执行到此,直接往后执行
 }
 
-func getNetworkStatus(){
+func GetNetworkStatus(){
 
-	for _,v := range networkParamList.NetworkParam{
-		getLinkState(v.ID)
+	for _,v := range NetworkParamList.NetworkParam{
+		GetLinkState(v.ID)
 	}
 }
 
-func getLinkState(id string){
+func GetLinkState(id string){
 
 	ethHandle, _ := ethtool.NewEthtool()
 	defer ethHandle.Close()
@@ -79,68 +79,68 @@ func getLinkState(id string){
 	var state uint32
 
 	if id == "1"{
-		state, _ = ethHandle.LinkState(networkParamList.NetworkParam[0].Name)
-		networkLinkState.State[0] = state
+		state, _ = ethHandle.LinkState(NetworkParamList.NetworkParam[0].Name)
+		NetworkLinkState.State[0] = state
 	}else if id == "2"{
-		state, _ = ethHandle.LinkState(networkParamList.NetworkParam[1].Name)
-		networkLinkState.State[1] = state
+		state, _ = ethHandle.LinkState(NetworkParamList.NetworkParam[1].Name)
+		NetworkLinkState.State[1] = state
 	}
 }
 
 
 //获取当前网络参数
-func getNetworkParam() NetworkParamList{
+func GetNetworkParam() NetworkParamListTemplate{
 
-	for k,v := range networkParamList.NetworkParam{
+	for k,v := range NetworkParamList.NetworkParam{
 
-		getLinkState(v.ID)
+		GetLinkState(v.ID)
 		ethInfo,err := GetNetInformation(v.Name)
 		if err == nil{
-			networkParamList.NetworkParam[k].IP = ethInfo.IP
-			networkParamList.NetworkParam[k].Netmask = ethInfo.Mask
-			networkParamList.NetworkParam[k].Broadcast = ethInfo.GatewayIP
-			networkParamList.NetworkParam[k].MAC = ethInfo.Mac
+			NetworkParamList.NetworkParam[k].IP = ethInfo.IP
+			NetworkParamList.NetworkParam[k].Netmask = ethInfo.Mask
+			NetworkParamList.NetworkParam[k].Broadcast = ethInfo.GatewayIP
+			NetworkParamList.NetworkParam[k].MAC = ethInfo.Mac
 		}
 	}
 
-	return networkParamList
+	return NetworkParamList
 }
 
 //设置网络参数
-func setNetworkParam(id string,param NetworkParam){
+func SetNetworkParam(id string,param NetworkParamTemplate){
 
-	getLinkState(id)
+	GetLinkState(id)
 
 	if id == "1"{
-		if networkLinkState.State[0] == 0{
+		if NetworkLinkState.State[0] == 0{
 			log.Printf("setNetworkParam %s err\n",id)
 			return
 		}
 
-		networkParamList.NetworkParam[0] = param
+		NetworkParamList.NetworkParam[0] = param
 
-		if networkParamList.NetworkParam[0].DHCP == "1"{
+		if NetworkParamList.NetworkParam[0].DHCP == "1"{
 			//开启动态IP
 
 			cmdSetDHCP(0)
-		}else if networkParamList.NetworkParam[0].DHCP == "0"{
+		}else if NetworkParamList.NetworkParam[0].DHCP == "0"{
 			//开启静态IP
 
 			cmdSetStaticIP(0)
 		}
 	}else if id == "2"{
-		if networkLinkState.State[1] == 0{
+		if NetworkLinkState.State[1] == 0{
 			log.Printf("setNetworkParam %s err\n",id)
 			return
 		}
 
-		networkParamList.NetworkParam[1] = param
+		NetworkParamList.NetworkParam[1] = param
 
-		if networkParamList.NetworkParam[1].DHCP == "1"{
+		if NetworkParamList.NetworkParam[1].DHCP == "1"{
 			//开启动态IP
 
 			cmdSetDHCP(1)
-		}else if networkParamList.NetworkParam[1].DHCP == "0"{
+		}else if NetworkParamList.NetworkParam[1].DHCP == "0"{
 			//开启静态IP
 
 			cmdSetStaticIP(1)

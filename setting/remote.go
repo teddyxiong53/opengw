@@ -1,4 +1,4 @@
-package main
+package setting
 
 
 type RemotePlatformTemplate struct{
@@ -21,7 +21,7 @@ type MQTTRemoteTemplate struct{
 	ClientID string
 }
 
-var remotePlatform *RemotePlatformTemplate
+var RemotePlatform *RemotePlatformTemplate
 
 func NewRemotePlatform(RemoteIP,RemotePort,Protocal string) *RemotePlatformTemplate{
 
@@ -39,7 +39,7 @@ func NewRemotePlatform(RemoteIP,RemotePort,Protocal string) *RemotePlatformTempl
 
 func RemotePlatformInit(){
 
-	remotePlatform = NewRemotePlatform("192.168.1.1","60000","HTTP")
+	RemotePlatform = NewRemotePlatform("192.168.1.1","60000","HTTP")
 }
 
 func (r *RemotePlatformTemplate)SetHTTPProtocalParam(method,url,timeout string){

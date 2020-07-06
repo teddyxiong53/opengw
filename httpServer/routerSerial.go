@@ -1,9 +1,11 @@
-package main
+package httpServer
 
 import (
 	"encoding/json"
 	"fmt"
 	"github.com/gin-gonic/gin"
+	"goAdapter/config"
+	"goAdapter/setting"
 	"net/http"
 )
 
@@ -25,7 +27,7 @@ func apiSetSerial(context *gin.Context){
 	fmt.Println(string(bodyBuf[:n]))
 
 	//获取写寄存器的参数
-	rSerialParam := &SerialParamTemplate{
+	rSerialParam := &setting.SerialParamTemplate{
 	}
 	err := json.Unmarshal(bodyBuf[:n],rSerialParam)
 	if err != nil {
@@ -39,11 +41,11 @@ func apiSetSerial(context *gin.Context){
 		return
 	}
 
-	for k,v := range serialInterface.SerialParam{
+	for k,v := range setting.SerialInterface.SerialParam{
 
 		if v.ID == rSerialParam.ID{
-			serialInterface.SerialParam[k] = *rSerialParam
-			serialParaWrite()
+			setting.SerialInterface.SerialParam[k] = *rSerialParam
+			config.SerialParaWrite()
 		}else{
 			aParam.Code = "1"
 			aParam.Message = "serial ID is not exist"
@@ -64,10 +66,10 @@ func apiGetSerial(context *gin.Context){
 	aParam := struct{
 		Code string				`json:"Code"`
 		Message string			`json:"Message"`
-		Data SerialInterface	`json:"Data"`
+		Data setting.SerialInterfaceTemplate	`json:"Data"`
 	}{Code:"0"}
 
-	aParam.Data = serialInterface
+	aParam.Data = setting.SerialInterface
 
 	sJson,_ := json.Marshal(aParam)
 

@@ -1,9 +1,10 @@
-package main
+package httpServer
 
 import (
 	"encoding/json"
 	"fmt"
 	"github.com/gin-gonic/gin"
+	"goAdapter/setting"
 	"net/http"
 )
 
@@ -45,14 +46,14 @@ func apiSetNetwork(context *gin.Context){
 	}
 
 	if (*rNetworkParam).ID == "1"{
-		networkParamList.NetworkParam[0] = *rNetworkParam
-		setNetworkParam("1",*rNetworkParam)
+		setting.NetworkParamList.NetworkParam[0] = *rNetworkParam
+		setting.SetNetworkParam("1",*rNetworkParam)
 	}else if (*rNetworkParam).ID == "2"{
-		networkParamList.NetworkParam[1] = *rNetworkParam
-		setNetworkParam("2",*rNetworkParam)
+		setting.NetworkParamList.NetworkParam[1] = *rNetworkParam
+		setting.SetNetworkParam("2",*rNetworkParam)
 	}
 
-	networkParaWrite(networkParamList)
+	//main.networkParaWrite(setting.NetworkParamList)
 
 
 	aParam := struct{
@@ -75,10 +76,10 @@ func apiGetNetwork(context *gin.Context){
 	aParam := struct{
 		Code string
 		Message string
-		Data NetworkParamList
+		Data setting.NetworkParamListTemplate
 	}{Code:"0"}
 
-	aParam.Data = getNetworkParam()
+	aParam.Data = setting.GetNetworkParam()
 
 	sJson,_ := json.Marshal(aParam)
 
@@ -89,10 +90,10 @@ func apiGetNetworkLinkState(context *gin.Context){
 	aParam := struct{
 		Code string
 		Message string
-		Data NetworkLinkState
+		Data setting.NetworkLinkStateTemplate
 	}{Code:"0"}
 
-	aParam.Data = networkLinkState
+	aParam.Data = setting.NetworkLinkState
 
 	sJson,_ := json.Marshal(aParam)
 

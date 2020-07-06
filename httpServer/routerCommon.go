@@ -1,4 +1,4 @@
-package main
+package httpServer
 
 import (
 	"github.com/gin-gonic/gin"

@@ -1,72 +1,75 @@
 package main
 
 import (
-	"github.com/robfig/cron"
-	"golang.org/x/sync/errgroup"
+	"goAdapter/config"
+	"goAdapter/device"
+	"goAdapter/httpServer"
+	"goAdapter/setting"
 	"log"
 	"net/http"
 	"time"
-)
 
+	"github.com/robfig/cron"
+	"golang.org/x/sync/errgroup"
+)
 
 var (
 	g errgroup.Group
 )
 
-func main(){
+func main() {
 
 	//记录起始时间
-	setTimeStart()
+	setting.GetTimeStart()
 
 	log.Println("HRx-WDT300 V0.0.1")
 
-
-	MemoryDataStream = newDataStreamTemplate("内存使用率")
-	DiskDataStream   = newDataStreamTemplate("硬盘使用率")
-	DeviceOnlineDataStream = newDataStreamTemplate("设备在线率")
-	DevicePacketLossDataStream = newDataStreamTemplate("通信丢包率")
+	setting.MemoryDataStream = setting.NewDataStreamTemplate("内存使用率")
+	setting.DiskDataStream = setting.NewDataStreamTemplate("硬盘使用率")
+	setting.DeviceOnlineDataStream = setting.NewDataStreamTemplate("设备在线率")
+	setting.DevicePacketLossDataStream = setting.NewDataStreamTemplate("通信丢包率")
 
 	/**************获取配置文件***********************/
-	getConf()
+	config.GetConf()
 
 	/**************串口初始化***********************/
-	SerialInterfaceInit()
+	setting.SerialInterfaceInit()
 
 	/**************网口初始化***********************/
-	for _,v := range networkParamList.NetworkParam{
-		log.Println("set network ",v.Name)
-		setNetworkParam(v.ID,v)
+	for _, v := range setting.NetworkParamList.NetworkParam {
+		log.Println("set network ", v.Name)
+		setting.SetNetworkParam(v.ID, v)
 	}
-	networkParamList = getNetworkParam()
+	setting.NetworkParamList = setting.GetNetworkParam()
 
 	/**************变量模板初始化****************/
-	CommunicationManageInit()
+	device.CommunicationManageInit()
 	//deviceManageStart()
 
-	DeviceNodeManageInit()
+	device.DeviceNodeManageInit()
 
 	/**************目标平台初始化****************/
-	RemotePlatformInit()
+	setting.RemotePlatformInit()
 
 	/**************创建定时获取网络状态的任务***********************/
 	// 定义一个cron运行器
 	cronGetNetStatus := cron.New()
 	// 定时5秒，每5秒执行print5
-	cronGetNetStatus.AddFunc("*/5 * * * * *", getNetworkStatus)
+	cronGetNetStatus.AddFunc("*/5 * * * * *", setting.GetNetworkStatus)
 
 	// 定时60秒
-	cronGetNetStatus.AddFunc("*/30 * * * * *", CommunicationManagePoll)
+	cronGetNetStatus.AddFunc("*/30 * * * * *", device.CommunicationManagePoll)
 
 	// 定时60秒
 	//cronGetNetStatus.AddFunc("*/10 * * * * *", CommunicationManageAddEmergencyTest)
 
 	// 定时60s
-	cronGetNetStatus.AddFunc("*/60 * * * * *", func (){
+	cronGetNetStatus.AddFunc("*/60 * * * * *", func() {
 		//threadModuleParam.threadModuleReadNetStatus()
 	})
 
 	// 定时60秒
-	cronGetNetStatus.AddFunc("*/60 * * * * *",CollectSystemParam)
+	cronGetNetStatus.AddFunc("*/60 * * * * *", setting.CollectSystemParam)
 
 	cronGetNetStatus.Start()
 	defer cronGetNetStatus.Stop()
@@ -85,7 +88,7 @@ func main(){
 
 	serverWeb := &http.Server{
 		Addr:         ":8090",
-		Handler:      routerWeb(),
+		Handler:      httpServer.RouterWeb(),
 		ReadTimeout:  5 * time.Second,
 		WriteTimeout: 10 * time.Second,
 	}

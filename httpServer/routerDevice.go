@@ -1,9 +1,10 @@
-package main
+package httpServer
 
 import (
 	"encoding/json"
 	"fmt"
 	"github.com/gin-gonic/gin"
+	"goAdapter/device"
 	"log"
 	"net/http"
 	"strconv"
@@ -43,11 +44,11 @@ func apiAddInterface(context *gin.Context){
 		return
 	}
 
-	DeviceInterfaceMap[interfaceInfo.InterfaceID] = NewDeviceInterface(interfaceInfo.InterfaceID,
+	device.DeviceInterfaceMap[interfaceInfo.InterfaceID] = device.NewDeviceInterface(interfaceInfo.InterfaceID,
 		interfaceInfo.PollPeriod,
 		interfaceInfo.OfflinePeriod,0)
 
-	WriteDeviceInterfaceManageToJson()
+	device.WriteDeviceInterfaceManageToJson()
 
 	aParam.Code = "0"
 	aParam.Data = ""
@@ -90,7 +91,7 @@ func apiModifyInterface(context *gin.Context){
 		return
 	}
 
-	DeviceInterfaceMap[interfaceInfo.InterfaceID].ModifyDeviceInterface(interfaceInfo.PollPeriod,
+	device.DeviceInterfaceMap[interfaceInfo.InterfaceID].ModifyDeviceInterface(interfaceInfo.PollPeriod,
 		interfaceInfo.OfflinePeriod)
 
 	aParam.Code = "0"
@@ -109,19 +110,19 @@ func apiGetInterfaceInfo(context *gin.Context){
 	aParam := &struct{
 		Code 	string
 		Message string
-		Data    DeviceInterfaceTemplate
+		Data    device.DeviceInterfaceTemplate
 	}{}
 
 	iID,_ := strconv.Atoi(sID)
 
-	if iID < len(DeviceInterfaceMap){
+	if iID < len(device.DeviceInterfaceMap){
 		aParam.Code = "0"
 		aParam.Message = ""
-		aParam.Data = *DeviceInterfaceMap[iID]
+		aParam.Data = *device.DeviceInterfaceMap[iID]
 	}else{
 		aParam.Code = "1"
 		aParam.Message = "interface is noexist"
-		aParam.Data = DeviceInterfaceTemplate{}
+		aParam.Data = device.DeviceInterfaceTemplate{}
 	}
 
 	sJson, _ := json.Marshal(aParam)
@@ -135,12 +136,12 @@ func apiGetAllInterfaceInfo(context *gin.Context){
 	aParam := &struct{
 		Code 	string
 		Message string
-		Data    [MaxDeviceInterfaceManage]*DeviceInterfaceTemplate
+		Data    [device.MaxDeviceInterfaceManage]*device.DeviceInterfaceTemplate
 	}{}
 
 	aParam.Code = "0"
 	aParam.Message = ""
-	aParam.Data = DeviceInterfaceMap
+	aParam.Data = device.DeviceInterfaceMap
 
 	sJson, _ := json.Marshal(aParam)
 
@@ -182,9 +183,9 @@ func apiAddNode(context *gin.Context){
 	}
 
 	var status bool
-	status,aParam.Message = DeviceInterfaceMap[nodeInfo.InterfaceID].AddDeviceNode(nodeInfo.DAddr,nodeInfo.DType)
+	status,aParam.Message = device.DeviceInterfaceMap[nodeInfo.InterfaceID].AddDeviceNode(nodeInfo.DAddr,nodeInfo.DType)
 	if status == true{
-		WriteDeviceInterfaceManageToJson()
+		device.WriteDeviceInterfaceManageToJson()
 
 		aParam.Code = "0"
 		aParam.Data = ""
@@ -232,7 +233,7 @@ func apiModifyNode(context *gin.Context){
 	}
 
 	//DeviceNodeManageMap[nodeInfo.InterfaceID].ModifyDeviceNode(nodeInfo.DAddr,nodeInfo.DType)
-	WriteDeviceInterfaceManageToJson()
+	device.WriteDeviceInterfaceManageToJson()
 
 	aParam.Code = "0"
 	aParam.Data = ""
@@ -249,15 +250,15 @@ func apiGetNode(context *gin.Context){
 	aParam := &struct{
 		Code 	string
 		Message string
-		Data    []VariableTemplate
+		Data    []device.VariableTemplate
 	}{}
 
 	iID,_ := strconv.Atoi(sID)
-	for k,v := range DeviceInterfaceMap[iID].DeviceNodeAddrMap{
+	for k,v := range device.DeviceInterfaceMap[iID].DeviceNodeAddrMap{
 		if v == sAddr{
 			aParam.Code = "0"
 			aParam.Message = ""
-			aParam.Data = DeviceInterfaceMap[iID].DeviceNodeMap[k].GetDeviceVariablesValue()
+			aParam.Data = device.DeviceInterfaceMap[iID].DeviceNodeMap[k].GetDeviceVariablesValue()
 			sJson, _ := json.Marshal(aParam)
 			context.String(http.StatusOK, string(sJson))
 			return
@@ -303,9 +304,9 @@ func apiDeleteNode(context *gin.Context){
 		return
 	}
 
-	DeviceInterfaceMap[nodeInfo.InterfaceID].DeleteDeviceNode(nodeInfo.DAddr,nodeInfo.DType)
+	device.DeviceInterfaceMap[nodeInfo.InterfaceID].DeleteDeviceNode(nodeInfo.DAddr,nodeInfo.DType)
 
-	WriteDeviceInterfaceManageToJson()
+	device.WriteDeviceInterfaceManageToJson()
 
 	aParam.Code = "0"
 	aParam.Data = ""
@@ -348,17 +349,17 @@ func apiAddTemplate(context *gin.Context){
 		return
 	}
 
-	index := len(DeviceInterfaceParamMap.DeviceNodeTypeMap)
-	template := DeviceNodeTypeTemplate{
+	index := len(device.DeviceInterfaceParamMap.DeviceNodeTypeMap)
+	template := device.DeviceNodeTypeTemplate{
 		TemplateName:interfaceInfo.TemplateName,
 		TemplateType:interfaceInfo.TemplateType,
 		TemplateID: index,
 		TemplateMessage:interfaceInfo.TemplateMessage,
 	}
 
-	DeviceInterfaceParamMap.DeviceNodeTypeMap = append(DeviceInterfaceParamMap.DeviceNodeTypeMap,template)
+	device.DeviceInterfaceParamMap.DeviceNodeTypeMap = append(device.DeviceInterfaceParamMap.DeviceNodeTypeMap,template)
 
-	WriteDeviceInterfaceManageToJson()
+	device.WriteDeviceInterfaceManageToJson()
 
 	aParam.Code = "0"
 	aParam.Data = ""
@@ -372,14 +373,14 @@ func apiGetTemplate(context *gin.Context){
 	aParam := &struct{
 		Code 	string
 		Message string
-		Data    []DeviceNodeTypeTemplate
+		Data    []device.DeviceNodeTypeTemplate
 	}{}
 
-	log.Printf("%+v\n",DeviceInterfaceParamMap.DeviceNodeTypeMap)
+	log.Printf("%+v\n",device.DeviceInterfaceParamMap.DeviceNodeTypeMap)
 
 	aParam.Code = "0"
 	aParam.Message = ""
-	aParam.Data = DeviceInterfaceParamMap.DeviceNodeTypeMap
+	aParam.Data = device.DeviceInterfaceParamMap.DeviceNodeTypeMap
 
 	sJson, _ := json.Marshal(aParam)
 

@@ -1,10 +1,11 @@
-package main
+package httpServer
 
 import (
 	"bytes"
 	"encoding/json"
 	"fmt"
 	"github.com/gin-gonic/gin"
+	"goAdapter/setting"
 	"net/http"
 	"os/exec"
 )
@@ -26,21 +27,21 @@ func apiSystemReboot(context *gin.Context){
 	sJson,_ := json.Marshal(aParam)
 	context.String(http.StatusOK,string(sJson))
 
-	mCmdReboot()
+	setting.SystemReboot()
 }
 
 func apiGetSystemStatus(context *gin.Context){
 
 
-	getMemState()
-	getDiskState()
-	getRunTime()
+	setting.GetMemState()
+	setting.GetDiskState()
+	setting.GetRunTime()
 
 	aParam := struct{
 		Code string
 		Message string
-		Data SystemState
-	}{"0","",systemState}
+		Data setting.SystemStateTemplate
+	}{"0","",setting.SystemState}
 
 	sJson,_ := json.Marshal(aParam)
 	context.String(http.StatusOK,string(sJson))
@@ -93,8 +94,8 @@ func apiSystemMemoryUseList(context *gin.Context){
 	aParam := struct{
 		Code string
 		Message string
-		Data DataStreamTemplate
-	}{"0","",*MemoryDataStream}
+		Data setting.DataStreamTemplate
+	}{"0","",*setting.MemoryDataStream}
 
 	sJson,_ := json.Marshal(aParam)
 	context.String(http.StatusOK,string(sJson))
@@ -105,8 +106,8 @@ func apiSystemDiskUseList(context *gin.Context){
 	aParam := struct{
 		Code string
 		Message string
-		Data DataStreamTemplate
-	}{"0","",*DiskDataStream}
+		Data setting.DataStreamTemplate
+	}{"0","",*setting.DiskDataStream}
 
 	sJson,_ := json.Marshal(aParam)
 	context.String(http.StatusOK,string(sJson))
@@ -117,8 +118,8 @@ func apiSystemDeviceOnlineList(context *gin.Context){
 	aParam := struct{
 		Code string
 		Message string
-		Data DataStreamTemplate
-	}{"0","",*DeviceOnlineDataStream}
+		Data setting.DataStreamTemplate
+	}{"0","",*setting.DeviceOnlineDataStream}
 
 	sJson,_ := json.Marshal(aParam)
 	context.String(http.StatusOK,string(sJson))
@@ -129,8 +130,8 @@ func apiSystemDevicePacketLossList(context *gin.Context){
 	aParam := struct{
 		Code string
 		Message string
-		Data DataStreamTemplate
-	}{"0","",*DevicePacketLossDataStream}
+		Data setting.DataStreamTemplate
+	}{"0","",*setting.DevicePacketLossDataStream}
 
 	sJson,_ := json.Marshal(aParam)
 	context.String(http.StatusOK,string(sJson))

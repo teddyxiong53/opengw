@@ -1,4 +1,4 @@
-package main
+package setting
 
 import (
 	"bytes"
@@ -9,7 +9,7 @@ import (
 	"time"
 )
 
-type SystemState struct{
+type SystemStateTemplate struct{
 	MemTotal  string		`json:"MemTotal"`
 	MemUse    string		`json:"MemUse"`
 	DiskTotal string        `json:"DiskTotal"`
@@ -35,10 +35,10 @@ type DataStreamTemplate struct{
 	Legend 			string 					`json:"Legend"`			//别名
 }
 
-var systemState = SystemState{
+var SystemState = SystemStateTemplate{
 	MemTotal		:"0",
 	MemUse			:"0",
-	DiskTotal		: "0",
+	DiskTotal		:"0",
 	DiskUse			:"0",
 	Name			:"WDT600",
 	SN				:"22005260001",
@@ -60,7 +60,7 @@ var (
 )
 
 
-func mCmdReboot() {
+func SystemReboot() {
 	cmd := exec.Command("reboot")
 	var out bytes.Buffer
 	cmd.Stdout = &out
@@ -70,7 +70,7 @@ func mCmdReboot() {
 	fmt.Println(str)
 }
 
-func getMemState(){
+func GetMemState(){
 
 	v, _ := mem.VirtualMemory()
 
@@ -78,11 +78,11 @@ func getMemState(){
 	//log.Printf("Mem Total: %v, Free:%v, UsedPercent:%f%%\n",
 	//					v.Total/1024/1024, v.Free/1024/1024, v.UsedPercent)
 
-	systemState.MemTotal = fmt.Sprintf("%d",v.Total/1024/1024)
-	systemState.MemUse = fmt.Sprintf("%3.1f",v.UsedPercent)
+	SystemState.MemTotal = fmt.Sprintf("%d",v.Total/1024/1024)
+	SystemState.MemUse = fmt.Sprintf("%3.1f",v.UsedPercent)
 }
 
-func getDiskState(){
+func GetDiskState(){
 
 	v, _ := disk.Usage("/opt")
 
@@ -90,16 +90,16 @@ func getDiskState(){
 	//log.Printf("Disk Total: %v, Free:%v, UsedPercent:%f%%\n",
 	//				v.Total/1024/1024, v.Free/1024/1024, v.UsedPercent)
 
-	systemState.DiskTotal = fmt.Sprintf("%d",v.Total/1024/1024)
-	systemState.DiskUse = fmt.Sprintf("%3.1f",v.UsedPercent)
+	SystemState.DiskTotal = fmt.Sprintf("%d",v.Total/1024/1024)
+	SystemState.DiskUse = fmt.Sprintf("%3.1f",v.UsedPercent)
 }
 
-func setTimeStart(){
+func GetTimeStart(){
 
 	timeStart = time.Now()
 }
 
-func getRunTime(){
+func GetRunTime(){
 
 	elapsed := time.Since(timeStart)
 	sec := int64(elapsed.Seconds())
@@ -110,11 +110,11 @@ func getRunTime(){
 
 	strRunTime := fmt.Sprintf("%d天%d时%d分%d秒",day,hour,min,sec)
 
-	systemState.SystemRTC = time.Now().Format("2006-01-02 15:04:05")
-	systemState.RunTime = strRunTime
+	SystemState.SystemRTC = time.Now().Format("2006-01-02 15:04:05")
+	SystemState.RunTime = strRunTime
 }
 
-func newDataStreamTemplate(legend string) *DataStreamTemplate{
+func NewDataStreamTemplate(legend string) *DataStreamTemplate{
 
 	return &DataStreamTemplate{
 		DataPoint: make([]DataPointTemplate,0),
@@ -136,17 +136,17 @@ func (d *DataStreamTemplate)AddDataPoint(data DataPointTemplate){
 
 func CollectSystemParam(){
 
-	getMemState()
-	getRunTime()
+	GetMemState()
+	GetRunTime()
 
 	point := DataPointTemplate{}
 
-	point.Value = systemState.MemUse
-	point.Time = systemState.SystemRTC
+	point.Value = SystemState.MemUse
+	point.Time = SystemState.SystemRTC
 	MemoryDataStream.AddDataPoint(point)
 
-	point.Value = systemState.DiskUse
-	point.Time = systemState.SystemRTC
+	point.Value = SystemState.DiskUse
+	point.Time = SystemState.SystemRTC
 	DiskDataStream.AddDataPoint(point)
 }
 

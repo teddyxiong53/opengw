@@ -1,11 +1,11 @@
-package main
+package httpServer
 
 import (
 	"github.com/gin-gonic/gin"
 	"net/http"
 )
 
-func routerWeb() http.Handler {
+func RouterWeb() http.Handler {
 	router := gin.Default()
 	//router := gin.New()
 

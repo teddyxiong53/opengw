@@ -1,9 +1,10 @@
-package main
+package httpServer
 
 import (
 	"encoding/json"
 	"fmt"
 	"github.com/gin-gonic/gin"
+	"goAdapter/setting"
 	"net/http"
 )
 
@@ -12,8 +13,8 @@ func apiGetRemotePlatformParam(context *gin.Context){
 	aParam := struct{
 		Code string
 		Message string
-		Data RemotePlatformTemplate
-	}{"0","",*remotePlatform}
+		Data setting.RemotePlatformTemplate
+	}{"0","",*setting.RemotePlatform}
 
 	sJson,_ := json.Marshal(aParam)
 	context.String(http.StatusOK,string(sJson))
@@ -37,7 +38,7 @@ func apiSetHTTPParam(context *gin.Context){
 	fmt.Println(string(bodyBuf[:n]))
 
 	//获取写寄存器的参数
-	rHttpParam := &HttpRemoteTemplate{}
+	rHttpParam := &setting.HttpRemoteTemplate{}
 	err := json.Unmarshal(bodyBuf[:n],rHttpParam)
 	if err != nil {
 		fmt.Println("rHttpParam json unMarshall err,",err)

@@ -1,6 +1,7 @@
-package main
+package device
 
 import (
+	"goAdapter/setting"
 	"log"
 	"strconv"
 	"time"
@@ -67,7 +68,7 @@ func CommunicationManageDel(){
 				emergencyAckChan<- status
 
 				//通信帧延时
-				interval,_ := strconv.Atoi(serialInterface.SerialParam[0].Interval)
+				interval,_ := strconv.Atoi(setting.SerialInterface.SerialParam[0].Interval)
 				time.Sleep(time.Duration(interval)*time.Millisecond)
 			}
 		default:
@@ -86,14 +87,14 @@ func CommunicationManageDel(){
 								txBuf := DeviceInterfaceMap[cmd.interfaceID].DeviceNodeMap[k].GetDeviceRealVariables(cmd.deviceAddr)
 								log.Printf("tx buf is %+v\n",txBuf)
 								//---------------发送-------------------------
-								serialInterface.SerialPort[cmd.interfaceID].Write(txBuf)
+								setting.SerialInterface.SerialPort[cmd.interfaceID].Write(txBuf)
 								//---------------等待接收----------------------
 								//阻塞读
 								rxBuf  := make([]byte, 256)
 								rxTotalBuf := make([]byte,0)
 								rxBufCnt := 0
 								rxTotalBufCnt := 0
-								timeOut,_ := strconv.Atoi(serialInterface.SerialParam[cmd.interfaceID].Timeout)
+								timeOut,_ := strconv.Atoi(setting.SerialInterface.SerialParam[cmd.interfaceID].Timeout)
 								timer := time.NewTimer(time.Duration(timeOut)*time.Millisecond)
 								for {
 									select{
@@ -102,7 +103,7 @@ func CommunicationManageDel(){
 										{
 											log.Println("rx ok")
 											//通信帧延时
-											interval,_ := strconv.Atoi(serialInterface.SerialParam[cmd.interfaceID].Interval)
+											interval,_ := strconv.Atoi(setting.SerialInterface.SerialParam[cmd.interfaceID].Interval)
 											time.Sleep(time.Duration(interval)*time.Millisecond)
 											goto Loop
 										}
@@ -111,14 +112,14 @@ func CommunicationManageDel(){
 										{
 											log.Println("rx timeout")
 											//通信帧延时
-											interval,_ := strconv.Atoi(serialInterface.SerialParam[cmd.interfaceID].Interval)
+											interval,_ := strconv.Atoi(setting.SerialInterface.SerialParam[cmd.interfaceID].Interval)
 											time.Sleep(time.Duration(interval)*time.Millisecond)
 											goto Loop
 										}
 										//继续接收数据
 										default:
 										{
-											rxBufCnt,_ = serialInterface.SerialPort[cmd.interfaceID].Read(rxBuf)
+											rxBufCnt,_ = setting.SerialInterface.SerialPort[cmd.interfaceID].Read(rxBuf)
 											if rxBufCnt > 0{
 												rxTotalBufCnt += rxBufCnt
 												//追加接收的数据到接收缓冲区
