@@ -254,11 +254,11 @@ func apiGetNode(context *gin.Context){
 	}{}
 
 	iID,_ := strconv.Atoi(sID)
-	for k,v := range device.DeviceInterfaceMap[iID].DeviceNodeAddrMap{
+	for _,v := range device.DeviceInterfaceMap[iID].DeviceNodeAddrMap{
 		if v == sAddr{
 			aParam.Code = "0"
 			aParam.Message = ""
-			aParam.Data = device.DeviceInterfaceMap[iID].DeviceNodeMap[k].GetDeviceVariablesValue()
+			//aParam.Data = device.DeviceInterfaceMap[iID].DeviceNodeMap[k].GetDeviceVariablesValue()
 			sJson, _ := json.Marshal(aParam)
 			context.String(http.StatusOK, string(sJson))
 			return

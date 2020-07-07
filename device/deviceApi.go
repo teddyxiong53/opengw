@@ -7,28 +7,7 @@ type DeviceNodeTypeTemplate struct{
 	TemplateMessage string              						`json:"templateMessage"`	//备注信息
 }
 
-//变量标签模版
-type VariableTemplate struct{
-	Index   	int      										`json:"index"`			//变量偏移量
-	Name 		string											`json:"name"`			//变量名
-	Lable 		string											`json:"lable"`			//变量标签
-	Value 		interface{}										`json:"value"`			//变量值
-	TimeStamp   string											`json:"timestamp"`		//变量时间戳
-	Type    	string                  						`json:"type"`			//变量类型
-}
 
-
-//设备模板
-type DeviceNodeTemplate struct{
-	Index               int                     				`json:"Index"`					//设备偏移量
-	Addr 				string									`json:"Addr"`					//设备地址
-	Type 				string       							`json:"Type"`					//设备类型
-	LastCommRTC 		string      							`json:"LastCommRTC"`          	//最后一次通信时间戳
-	CommTotalCnt 		int										`json:"CommTotalCnt"`			//通信总次数
-	CommSuccessCnt 		int										`json:"CommSuccessCnt"`			//通信成功次数
-	CommStatus 			string         							`json:"CommStatus"`				//通信状态
-	VariableMap    		[]VariableTemplate						`json:"-"`						//变量列表
-}
 
 type DeviceNodeInterface interface {
 

@@ -6,8 +6,30 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"plugin"
 )
 
+//变量标签模版
+type VariableTemplate struct{
+	Index   	int      										`json:"index"`			//变量偏移量
+	Name 		string											`json:"name"`			//变量名
+	Lable 		string											`json:"lable"`			//变量标签
+	Value 		interface{}										`json:"value"`			//变量值
+	TimeStamp   string											`json:"timestamp"`		//变量时间戳
+	Type    	string                  						`json:"type"`			//变量类型
+}
+
+//设备模板
+type DeviceNodeTemplate struct{
+	Index               int                     				`json:"Index"`					//设备偏移量
+	Addr 				string									`json:"Addr"`					//设备地址
+	Type 				string       							`json:"Type"`					//设备类型
+	LastCommRTC 		string      							`json:"LastCommRTC"`          	//最后一次通信时间戳
+	CommTotalCnt 		int										`json:"CommTotalCnt"`			//通信总次数
+	CommSuccessCnt 		int										`json:"CommSuccessCnt"`			//通信成功次数
+	CommStatus 			string         							`json:"CommStatus"`				//通信状态
+	VariableMap    		[]VariableTemplate						`json:"-"`						//变量列表
+}
 
 //接口模板
 type DeviceInterfaceTemplate struct{
@@ -15,7 +37,7 @@ type DeviceInterfaceTemplate struct{
 	PollPeriod 			int										`json:"PollPeriod"`				//采集周期
 	OfflinePeriod 		int      								`json:"OfflinePeriod"`			//离线超时周期
 	DeviceNodeCnt       int                 					`json:"DeviceNodeCnt"`			//设备数量
-	DeviceNodeMap       []DeviceNodeInterface 					`json:"DeviceNodeMap"`			//节点表
+	DeviceNodeMap       []*DeviceNodeTemplate 					`json:"DeviceNodeMap"`			//节点表
 	DeviceNodeAddrMap   []string 								`json:"DeviceAddrMap"`			//节点地址
 	DeviceNodeTypeMap   []string 								`json:"DeviceTypeMap"`			//节点类型
 }
@@ -58,6 +80,7 @@ const (
 //var DeviceNodeTypeMap [MaxDeviceNodeTypeCnt]DeviceNodeTypeTemplate
 var DeviceInterfaceMap	[MaxDeviceInterfaceManage]*DeviceInterfaceTemplate
 var DeviceInterfaceParamMap DeviceInterfaceParamMapTemplate
+var wdt200Template *plugin.Plugin
 
 func WriteDeviceInterfaceManageToJson(){
 
@@ -97,6 +120,8 @@ func fileExist(path string) bool {
 }
 
 func ReadDeviceInterfaceManageFromJson() bool{
+
+	wdt200Template,_ = plugin.Open("plugin/wdt200.so")
 
 	exeCurDir,_ := filepath.Abs(filepath.Dir(os.Args[0]))
 	fileDir := exeCurDir + "/selfpara/deviceNodeManage.json"
@@ -185,7 +210,7 @@ func NewDeviceInterface(interfaceID,pollPeriod,offlinePeriod int,deviceNodeCnt i
 		PollPeriod		: pollPeriod,
 		OfflinePeriod	: offlinePeriod,
 		DeviceNodeCnt	: deviceNodeCnt,
-		DeviceNodeMap   : make([]DeviceNodeInterface,0),
+		DeviceNodeMap   : make([]*DeviceNodeTemplate,0),
 		DeviceNodeAddrMap   : make([]string,0),
 		DeviceNodeTypeMap   : make([]string,0),
 	}
@@ -224,29 +249,52 @@ func (d *DeviceInterfaceTemplate)ModifyDeviceInterface(pollPeriod,offlinePeriod 
 ********************************************************/
 func (d *DeviceInterfaceTemplate)NewDeviceNode(dType string,dAddr string){
 
-	builder,ok := DeviceTemplateMap[dType]
-	if !ok{
-		panic("deviceNodeType is not exist")
-	}
+	//builder,ok := DeviceTemplateMap[dType]
+	//if !ok{
+	//	panic("deviceNodeType is not exist")
+	//}
+	//
+	//index := len(d.DeviceNodeMap)
+	//node := builder.New(index,dType,dAddr)
+	//d.DeviceNodeMap = append(d.DeviceNodeMap,node)
 
-	index := len(d.DeviceNodeMap)
-	node := builder.New(index,dType,dAddr)
+	node := &DeviceNodeTemplate{}
+	node.Type = dType
+	node.Addr = dAddr
+	node.Index = len(d.DeviceNodeMap)
+	node.VariableMap = make([]VariableTemplate,0)
+	NewVariables,_ := wdt200Template.Lookup("NewVariables")
+	variables := NewVariables.(func() []VariableTemplate)()
+	log.Printf("variables %+v\n",variables)
+	//node.VariableMap = append(node.VariableMap,variables)
+
 	d.DeviceNodeMap = append(d.DeviceNodeMap,node)
-
 }
 
 func (d *DeviceInterfaceTemplate)AddDeviceNode(dType string,dAddr string) (bool,string){
 
-	builder,ok := DeviceTemplateMap[dType]
-	if !ok{
-		panic("deviceNodeType is not exist")
-	}
+	//builder,ok := DeviceTemplateMap[dType]
+	//if !ok{
+	//	panic("deviceNodeType is not exist")
+	//}
+	//
+	//index := len(d.DeviceNodeMap)
+	//node := builder.New(index,dType,dAddr)
+	//d.DeviceNodeMap = append(d.DeviceNodeMap,node)
+	//d.DeviceNodeAddrMap = append(d.DeviceNodeAddrMap,dAddr)
+	//d.DeviceNodeTypeMap = append(d.DeviceNodeTypeMap,dType)
+	//d.DeviceNodeCnt++
 
-	index := len(d.DeviceNodeMap)
-	node := builder.New(index,dType,dAddr)
+	node := &DeviceNodeTemplate{}
+	node.Type = dType
+	node.Addr = dAddr
+	node.Index = len(d.DeviceNodeMap)
+	node.VariableMap = make([]VariableTemplate,0)
+	NewVariables,_ := wdt200Template.Lookup("NewVariables")
+	variables := NewVariables.(func() []VariableTemplate)()
+	log.Printf("variables %+v\n",variables)
+
 	d.DeviceNodeMap = append(d.DeviceNodeMap,node)
-	d.DeviceNodeAddrMap = append(d.DeviceNodeAddrMap,dAddr)
-	d.DeviceNodeTypeMap = append(d.DeviceNodeTypeMap,dType)
 	d.DeviceNodeCnt++
 
 	return true,"add success"
