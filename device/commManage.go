@@ -84,7 +84,7 @@ func CommunicationManageDel(){
 							if v == cmd.deviceAddr{
 								log.Printf("index is %d\n",k)
 								//--------------组包---------------------------
-								txBuf := DeviceInterfaceMap[cmd.interfaceID].DeviceNodeMap[k].GetDeviceRealVariables(cmd.deviceAddr)
+								txBuf := DeviceInterfaceMap[cmd.interfaceID].DeviceNodeMap[k].GetDeviceRealVariables()
 								log.Printf("tx buf is %+v\n",txBuf)
 								//---------------发送-------------------------
 								setting.SerialInterface.SerialPort[cmd.interfaceID].Write(txBuf)

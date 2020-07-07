@@ -8,50 +8,6 @@ import (
 	"path/filepath"
 )
 
-type DeviceNodeTypeTemplate struct{
-	TemplateID   int					`json:"templateID"`			//模板ID
-	TemplateName string					`json:"templateName"`		//模板名称
-	TemplateType string					`json:"templateType"`		//模板型号
-	TemplateMessage string              `json:"templateMessage"`	//备注信息
-}
-
-type VariableTemplate struct{
-	Index   	int      										`json:"index"`			//变量偏移量
-	Name 		string											`json:"name"`			//变量名
-	Lable 		string											`json:"lable"`			//变量标签
-	Value 		interface{}										`json:"value"`			//变量值
-	TimeStamp   string											`json:"timestamp"`		//变量时间戳
-	Type    	string                  						`json:"type"`			//变量类型
-}
-
-type DeviceNodeInterface interface {
-	//获取设备变量
-	GetDeviceRealVariables(deviceAddr string) []byte
-	//设置设备变量
-	SetDeviceRealVariables(deviceAddr string) int
-	//创建设备变量
-	NewVariables()
-	//接收解析
-	ProcessRx(rxChan chan bool,rxBuf []byte,rxBufCnt int) chan bool
-	//获取设备变量值
-	GetDeviceVariablesValue() []VariableTemplate
-}
-
-type Build interface{
-	New(index int,dAddr string,dType string)DeviceNodeInterface
-}
-
-//设备模板
-type DeviceNodeTemplate struct{
-	Index               int                     				`json:"Index"`					//设备偏移量
-	Addr 				string									`json:"Addr"`					//设备地址
-	Type 				string       							`json:"Type"`					//设备类型
-	LastCommRTC 		string      							`json:"LastCommRTC"`          	//最后一次通信时间戳
-	CommTotalCnt 		int										`json:"CommTotalCnt"`			//通信总次数
-	CommSuccessCnt 		int										`json:"CommSuccessCnt"`			//通信成功次数
-	CommStatus 			string         							`json:"CommStatus"`				//通信状态
-	VariableMap    		[]VariableTemplate						`json:"-"`						//变量列表
-}
 
 //接口模板
 type DeviceInterfaceTemplate struct{
@@ -102,9 +58,6 @@ const (
 //var DeviceNodeTypeMap [MaxDeviceNodeTypeCnt]DeviceNodeTypeTemplate
 var DeviceInterfaceMap	[MaxDeviceInterfaceManage]*DeviceInterfaceTemplate
 var DeviceInterfaceParamMap DeviceInterfaceParamMapTemplate
-var DeviceTemplateMap = map[string]Build{
-	"modbus":&DeviceNodeModbusTemplate{},
-}
 
 func WriteDeviceInterfaceManageToJson(){
 
@@ -284,27 +237,6 @@ func (d *DeviceInterfaceTemplate)NewDeviceNode(dType string,dAddr string){
 
 func (d *DeviceInterfaceTemplate)AddDeviceNode(dType string,dAddr string) (bool,string){
 
-	//for _,v := range d.DeviceNodeAddrMap{
-	//	if v == dAddr{
-	//		return false,"addr is exist"
-	//	}
-	//}
-	//if dType == "modbus"{
-	//	index := len(d.DeviceNodeMap)
-	//	node := &DeviceNodeModbusTemplate{}
-	//	node.Addr = dAddr
-	//	node.Type = dType
-	//	node.Index = index
-	//	d.DeviceNodeMap = append(d.DeviceNodeMap,node)
-	//	d.DeviceNodeAddrMap = append(d.DeviceNodeAddrMap,dAddr)
-	//	d.DeviceNodeTypeMap = append(d.DeviceNodeTypeMap,dType)
-	//	d.DeviceNodeMap[index].NewVariables()
-	//	d.DeviceNodeCnt++
-	//}else if dType == "modbus2"{
-	//
-	//}
-
-	log.Printf("dType is %s\n",dType)
 	builder,ok := DeviceTemplateMap[dType]
 	if !ok{
 		panic("deviceNodeType is not exist")

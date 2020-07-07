@@ -71,7 +71,6 @@ func (d *DeviceNodeModbusTemplate)New(index int,dType string,dAddr string) Devic
 func (d *DeviceNodeModbusTemplate)ProcessRx(rxChan chan bool,rxBuf []byte,rxBufCnt int) chan bool{
 
 	index := 0
-	//status := false
 	for {
 		//log.Printf("proRX index:%d\n",index)
 		if index < rxBufCnt{
@@ -112,11 +111,10 @@ func (d *DeviceNodeModbusTemplate)ProcessRx(rxChan chan bool,rxBuf []byte,rxBufC
 		}
 		index++
 	}
-	//rxChan<- false
 	return rxChan
 }
 
-func (d *DeviceNodeModbusTemplate)GetDeviceRealVariables(deviceAddr string) []byte{
+func (d *DeviceNodeModbusTemplate)GetDeviceRealVariables() []byte{
 
 	addr,_ := strconv.Atoi(d.Addr)
 	requestAdu := make([]byte,0)
@@ -134,7 +132,7 @@ func (d *DeviceNodeModbusTemplate)GetDeviceRealVariables(deviceAddr string) []by
 	return requestAdu
 }
 
-func (d *DeviceNodeModbusTemplate)SetDeviceRealVariables(deviceAddr string) int{
+func (d *DeviceNodeModbusTemplate)SetDeviceRealVariables() int{
 
 
 	return 0
