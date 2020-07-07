@@ -6,6 +6,8 @@ import (
 )
 
 func RouterWeb() http.Handler {
+
+	gin.SetMode(gin.ReleaseMode)
 	router := gin.Default()
 	//router := gin.New()
 

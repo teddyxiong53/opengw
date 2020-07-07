@@ -2,23 +2,14 @@ package main
 
 import (
 	"encoding/binary"
+	"goAdapter/api"
 	"log"
 	"strconv"
 	"sync"
 )
 
-//变量标签模版
-type VariableTemplate struct{
-	Index   	int      										`json:"index"`			//变量偏移量
-	Name 		string											`json:"name"`			//变量名
-	Lable 		string											`json:"lable"`			//变量标签
-	Value 		interface{}										`json:"value"`			//变量值
-	TimeStamp   string											`json:"timestamp"`		//变量时间戳
-	Type    	string                  						`json:"type"`			//变量类型
-}
-
 type DeviceNodeTemplate struct{
-	Variables    []VariableTemplate
+	Variables    []api.VariableTemplate
 	TemplateName string					//模板名称
 	TemplateType string					//模板型号
 	TemplateID   string					//模板ID
@@ -64,9 +55,9 @@ func crc16(bs []byte) uint16 {
 	return val
 }
 
-func AddVariable(vindex int,vname string,vlable string,vtype string) VariableTemplate{
+func AddVariable(vindex int,vname string,vlable string,vtype string) api.VariableTemplate{
 
-	variable := VariableTemplate{}
+	variable := api.VariableTemplate{}
 	variable.Index = vindex
 	variable.Name = vname
 	variable.Lable = vlable
@@ -75,9 +66,9 @@ func AddVariable(vindex int,vname string,vlable string,vtype string) VariableTem
 	return variable
 }
 
-func NewVariables() []VariableTemplate{
+func NewVariables() []api.VariableTemplate{
 
-	VariableMap := make([]VariableTemplate,0)
+	VariableMap := make([]api.VariableTemplate,0)
 
 	VariableMap = append(VariableMap,AddVariable(0,"Addr","通信地址","string"))
 	VariableMap = append(VariableMap,AddVariable(1,"DeviceType","设备类型","string"))

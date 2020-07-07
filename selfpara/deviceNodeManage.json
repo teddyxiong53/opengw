@@ -1,0 +1,1 @@
+{"DeviceInterfaceParam":[{"InterfaceID":0,"PollPeriod":60,"OfflinePeriod":180,"DeviceNodeCnt":1,"DeviceAddrMap":["1"],"DeviceTypeMap":["wdt200"]},{"InterfaceID":1,"PollPeriod":60,"OfflinePeriod":180,"DeviceNodeCnt":0,"DeviceAddrMap":[],"DeviceTypeMap":[]}],"DeviceNodeTypeMap":[{"templateID":0,"templateName":"wdt","templateType":"wdt200","templateMessage":"风机盘管控制器"}]}

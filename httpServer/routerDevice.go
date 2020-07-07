@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/gin-gonic/gin"
+	"goAdapter/api"
 	"goAdapter/device"
 	"log"
 	"net/http"
@@ -250,15 +251,15 @@ func apiGetNode(context *gin.Context){
 	aParam := &struct{
 		Code 	string
 		Message string
-		Data    []device.VariableTemplate
+		Data    []api.VariableTemplate
 	}{}
 
 	iID,_ := strconv.Atoi(sID)
-	for _,v := range device.DeviceInterfaceMap[iID].DeviceNodeAddrMap{
+	for k,v := range device.DeviceInterfaceMap[iID].DeviceNodeAddrMap{
 		if v == sAddr{
 			aParam.Code = "0"
 			aParam.Message = ""
-			//aParam.Data = device.DeviceInterfaceMap[iID].DeviceNodeMap[k].GetDeviceVariablesValue()
+			aParam.Data = device.DeviceInterfaceMap[iID].DeviceNodeMap[k].VariableMap
 			sJson, _ := json.Marshal(aParam)
 			context.String(http.StatusOK, string(sJson))
 			return
