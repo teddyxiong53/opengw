@@ -1,0 +1,42 @@
+package device
+
+import (
+	"goAdapter/api"
+)
+
+var MaxDeviceNodeCnt int = 50
+
+//设备模板
+type DeviceNodeTemplate struct {
+	Index          int                    `json:"Index"`          //设备偏移量
+	Addr           string                 `json:"Addr"`           //设备地址
+	Type           string                 `json:"Type"`           //设备类型
+	LastCommRTC    string                 `json:"LastCommRTC"`    //最后一次通信时间戳
+	CommTotalCnt   int                    `json:"CommTotalCnt"`   //通信总次数
+	CommSuccessCnt int                    `json:"CommSuccessCnt"` //通信成功次数
+	CommStatus     string                 `json:"CommStatus"`     //通信状态
+	VariableMap    []api.VariableTemplate `json:"-"`              //变量列表
+}
+
+func (d *DeviceNodeTemplate) NewVariables() []api.VariableTemplate {
+
+	newVariablesFun, _ := DeviceTemplateMap[0].Lookup("NewVariables")
+	variables := newVariablesFun.(func() []api.VariableTemplate)()
+
+	return variables
+}
+
+func (d *DeviceNodeTemplate) GenerateGetRealVariables(sAddr string) []byte {
+
+	generateGetRealVariablesFun, _ := DeviceTemplateMap[0].Lookup("GenerateGetRealVariables")
+	nBytes := generateGetRealVariablesFun.(func(string) []byte)(sAddr)
+
+	return nBytes
+}
+
+func (d *DeviceNodeTemplate)AnalysisRx(sAddr string,rxBuf []byte,rxBufCnt int) bool{
+
+	analysisRxFun, _ := DeviceTemplateMap[0].Lookup("AnalysisRx")
+	status := analysisRxFun.(func(string,[]byte,int) bool)(sAddr,rxBuf,rxBufCnt)
+	return status
+}
