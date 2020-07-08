@@ -6,7 +6,6 @@ import (
 	"github.com/gin-gonic/gin"
 	"goAdapter/api"
 	"goAdapter/device"
-	"log"
 	"net/http"
 	"strconv"
 )
@@ -255,8 +254,8 @@ func apiGetNode(context *gin.Context){
 	}{}
 
 	iID,_ := strconv.Atoi(sID)
-	for k,v := range device.DeviceInterfaceMap[iID].DeviceNodeAddrMap{
-		if v == sAddr{
+	for k,v := range device.DeviceInterfaceMap[iID].DeviceNodeMap{
+		if v.Addr == sAddr{
 			aParam.Code = "0"
 			aParam.Message = ""
 			aParam.Data = device.DeviceInterfaceMap[iID].DeviceNodeMap[k].VariableMap
@@ -332,13 +331,13 @@ func apiAddTemplate(context *gin.Context){
 	n,_ := context.Request.Body.Read(bodyBuf)
 	fmt.Println(string(bodyBuf[:n]))
 
-	interfaceInfo := &struct{
+	typeInfo := &struct{
 		TemplateName string					`json:"templateName"`		//模板名称
 		TemplateType string					`json:"templateType"`		//模板型号
 		TemplateMessage string              `json:"templateMessage"`	//备注信息
 	}{}
 
-	err := json.Unmarshal(bodyBuf[:n],interfaceInfo)
+	err := json.Unmarshal(bodyBuf[:n],typeInfo)
 	if err != nil {
 		fmt.Println("interfaceInfo json unMarshall err,",err)
 
@@ -350,17 +349,17 @@ func apiAddTemplate(context *gin.Context){
 		return
 	}
 
-	index := len(device.DeviceInterfaceParamMap.DeviceNodeTypeMap)
+	index := len(device.DeviceNodeTypeMap.DeviceNodeType)
 	template := device.DeviceNodeTypeTemplate{
-		TemplateName:interfaceInfo.TemplateName,
-		TemplateType:interfaceInfo.TemplateType,
+		TemplateName:typeInfo.TemplateName,
+		TemplateType:typeInfo.TemplateType,
 		TemplateID: index,
-		TemplateMessage:interfaceInfo.TemplateMessage,
+		TemplateMessage:typeInfo.TemplateMessage,
 	}
 
-	device.DeviceInterfaceParamMap.DeviceNodeTypeMap = append(device.DeviceInterfaceParamMap.DeviceNodeTypeMap,template)
+	device.DeviceNodeTypeMap.DeviceNodeType = append(device.DeviceNodeTypeMap.DeviceNodeType,template)
 
-	device.WriteDeviceInterfaceManageToJson()
+	device.WriteDeviceNodeTypeMapToJson()
 
 	aParam.Code = "0"
 	aParam.Data = ""
@@ -377,11 +376,17 @@ func apiGetTemplate(context *gin.Context){
 		Data    []device.DeviceNodeTypeTemplate
 	}{}
 
-	log.Printf("%+v\n",device.DeviceInterfaceParamMap.DeviceNodeTypeMap)
+	if len(device.DeviceNodeTypeMap.DeviceNodeType) > 0{
+		aParam.Code = "0"
+		aParam.Message = ""
+		aParam.Data = device.DeviceNodeTypeMap.DeviceNodeType
+	}else{
+		aParam.Code = "1"
+		aParam.Message = "nodeTypeCnt is 0"
+		aParam.Data = device.DeviceNodeTypeMap.DeviceNodeType
+	}
 
-	aParam.Code = "0"
-	aParam.Message = ""
-	aParam.Data = device.DeviceInterfaceParamMap.DeviceNodeTypeMap
+
 
 	sJson, _ := json.Marshal(aParam)
 

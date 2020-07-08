@@ -6,6 +6,7 @@ import (
 	"log"
 	"strconv"
 	"sync"
+	"time"
 )
 
 type DeviceNodeTemplate struct{
@@ -111,7 +112,9 @@ func GenerateGetRealVariables(sAddr string) []byte{
 	return requestAdu
 }
 
-func AnalysisRx(sAddr string,rxBuf []byte,rxBufCnt int) bool{
+func AnalysisRx(sAddr string,variables []api.VariableTemplate,rxBuf []byte,rxBufCnt int) chan bool{
+
+	status := make(chan bool,1)
 
 	addr,_ := strconv.Atoi(sAddr)
 
@@ -119,32 +122,33 @@ func AnalysisRx(sAddr string,rxBuf []byte,rxBufCnt int) bool{
 	for {
 		if index < rxBufCnt{
 			if rxBufCnt < 4{
-				return false
+				return status
 			}
 			crc := crc16(rxBuf[0:len(rxBuf)-2])
 			expect := binary.LittleEndian.Uint16(rxBuf[len(rxBuf)-2:])
 			if crc != expect{
-				return false
+				return status
 			}
-
 			if rxBuf[0] != byte(addr){
-				return false
+				return status
 			}
 			if rxBuf[1] != 0x03{
-				return false
+				return status
 			}
 			if rxBuf[2] != 4{
-				return false
+				return status
 			}
 			log.Println("processRx ok")
 
-			//timeNowStr := time.Now().Format("2006-01-02 15:04:05")
+			timeNowStr := time.Now().Format("2006-01-02 15:04:05")
 
-			return true
+			variables[0].TimeStamp = timeNowStr
+			status<-true
+			return status
 		}else{
 			break
 		}
 		index++
 	}
-	return false
+	return status
 }

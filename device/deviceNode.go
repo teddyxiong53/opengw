@@ -20,23 +20,38 @@ type DeviceNodeTemplate struct {
 
 func (d *DeviceNodeTemplate) NewVariables() []api.VariableTemplate {
 
-	newVariablesFun, _ := DeviceTemplateMap[0].Lookup("NewVariables")
-	variables := newVariablesFun.(func() []api.VariableTemplate)()
-
-	return variables
+	for k,v := range DeviceNodeTypeMap.DeviceNodeType{
+		if d.Type == v.TemplateType{
+			newVariablesFun, _ := DeviceTypePluginMap[k].Lookup("NewVariables")
+			variables := newVariablesFun.(func() []api.VariableTemplate)()
+			return variables
+		}
+	}
+	return nil
 }
 
 func (d *DeviceNodeTemplate) GenerateGetRealVariables(sAddr string) []byte {
 
-	generateGetRealVariablesFun, _ := DeviceTemplateMap[0].Lookup("GenerateGetRealVariables")
-	nBytes := generateGetRealVariablesFun.(func(string) []byte)(sAddr)
-
-	return nBytes
+	for k,v := range DeviceNodeTypeMap.DeviceNodeType {
+		if d.Type == v.TemplateType {
+			generateGetRealVariablesFun, _ := DeviceTypePluginMap[k].Lookup("GenerateGetRealVariables")
+			nBytes := generateGetRealVariablesFun.(func(string) []byte)(sAddr)
+			return nBytes
+		}
+	}
+	return nil
 }
 
-func (d *DeviceNodeTemplate)AnalysisRx(sAddr string,rxBuf []byte,rxBufCnt int) bool{
+func (d *DeviceNodeTemplate) AnalysisRx(sAddr string,variables []api.VariableTemplate,rxBuf []byte,rxBufCnt int) chan bool{
 
-	analysisRxFun, _ := DeviceTemplateMap[0].Lookup("AnalysisRx")
-	status := analysisRxFun.(func(string,[]byte,int) bool)(sAddr,rxBuf,rxBufCnt)
+	status := make(chan bool,1)
+
+	for k,v := range DeviceNodeTypeMap.DeviceNodeType {
+		if d.Type == v.TemplateType {
+			analysisRxFun, _ := DeviceTypePluginMap[k].Lookup("AnalysisRx")
+			status = analysisRxFun.(func(string,[]api.VariableTemplate,[]byte, int) chan bool)(sAddr, variables, rxBuf, rxBufCnt)
+			return status
+		}
+	}
 	return status
 }
