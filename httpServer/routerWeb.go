@@ -11,8 +11,6 @@ func RouterWeb() http.Handler {
 	router := gin.Default()
 	//router := gin.New()
 
-	//router.Use(gin.Logger())
-
 	loginRouter := router.Group("/api/v1/system/")
 	{
 		loginRouter.POST("/login",apiLogin)
@@ -125,3 +123,5 @@ func RouterWeb() http.Handler {
 
 	return router
 }
+
+

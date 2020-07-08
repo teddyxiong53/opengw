@@ -21,8 +21,6 @@ const (
 	InterFaceID6 int = 6
 	InterFaceID7 int = 7
 
-
-
 )
 
 //通信接口模板
@@ -73,9 +71,11 @@ func WriteDeviceInterfaceManageToJson() {
 		DeviceInterfaceParamMap.DeviceInterfaceParam[k].OfflinePeriod = v.OfflinePeriod
 		DeviceInterfaceParamMap.DeviceInterfaceParam[k].DeviceNodeCnt = v.DeviceNodeCnt
 
+		DeviceInterfaceParamMap.DeviceInterfaceParam[k].DeviceNodeAddrMap = DeviceInterfaceParamMap.DeviceInterfaceParam[k].DeviceNodeAddrMap[0:0]
+		DeviceInterfaceParamMap.DeviceInterfaceParam[k].DeviceNodeTypeMap = DeviceInterfaceParamMap.DeviceInterfaceParam[k].DeviceNodeTypeMap[0:0]
 		for i:=0;i<v.DeviceNodeCnt;i++{
-			DeviceInterfaceParamMap.DeviceInterfaceParam[k].DeviceNodeAddrMap[i] = v.DeviceNodeMap[i].Addr
-			DeviceInterfaceParamMap.DeviceInterfaceParam[k].DeviceNodeTypeMap[i] = v.DeviceNodeMap[i].Type
+			DeviceInterfaceParamMap.DeviceInterfaceParam[k].DeviceNodeAddrMap = append(DeviceInterfaceParamMap.DeviceInterfaceParam[k].DeviceNodeAddrMap,v.DeviceNodeMap[i].Addr)
+			DeviceInterfaceParamMap.DeviceInterfaceParam[k].DeviceNodeTypeMap = append(DeviceInterfaceParamMap.DeviceInterfaceParam[k].DeviceNodeTypeMap,v.DeviceNodeMap[i].Type)
 		}
 	}
 
@@ -109,6 +109,12 @@ func ReadDeviceInterfaceManageFromJson() bool {
 		data := make([]byte, 20480)
 		dataCnt, err := fp.Read(data)
 
+		for _,v := range DeviceInterfaceParamMap.DeviceInterfaceParam{
+
+			v.DeviceNodeAddrMap = make([]string,0)
+			v.DeviceNodeTypeMap = make([]string,0)
+		}
+
 		err = json.Unmarshal(data[:dataCnt], &DeviceInterfaceParamMap)
 		if err != nil {
 			log.Println("deviceNodeManage unmarshal err", err)
@@ -125,6 +131,9 @@ func ReadDeviceInterfaceManageFromJson() bool {
 }
 
 func DeviceNodeManageInit() {
+
+	ReadDeviceNodeTypeMapFromJson()
+
 
 	if ReadDeviceInterfaceManageFromJson() == true {
 		log.Println("read interface json ok")
@@ -238,7 +247,7 @@ func (d *DeviceInterfaceTemplate) AddDeviceNode(dType string, dAddr string) (boo
 	node.Index = len(d.DeviceNodeMap)
 	node.VariableMap = make([]api.VariableTemplate, 0)
 	variables := node.NewVariables()
-	log.Printf("variables %+v\n", variables)
+	node.VariableMap = append(node.VariableMap,variables...)
 
 	d.DeviceNodeMap = append(d.DeviceNodeMap, node)
 	d.DeviceNodeCnt++

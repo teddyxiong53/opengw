@@ -74,12 +74,19 @@ func ReadDeviceNodeTypeMapFromJson() bool {
 		}
 		//创建设备模版
 		DeviceTypePluginMap = make(map[int]*plugin.Plugin)
+		//log.Printf("plugin %+v\n",DeviceNodeTypeMap)
 		for k,v := range DeviceNodeTypeMap.DeviceNodeType{
 
 			str := "plugin/" + v.TemplateType + ".so"
-			template,_ := plugin.Open(str)
+			log.Printf("pluginStr %s\n",str)
+			log.Printf("plugin %+v\n",DeviceNodeTypeMap)
+			template,pluginerr := plugin.Open(str)
+			if pluginerr!=nil{
+				log.Printf("open %s, %\n",pluginerr)
+			}
 			DeviceTypePluginMap[k] = template
 		}
+		//log.Printf("plugin %+v\n",DeviceTypePluginMap)
 
 		return true
 	} else {
@@ -90,3 +97,4 @@ func ReadDeviceNodeTypeMapFromJson() bool {
 		return false
 	}
 }
+
