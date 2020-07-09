@@ -134,6 +134,7 @@ func DeviceNodeManageInit() {
 
 	ReadDeviceNodeTypeMapFromJson()
 
+	CommInterfaceInit()
 
 	if ReadDeviceInterfaceManageFromJson() == true {
 		log.Println("read interface json ok")

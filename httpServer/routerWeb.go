@@ -113,6 +113,12 @@ func RouterWeb() http.Handler {
 
 			//获取设备模板
 			deviceRouter.GET("/template",apiGetTemplate)
+
+			//获取通信接口
+			deviceRouter.GET("/commInterface",apiGetCommInterface)
+
+			//增加通信接口
+			deviceRouter.POST("/commInterface",apiAddCommInterface)
 		}
 
 		remoteRouter := router.Group("/api/v1/remote")

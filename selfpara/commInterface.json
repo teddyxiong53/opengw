@@ -1,0 +1,1 @@
+{"InterfaceCnt":3,"InterfaceMap":[{"Name":"1","Type":"serial","Param":{"BaudRate":"9600","DataBits":"8","Name":"/dev/ttyUSB2","Parity":"N","StopBits":"1","Timeout":"1000"}},{"Name":"2","Type":"serial","Param":{"BaudRate":"9600","DataBits":"8","Name":"/dev/ttyUSB1","Parity":"N","StopBits":"1","Timeout":"1000"}},{"Name":"3","Type":"tcp","Param":{"IP":"192.168.1.1","Port":60000}}]}

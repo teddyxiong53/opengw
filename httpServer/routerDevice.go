@@ -464,3 +464,65 @@ func apiGetNodeVariableFromDevice(context *gin.Context){
 	sJson, _ := json.Marshal(aParam)
 	context.String(http.StatusOK, string(sJson))
 }
+
+func apiAddCommInterface(context *gin.Context){
+
+	aParam := struct{
+		Code string			`json:"Code"`
+		Message string		`json:"Message"`
+		Data string			`json:"Data"`
+	}{
+		Code:"1",
+		Message:"",
+		Data:"",
+	}
+
+	bodyBuf := make([]byte,1024)
+	n,_ := context.Request.Body.Read(bodyBuf)
+	fmt.Println(string(bodyBuf[:n]))
+
+	intefaceInfo := &struct{
+		Name 	string							`json:"Name"`			//接口名称
+		Type    string          				`json:"Type"`			//接口类型,比如serial,tcp,udp,http
+		Param   interface{}     				`json:"Param"`
+	}{}
+
+	err := json.Unmarshal(bodyBuf[:n],intefaceInfo)
+	if err != nil {
+		fmt.Println("interfaceInfo json unMarshall err,",err)
+
+		aParam.Code = "1"
+		aParam.Message = "json unMarshall err"
+
+		sJson,_ := json.Marshal(aParam)
+		context.String(http.StatusOK,string(sJson))
+		return
+	}
+
+	device.CommInterfaceList.AddCommInterface(intefaceInfo.Name,intefaceInfo.Type,intefaceInfo.Param)
+
+	device.WriteCommInterfaceListToJson()
+
+	aParam.Code = "0"
+	aParam.Data = ""
+
+	sJson,_ := json.Marshal(aParam)
+	context.String(http.StatusOK,string(sJson))
+}
+
+func apiGetCommInterface(context *gin.Context){
+
+	aParam := &struct{
+		Code 	string
+		Message string
+		Data    device.CommInterfaceListTemplate
+	}{}
+
+	aParam.Code = "0"
+	aParam.Message = ""
+	aParam.Data = *device.CommInterfaceList
+
+	sJson, _ := json.Marshal(aParam)
+
+	context.String(http.StatusOK, string(sJson))
+}
