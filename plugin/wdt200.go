@@ -96,6 +96,9 @@ func NewVariables() []api.VariableTemplate{
 	return VariableMap
 }
 
+/**
+	生成读变量的数据包
+ */
 func GenerateGetRealVariables(sAddr string) []byte{
 
 	addr,_ := strconv.Atoi(sAddr)

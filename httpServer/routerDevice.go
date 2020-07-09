@@ -392,3 +392,77 @@ func apiGetTemplate(context *gin.Context){
 
 	context.String(http.StatusOK, string(sJson))
 }
+
+/**
+	从缓存中获取设备变量
+ */
+func apiGetNodeVariableFromCache(context *gin.Context){
+
+	sID := context.Query("interfaceID")
+	sAddr := context.Query("addr")
+
+	aParam := &struct{
+		Code 	string
+		Message string
+		Data    []api.VariableTemplate
+	}{}
+
+	iID,_ := strconv.Atoi(sID)
+	for k,v := range device.DeviceInterfaceMap[iID].DeviceNodeMap{
+		if v.Addr == sAddr{
+			aParam.Code = "0"
+			aParam.Message = ""
+			aParam.Data = device.DeviceInterfaceMap[iID].DeviceNodeMap[k].VariableMap
+			sJson, _ := json.Marshal(aParam)
+			context.String(http.StatusOK, string(sJson))
+			return
+		}
+	}
+	aParam.Code = "1"
+	aParam.Message = "node is noexist"
+	sJson, _ := json.Marshal(aParam)
+	context.String(http.StatusOK, string(sJson))
+}
+
+/**
+	从设备中获取设备变量
+*/
+func apiGetNodeVariableFromDevice(context *gin.Context){
+
+	sID := context.Query("interfaceID")
+	sAddr := context.Query("addr")
+
+	aParam := &struct{
+		Code 	string
+		Message string
+		Data    []api.VariableTemplate
+	}{}
+
+	iID,_ := strconv.Atoi(sID)
+	for k,v := range device.DeviceInterfaceMap[iID].DeviceNodeMap{
+		if v.Addr == sAddr{
+
+			cmd := device.CommunicationCmd{}
+			cmd.InterfaceID = device.InterFaceID0
+			cmd.DeviceAddr = v.Addr
+			cmd.FunName = "GenerateGetRealVariables"
+			if device.CommunicationManageAddEmergency(cmd) == true{
+				aParam.Code = "0"
+				aParam.Message = ""
+				aParam.Data = device.DeviceInterfaceMap[iID].DeviceNodeMap[k].VariableMap
+			}else{
+				aParam.Code = "1"
+				aParam.Message = ""
+				aParam.Data = device.DeviceInterfaceMap[iID].DeviceNodeMap[k].VariableMap
+
+			}
+			sJson, _ := json.Marshal(aParam)
+			context.String(http.StatusOK, string(sJson))
+			return
+		}
+	}
+	aParam.Code = "1"
+	aParam.Message = "node is noexist"
+	sJson, _ := json.Marshal(aParam)
+	context.String(http.StatusOK, string(sJson))
+}
