@@ -386,8 +386,6 @@ func apiGetTemplate(context *gin.Context){
 		aParam.Data = device.DeviceNodeTypeMap.DeviceNodeType
 	}
 
-
-
 	sJson, _ := json.Marshal(aParam)
 
 	context.String(http.StatusOK, string(sJson))
