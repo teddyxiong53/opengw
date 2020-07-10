@@ -8,14 +8,15 @@ import (
 )
 
 type SerialParamTemplate struct{
-	ID       string     `json:"ID"`
-	Name     string     `json:"Name"`
-	BaudRate string 	`json:"BaudRate"`
-	DataBits string		`json:"DataBits"`		// Data bits: 5, 6, 7 or 8 (default 8)
-	StopBits string		`json:"StopBits"`		// Stop bits: 1 or 2 (default 1)
-	Parity 	 string     `json:"Parity"`			// Parity: N - None, E - Even, O - Odd (default E),(The use of no parity requires 2 stop bits.)
-	Timeout  string     `json:"Timeout"`		//通信超时
-	Interval string		`json:"Interval"`		//通信间隔
+	ID       string     	`json:"ID"`
+	Name     string     	`json:"Name"`
+	BaudRate string 		`json:"BaudRate"`
+	DataBits string			`json:"DataBits"`		// Data bits: 5, 6, 7 or 8 (default 8)
+	StopBits string			`json:"StopBits"`		// Stop bits: 1 or 2 (default 1)
+	Parity 	 string     	`json:"Parity"`			// Parity: N - None, E - Even, O - Odd (default E),(The use of no parity requires 2 stop bits.)
+	Timeout  string     	`json:"Timeout"`		//通信超时
+	Interval string			`json:"Interval"`		//通信间隔
+	Port     *serial.Port 	`json:"-"`
 }
 
 type SerialInterfaceTemplate struct{
@@ -67,8 +68,6 @@ func newSerialInterface(param SerialParamTemplate) (bool,*serial.Port){
 	return true,serial
 }
 
-
-
 func SerialInterfaceInit(){
 
 
@@ -99,3 +98,58 @@ func SerialOpen(index int){
 	}
 }
 
+func NewSerialPort(Name,BaudRate,DataBits,StopBits,Parity,Timeout,Interval string) *SerialParamTemplate{
+
+	serial := &SerialParamTemplate{
+		Name: Name,
+		BaudRate: BaudRate,
+		DataBits: DataBits,
+		StopBits: StopBits,
+		Parity: Parity,
+		Timeout: Timeout,
+		Interval: Interval,
+	}
+
+	return serial
+}
+
+func (s *SerialParamTemplate)OpenSerialPort() (bool,error){
+
+	serialBaud,_ := strconv.Atoi(s.BaudRate)
+
+	var serialParity serial.Parity
+	switch s.Parity {
+	case "N":
+		serialParity = serial.ParityNone
+	case "O":
+		serialParity = serial.ParityOdd
+	case "E":
+		serialParity = serial.ParityEven
+	}
+
+	var serialStop serial.StopBits
+	switch s.StopBits {
+	case "1":
+		serialStop = serial.Stop1
+	case "1.5":
+		serialStop = serial.Stop1Half
+	case "2":
+		serialStop = serial.Stop2
+	}
+
+	serialConfig := &serial.Config{
+		Name: s.Name,
+		Baud: serialBaud,
+		Parity:serialParity,
+		StopBits: serialStop,
+		ReadTimeout: time.Millisecond*1,
+	}
+
+	serial, err := serial.OpenPort(serialConfig)
+	if err != nil {
+		log.Printf("open serial err,%s",err)
+		return false,err
+	}
+	s.Port = serial
+	return true,err
+}

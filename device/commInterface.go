@@ -2,17 +2,24 @@ package device
 
 import (
 	"encoding/json"
-	"goAdapter/setting"
 	"log"
 	"os"
 	"path/filepath"
 )
 
+type CommunicationInterface interface{
+	Open(interface{})  bool
+	Close() bool
+	WriteWriteData() int
+	ReadWriteData()  int
+}
+
 type CommInterfaceTemplate struct{
 	Name 	string							`json:"Name"`			//接口名称
 	Type    string          				`json:"Type"`			//接口类型,比如serial,tcp,udp,http
-	Param   interface{}     				`json:"Param"`
-	Status  bool 							`json:"Status"`
+	Param   interface{}     				`json:"Param"`			//接口参数
+	Status  bool 							`json:"Status"`			//接口状态
+	Port    CommunicationInterface			`json:"-"`
 }
 
 type CommInterfaceListTemplate struct{
@@ -38,6 +45,13 @@ func (c *CommInterfaceListTemplate)NewCommInterface(Name string,Type string,Para
 		Type:Type,
 		Param:Param,
 	}
+	switch Type{
+	case "Serial":
+		comm.Port = &CommunicationSerialInterface{}
+	case "TCP":
+		comm.Port = &CommunicationTcpInterface{}
+	}
+
 	c.InterfaceMap = append(c.InterfaceMap,comm)
 	c.InterfaceCnt++
 }
@@ -49,6 +63,12 @@ func (c *CommInterfaceListTemplate)AddCommInterface(Name string,Type string,Para
 		Name:Name,
 		Type:Type,
 		Param:Param,
+	}
+	switch Type{
+	case "Serial":
+		comm.Port = &CommunicationSerialInterface{}
+	case "TCP":
+		comm.Port = &CommunicationTcpInterface{}
 	}
 	c.InterfaceMap = append(c.InterfaceMap,comm)
 	c.InterfaceCnt++
@@ -148,19 +168,7 @@ func CommInterfaceInit() {
 		log.Println("read commInterface.json ok")
 
 		for _,v := range CommInterfaceList.InterfaceMap{
-			switch v.Type{
-				case "serial":
-				{
-					param,ok := v.Param.(setting.SerialParamTemplate)
-					if !ok{
-						v.Status = false
-						continue
-					}
-
-				}
-				case "tcp":
-				case "http":
-			}
+			v.Status = v.Port.Open(v.Param)
 		}
 	}
 }
