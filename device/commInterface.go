@@ -8,68 +8,74 @@ import (
 )
 
 type CommunicationInterface interface{
-	Open(interface{})  bool
-	Close() bool
-	WriteWriteData() int
-	ReadWriteData()  int
+	Open(interface{})  		bool
+	Close() 				bool
+	WriteData(data []byte) 	int
+	ReadData(data []byte)  	int
 }
 
 type CommInterfaceTemplate struct{
-	Name 	string							`json:"Name"`			//接口名称
-	Type    string          				`json:"Type"`			//接口类型,比如serial,tcp,udp,http
-	Param   interface{}     				`json:"Param"`			//接口参数
-	Status  bool 							`json:"Status"`			//接口状态
-	Port    CommunicationInterface			`json:"-"`
+	Name 	string										`json:"Name"`			//接口名称
+	Type    string          							`json:"Type"`			//接口类型,比如serial,tcp,udp,http
+	Param   interface{}     							`json:"Param"`			//接口参数
+	Status  bool 										`json:"Status"`			//接口状态
+	Port    CommunicationInterface						`json:"-"`
 }
 
 type CommInterfaceListTemplate struct{
-	InterfaceCnt int						`json:"InterfaceCnt"`
-	InterfaceMap []CommInterfaceTemplate
+	InterfaceCnt 	 int								`json:"InterfaceCnt"`
+	InterfaceMap 	 []CommInterfaceTemplate
 }
 
-var CommInterfaceList *CommInterfaceListTemplate
+var CommInterfaceList  *CommInterfaceListTemplate
 
 
 func NewCommInterfaceList() *CommInterfaceListTemplate{
 
 	return &CommInterfaceListTemplate{
 		InterfaceCnt: 0,
-		InterfaceMap:make([]CommInterfaceTemplate,0),
+		InterfaceMap: make([]CommInterfaceTemplate,0),
 	}
 }
 
-func (c *CommInterfaceListTemplate)NewCommInterface(Name string,Type string,Param interface{}){
+func NewCommInterface(Name string,Type string,Param interface{}) CommInterfaceTemplate{
 
 	comm := CommInterfaceTemplate{
 		Name:Name,
 		Type:Type,
 		Param:Param,
 	}
-	switch Type{
-	case "Serial":
-		comm.Port = &CommunicationSerialInterface{}
-	case "TCP":
-		comm.Port = &CommunicationTcpInterface{}
-	}
 
-	c.InterfaceMap = append(c.InterfaceMap,comm)
-	c.InterfaceCnt++
+	return comm
 }
 
+func (c *CommInterfaceTemplate)NewCommInterfacePort(){
+
+	switch c.Type{
+		case "serial":
+			c.Port = &CommunicationSerialInterface{}
+		case "tcp":
+			c.Port = &CommunicationTcpInterface{}
+	}
+}
+
+//func (c *CommInterfaceListTemplate)NewCommInterfacePort(){
+//
+//	for _,v := range c.InterfaceMap{
+//		log.Printf("type is %s\n",v.Type)
+//		switch v.Type{
+//		case "serial":
+//			c.InterfacePortMap = append(c.InterfacePortMap,&CommunicationSerialInterface{})
+//		case "tcp":
+//			c.InterfacePortMap = append(c.InterfacePortMap,&CommunicationTcpInterface{})
+//		}
+//	}
+//}
 
 func (c *CommInterfaceListTemplate)AddCommInterface(Name string,Type string,Param interface{}){
 
-	comm := CommInterfaceTemplate{
-		Name:Name,
-		Type:Type,
-		Param:Param,
-	}
-	switch Type{
-	case "Serial":
-		comm.Port = &CommunicationSerialInterface{}
-	case "TCP":
-		comm.Port = &CommunicationTcpInterface{}
-	}
+	comm := NewCommInterface(Name,Type,Param)
+
 	c.InterfaceMap = append(c.InterfaceMap,comm)
 	c.InterfaceCnt++
 }
@@ -121,7 +127,7 @@ func WriteCommInterfaceListToJson() {
 	}
 	defer fp.Close()
 
-	sJson, _ := json.Marshal(*CommInterfaceList)
+	sJson, _ := json.Marshal(CommInterfaceList)
 
 	_, err = fp.Write(sJson)
 	if err != nil {
@@ -149,7 +155,6 @@ func ReadCommInterfaceListFromJson() bool {
 		err = json.Unmarshal(data[:dataCnt], CommInterfaceList)
 		if err != nil {
 			log.Println("commInterface unmarshal err", err)
-
 			return false
 		}
 
@@ -166,9 +171,13 @@ func CommInterfaceInit() {
 	CommInterfaceList = NewCommInterfaceList()
 	if ReadCommInterfaceListFromJson() == true{
 		log.Println("read commInterface.json ok")
-
+		log.Printf("%+v\n",CommInterfaceList)
 		for _,v := range CommInterfaceList.InterfaceMap{
+			v.NewCommInterfacePort()
 			v.Status = v.Port.Open(v.Param)
+			if v.Status != true{
+				log.Printf("%s open err\n",v.Param)
+			}
 		}
 	}
 }

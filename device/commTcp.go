@@ -8,27 +8,22 @@ type CommunicationTcpInterface struct{
 	Interval 	string		`json:"Interval"`		//通信间隔
 }
 
-func NewCommunicationTcpInterface(){
-
-
-}
-
 func (c *CommunicationTcpInterface)Open(param interface{}) bool{
 
-
+	return true
 }
 
 func (c *CommunicationTcpInterface)Close() bool{
 
-
+	return true
 }
 
-func (c *CommunicationTcpInterface)WriteWriteData() int{
+func (c *CommunicationTcpInterface)WriteData(data []byte) int{
 
-
+	return 0
 }
 
-func (c *CommunicationTcpInterface)ReadWriteData() int{
+func (c *CommunicationTcpInterface)ReadData(data []byte) int{
 
-
+	return 0
 }

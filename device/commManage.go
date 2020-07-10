@@ -198,15 +198,15 @@ func CommunicationManageDel(){
 
 func CommunicationManagePoll(){
 
-	cmd := CommunicationCmd{}
-
-	for i:=0;i<DeviceInterfaceMap[InterFaceID0].DeviceNodeCnt;i++{
-
-		cmd.InterfaceID = InterFaceID0
-		cmd.DeviceAddr = DeviceInterfaceMap[InterFaceID0].DeviceNodeMap[i].Addr
-		cmd.DeviceType = DeviceInterfaceMap[InterFaceID0].DeviceNodeMap[i].Type
-		cmd.FunName = "GetDeviceRealVariables"
-
-		CommunicationManageAdd(cmd)
-	}
+	//cmd := CommunicationCmd{}
+	//
+	//for i:=0;i<DeviceInterfaceMap[InterFaceID0].DeviceNodeCnt;i++{
+	//
+	//	cmd.InterfaceID = InterFaceID0
+	//	cmd.DeviceAddr = DeviceInterfaceMap[InterFaceID0].DeviceNodeMap[i].Addr
+	//	cmd.DeviceType = DeviceInterfaceMap[InterFaceID0].DeviceNodeMap[i].Type
+	//	cmd.FunName = "GetDeviceRealVariables"
+	//
+	//	CommunicationManageAdd(cmd)
+	//}
 }

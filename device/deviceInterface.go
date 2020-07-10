@@ -3,7 +3,6 @@ package device
 import (
 	"encoding/json"
 	"goAdapter/api"
-	"goAdapter/setting"
 	"log"
 	"os"
 	"path/filepath"
@@ -187,7 +186,7 @@ func NewDeviceInterface(interfaceID, pollPeriod, offlinePeriod int, deviceNodeCn
 	}
 
 	//打开串口
-	setting.SerialOpen(nodeManage.InterfaceID)
+	//setting.SerialOpen(nodeManage.InterfaceID)
 
 	return nodeManage
 }

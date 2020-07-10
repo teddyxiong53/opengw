@@ -6,6 +6,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"goAdapter/api"
 	"goAdapter/device"
+	"log"
 	"net/http"
 	"strconv"
 )
@@ -481,13 +482,12 @@ func apiAddCommInterface(context *gin.Context){
 	n,_ := context.Request.Body.Read(bodyBuf)
 	fmt.Println(string(bodyBuf[:n]))
 
-	intefaceInfo := &struct{
+	interfaceInfo := &struct{
 		Name 	string							`json:"Name"`			//接口名称
 		Type    string          				`json:"Type"`			//接口类型,比如serial,tcp,udp,http
-		Param   interface{}     				`json:"Param"`
 	}{}
 
-	err := json.Unmarshal(bodyBuf[:n],intefaceInfo)
+	err := json.Unmarshal(bodyBuf[:n],interfaceInfo)
 	if err != nil {
 		fmt.Println("interfaceInfo json unMarshall err,",err)
 
@@ -499,7 +499,15 @@ func apiAddCommInterface(context *gin.Context){
 		return
 	}
 
-	device.CommInterfaceList.AddCommInterface(intefaceInfo.Name,intefaceInfo.Type,intefaceInfo.Param)
+	switch interfaceInfo.Type{
+	case "serial":
+	case "tcp":
+
+	}
+
+	log.Printf("type %+v\n",interfaceInfo)
+
+	//device.CommInterfaceList.AddCommInterface(interfaceInfo.Name,interfaceInfo.Type,interfaceInfo.Param)
 
 	device.WriteCommInterfaceListToJson()
 

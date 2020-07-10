@@ -3,31 +3,38 @@ package device
 import (
 	"github.com/tarm/serial"
 	"log"
-	"strconv"
-	"time"
+	"reflect"
 )
 
-type CommunicationSerialInterface struct{
-	Name     string     	`json:"Name"`
+type SerialInterfaceParam struct{
+	Name     string 		`json:"Name"`
 	BaudRate string 		`json:"BaudRate"`
-	DataBits string			`json:"DataBits"`		// Data bits: 5, 6, 7 or 8 (default 8)
-	StopBits string			`json:"StopBits"`		// Stop bits: 1 or 2 (default 1)
-	Parity 	 string     	`json:"Parity"`			// Parity: N - None, E - Even, O - Odd (default E),(The use of no parity requires 2 stop bits.)
+	DataBits string			`json:"DataBits"`		//数据位: 5, 6, 7 or 8 (default 8)
+	StopBits string			`json:"StopBits"`		//停止位: 1 or 2 (default 1)
+	Parity 	 string     	`json:"Parity"`			//校验: N - None, E - Even, O - Odd (default E),(The use of no parity requires 2 stop bits.)
 	Timeout  string     	`json:"Timeout"`		//通信超时
 	Interval string			`json:"Interval"`		//通信间隔
-	Port     *serial.Port
 }
 
-func NewCommunicationSerialInterface(){
-
-
+type CommunicationSerialInterface struct{
+	Name     string 		`json:"Name"`
+	BaudRate string 		`json:"BaudRate"`
+	DataBits string			`json:"DataBits"`		//数据位: 5, 6, 7 or 8 (default 8)
+	StopBits string			`json:"StopBits"`		//停止位: 1 or 2 (default 1)
+	Parity 	 string     	`json:"Parity"`			//校验: N - None, E - Even, O - Odd (default E),(The use of no parity requires 2 stop bits.)
+	Timeout  string     	`json:"Timeout"`		//通信超时
+	Interval string			`json:"Interval"`		//通信间隔
+	Port     *serial.Port				`json:"-"`				//通信句柄
 }
 
 func (c *CommunicationSerialInterface)Open(param interface{}) bool{
 
 
-	serialParam := param.(CommunicationSerialInterface)
+	log.Println("  ",reflect.TypeOf(param))
+	//log.Printf("Name is %s\n",serialParam.FieldByName("Name"))
 
+	/*
+	serialParam := param.(CommunicationSerialInterface)
 	serialBaud,_ := strconv.Atoi(serialParam.BaudRate)
 
 	var serialParity serial.Parity
@@ -64,6 +71,7 @@ func (c *CommunicationSerialInterface)Open(param interface{}) bool{
 		return false
 	}
 	serialParam.Port = serial
+	 */
 	return true
 }
 
@@ -72,14 +80,16 @@ func (c *CommunicationSerialInterface)Close() bool{
 	return true
 }
 
-func (c *CommunicationSerialInterface)WriteData() int{
+func (c *CommunicationSerialInterface)WriteData(data []byte) int{
 
+	cnt,_ := c.Port.Write(data)
 
-
-	return 0
+	return cnt
 }
 
-func (c *CommunicationSerialInterface)ReadData() int{
+func (c *CommunicationSerialInterface)ReadData(data []byte) int{
 
-	return 0
+	cnt,_ := c.Port.Read(data)
+
+	return cnt
 }
