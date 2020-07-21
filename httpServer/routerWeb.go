@@ -13,14 +13,14 @@ func RouterWeb() http.Handler {
 
 	loginRouter := router.Group("/api/v1/system/")
 	{
-		loginRouter.POST("/login",apiLogin)
+		loginRouter.POST("/login", apiLogin)
 	}
 
 	router.GET("/", func(context *gin.Context) {
 		context.File("webroot/index.html")
 	})
 
-	router.Static("/static","webroot/static")
+	router.Static("/static", "webroot/static")
 
 	router.GET("/favicon.ico", func(context *gin.Context) {
 		context.File("webroot/favicon.ico")
@@ -34,21 +34,21 @@ func RouterWeb() http.Handler {
 	{
 		systemRouter := router.Group("/api/v1/system")
 		{
-			systemRouter.POST("/reboot",apiSystemReboot)
+			systemRouter.POST("/reboot", apiSystemReboot)
 
-			systemRouter.GET("/status",apiGetSystemStatus)
+			systemRouter.GET("/status", apiGetSystemStatus)
 
-			systemRouter.GET("/loginParam",apiSystemLoginParam)
+			systemRouter.GET("/loginParam", apiSystemLoginParam)
 
-			systemRouter.GET("/MemUseList",apiSystemMemoryUseList)
+			systemRouter.GET("/MemUseList", apiSystemMemoryUseList)
 
-			systemRouter.GET("/DiskUseList",apiSystemDiskUseList)
+			systemRouter.GET("/DiskUseList", apiSystemDiskUseList)
 
-			systemRouter.GET("/DeviceOnlineList",apiSystemDeviceOnlineList)
+			systemRouter.GET("/DeviceOnlineList", apiSystemDeviceOnlineList)
 
-			systemRouter.GET("/DevicePacketLossList",apiSystemDevicePacketLossList)
+			systemRouter.GET("/DevicePacketLossList", apiSystemDevicePacketLossList)
 
-			systemRouter.POST("/systemRTC",apiSystemSetSystemRTC)
+			systemRouter.POST("/systemRTC", apiSystemSetSystemRTC)
 		}
 
 		//userRouter := router.Group("/api/v1/modbus")
@@ -75,68 +75,64 @@ func RouterWeb() http.Handler {
 		}
 
 		serialRouter := router.Group("/api/v1/serial/param")
-		//serialRouter := router.Group("/api/v1/serial")
 		{
-			serialRouter.POST("",apiSetSerial)
 
-			serialRouter.GET("",apiGetSerial)
+			serialRouter.GET("", apiGetSerial)
 		}
 
 		deviceRouter := router.Group("/api/v1/device")
 		{
 			//增加接口
-			deviceRouter.POST("/interface",apiAddInterface)
+			deviceRouter.POST("/interface", apiAddInterface)
 
 			//修改接口
-			deviceRouter.PUT("/interface",apiModifyInterface)
+			deviceRouter.PUT("/interface", apiModifyInterface)
 
 			//获取接口信息
-			deviceRouter.GET("/interface",apiGetInterfaceInfo)
+			deviceRouter.GET("/interface", apiGetInterfaceInfo)
 
 			//获取所有接口信息
-			deviceRouter.GET("/allInterface",apiGetAllInterfaceInfo)
+			deviceRouter.GET("/allInterface", apiGetAllInterfaceInfo)
 
 			//增加节点
-			deviceRouter.POST("/node",apiAddNode)
+			deviceRouter.POST("/node", apiAddNode)
 
 			//修改节点
-			deviceRouter.PUT("/node",apiModifyNode)
+			deviceRouter.PUT("/node", apiModifyNode)
 
 			//查看节点
-			deviceRouter.GET("/node",apiGetNode)
+			deviceRouter.GET("/node", apiGetNode)
 
 			//删除节点
-			deviceRouter.DELETE("/node",apiDeleteNode)
+			deviceRouter.DELETE("/node", apiDeleteNode)
 
 			//增加设备模板
-			deviceRouter.POST("/template",apiAddTemplate)
+			deviceRouter.POST("/template", apiAddTemplate)
 
 			//获取设备模板
-			deviceRouter.GET("/template",apiGetTemplate)
+			deviceRouter.GET("/template", apiGetTemplate)
 
 			//获取通信接口
-			deviceRouter.GET("/commInterface",apiGetCommInterface)
+			deviceRouter.GET("/commInterface", apiGetCommInterface)
 
 			//增加通信接口
-			deviceRouter.POST("/commInterface",apiAddCommInterface)
+			deviceRouter.POST("/commInterface", apiAddCommInterface)
 
 			//增加串口通信接口
-			deviceRouter.POST("/commSerialInterface",apiAddCommSerialInterface)
+			deviceRouter.POST("/commSerialInterface", apiAddCommSerialInterface)
 
 			//修改串口通信接口
-			deviceRouter.PUT("/commSerialInterface",apiModifyCommSerialInterface)
+			deviceRouter.PUT("/commSerialInterface", apiModifyCommSerialInterface)
 
 			//删除串口通信接口
-			deviceRouter.DELETE("/commSerialInterface",apiDeleteCommSerialInterface)
+			deviceRouter.DELETE("/commSerialInterface", apiDeleteCommSerialInterface)
 		}
 
 		remoteRouter := router.Group("/api/v1/remote")
 		{
-			remoteRouter.GET("/param",apiGetRemotePlatformParam)
+			remoteRouter.GET("/param", apiGetRemotePlatformParam)
 		}
 	}
 
 	return router
 }
-
-

@@ -15,10 +15,7 @@ import (
 
 var (
 	g errgroup.Group
-
 )
-
-
 
 func main() {
 
@@ -27,10 +24,8 @@ func main() {
 
 	log.Println("HRx-WDT300 V0.0.1")
 
-
 	//pluginTest,_ := p.Lookup("PluginTest")
 	//pluginTest.(func())()
-
 
 	setting.MemoryDataStream = setting.NewDataStreamTemplate("内存使用率")
 	setting.DiskDataStream = setting.NewDataStreamTemplate("硬盘使用率")
@@ -41,7 +36,6 @@ func main() {
 	config.GetConf()
 
 	/**************串口初始化***********************/
-	setting.SerialInterfaceInit()
 
 	/**************网口初始化***********************/
 	for _, v := range setting.NetworkParamList.NetworkParam {

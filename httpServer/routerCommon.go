@@ -11,11 +11,11 @@ func routerCommon() http.Handler {
 
 	systemRouter := router.Group("/api/v1/system")
 	{
-		systemRouter.POST("/reboot",apiSystemReboot)
+		systemRouter.POST("/reboot", apiSystemReboot)
 
-		systemRouter.GET("/status",apiGetSystemStatus)
+		systemRouter.GET("/status", apiGetSystemStatus)
 
-		systemRouter.GET("/loginParam",apiSystemLoginParam)
+		systemRouter.GET("/loginParam", apiSystemLoginParam)
 	}
 
 	networkRouter := router.Group("/api/v1/network")
@@ -36,21 +36,19 @@ func routerCommon() http.Handler {
 
 	serialRouter := router.Group("/api/v1/serial/param")
 	{
-		serialRouter.POST("",apiSetSerial)
-
-		serialRouter.GET("",apiGetSerial)
+		serialRouter.GET("", apiGetSerial)
 	}
 
 	deviceRouter := router.Group("/api/v1/device")
 	{
 		//增加接口
-		deviceRouter.POST("/interface",apiAddInterface)
+		deviceRouter.POST("/interface", apiAddInterface)
 
 		//修改接口
-		deviceRouter.PUT("/interface",apiModifyInterface)
+		deviceRouter.PUT("/interface", apiModifyInterface)
 
 		//获取接口信息
-		deviceRouter.GET("/interface",apiGetInterfaceInfo)
+		deviceRouter.GET("/interface", apiGetInterfaceInfo)
 	}
 
 	return router
