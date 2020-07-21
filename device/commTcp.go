@@ -1,6 +1,6 @@
 package device
 
-type CommunicationTcpInterface struct{
+type TcpInterfaceParam struct{
 	Name     	string     	`json:"Name"`
 	IP 			string 		`json:"IP"`
 	Port 		string		`json:"Port"`
@@ -8,7 +8,12 @@ type CommunicationTcpInterface struct{
 	Interval 	string		`json:"Interval"`		//通信间隔
 }
 
-func (c *CommunicationTcpInterface)Open(param interface{}) bool{
+type CommunicationTcpInterface struct{
+	CommunicationTemplate
+	Param   TcpInterfaceParam     					`json:"Param"`			//接口参数
+}
+
+func (c *CommunicationTcpInterface)Open() bool{
 
 	return true
 }

@@ -480,38 +480,59 @@ func apiAddCommInterface(context *gin.Context){
 
 	bodyBuf := make([]byte,1024)
 	n,_ := context.Request.Body.Read(bodyBuf)
-	fmt.Println(string(bodyBuf[:n]))
+	//fmt.Println(string(bodyBuf[:n]))
 
-	interfaceInfo := &struct{
+	interfaceInfo := struct{
 		Name 	string							`json:"Name"`			//接口名称
 		Type    string          				`json:"Type"`			//接口类型,比如serial,tcp,udp,http
+		Param   *json.RawMessage                `json:"Param"`
 	}{}
 
-	err := json.Unmarshal(bodyBuf[:n],interfaceInfo)
+	err := json.Unmarshal(bodyBuf[:n],&interfaceInfo)
 	if err != nil {
 		fmt.Println("interfaceInfo json unMarshall err,",err)
 
 		aParam.Code = "1"
 		aParam.Message = "json unMarshall err"
-
 		sJson,_ := json.Marshal(aParam)
 		context.String(http.StatusOK,string(sJson))
 		return
 	}
 
+	//log.Printf("info %+v\n",interfaceInfo)
+	//log.Printf("type %+v\n",reflect.TypeOf(interfaceInfo.Param))
+	//switch t:= interfaceInfo.Param.(type){
+	//case device.SerialInterfaceParam:
+	//	log.Printf("param %+v\n",t)
+	//	device.CommInterfaceList.AddCommInterface(t.Name,t.Type,t.Param)
+	//default:
+	//	aParam.Code = "1"
+	//	aParam.Message = "param is noexist"
+	//	aParam.Data = ""
+	//	sJson,_ := json.Marshal(aParam)
+	//	context.String(http.StatusOK,string(sJson))
+	//}
+
+
+
+    var msg json.RawMessage
 	switch interfaceInfo.Type{
 	case "serial":
+		serial := &device.SerialInterfaceParam{}
+		err := json.Unmarshal(msg,serial)
+		if err != nil{
+			log.Println("CommunicationSerialInterface json unMarshall err,",err)
+			break
+		}
+		log.Printf("type %+v\n",serial)
+		//device.CommInterfaceList.AddCommInterface(serial.Name,serial.Type,serial.Param)
 	case "tcp":
-
 	}
 
-	log.Printf("type %+v\n",interfaceInfo)
-
-	//device.CommInterfaceList.AddCommInterface(interfaceInfo.Name,interfaceInfo.Type,interfaceInfo.Param)
-
-	device.WriteCommInterfaceListToJson()
+	//device.WriteCommInterfaceListToJson()
 
 	aParam.Code = "0"
+	aParam.Message = ""
 	aParam.Data = ""
 
 	sJson,_ := json.Marshal(aParam)
@@ -520,17 +541,209 @@ func apiAddCommInterface(context *gin.Context){
 
 func apiGetCommInterface(context *gin.Context){
 
+	type CommunicationInterfaceTemplate struct{
+		Name 	string										`json:"Name"`			//接口名称
+		Type    string          							`json:"Type"`			//接口类型,比如serial,tcp,udp,http
+		Param   interface{} 							    `json:"Param"`			//接口参数
+	}
+
+	type CommunicationInterfaceManageTemplate struct{
+		InterfaceCnt int
+		InterfaceMap []CommunicationInterfaceTemplate
+	}
+
 	aParam := &struct{
 		Code 	string
 		Message string
-		Data    device.CommInterfaceListTemplate
+		Data    CommunicationInterfaceManageTemplate
 	}{}
+
+	CommunicationInterfaceManage := CommunicationInterfaceManageTemplate{
+		InterfaceCnt: 0,
+		InterfaceMap: make([]CommunicationInterfaceTemplate,0),
+	}
 
 	aParam.Code = "0"
 	aParam.Message = ""
-	aParam.Data = *device.CommInterfaceList
+	for _,v := range device.CommunicationSerialInterfaceList.SerialInterfaceMap{
+
+		CommunicationInterface := CommunicationInterfaceTemplate{
+			Name: v.Name,
+			Type: v.Type,
+			Param: v.Param,
+		}
+		CommunicationInterfaceManage.InterfaceCnt++
+		CommunicationInterfaceManage.InterfaceMap = append(CommunicationInterfaceManage.InterfaceMap,
+														CommunicationInterface)
+	}
+	aParam.Data = CommunicationInterfaceManage
 
 	sJson, _ := json.Marshal(aParam)
 
 	context.String(http.StatusOK, string(sJson))
+}
+
+func apiAddCommSerialInterface(context *gin.Context){
+
+	aParam := struct{
+		Code string			`json:"Code"`
+		Message string		`json:"Message"`
+		Data string			`json:"Data"`
+	}{
+		Code:"1",
+		Message:"",
+		Data:"",
+	}
+
+	bodyBuf := make([]byte,1024)
+	n,_ := context.Request.Body.Read(bodyBuf)
+	//fmt.Println(string(bodyBuf[:n]))
+
+	interfaceInfo := struct{
+		Name 	string							`json:"Name"`			//接口名称
+		Type    string          				`json:"Type"`			//接口类型,比如serial,tcp,udp,http
+		Param   device.SerialInterfaceParam     `json:"Param"`
+	}{}
+
+	err := json.Unmarshal(bodyBuf[:n],&interfaceInfo)
+	if err != nil {
+		fmt.Println("interfaceInfo json unMarshall err,",err)
+
+		aParam.Code = "1"
+		aParam.Message = "json unMarshall err"
+		sJson,_ := json.Marshal(aParam)
+		context.String(http.StatusOK,string(sJson))
+		return
+	}
+
+	SerialInterface := device.CommunicationSerialInterface{
+		Param:interfaceInfo.Param,
+		CommunicationTemplate:device.CommunicationTemplate{
+			Name:interfaceInfo.Name,
+			Type:interfaceInfo.Type,
+		},
+	}
+
+	device.CommunicationSerialInterfaceList.SerialInterfaceMap = append(device.CommunicationSerialInterfaceList.SerialInterfaceMap,
+															SerialInterface)
+	device.WriteCommSerialInterfaceListToJson()
+
+	aParam.Code = "0"
+	aParam.Message = ""
+	aParam.Data = ""
+
+	sJson,_ := json.Marshal(aParam)
+	context.String(http.StatusOK,string(sJson))
+}
+
+func apiModifyCommSerialInterface(context *gin.Context){
+
+	aParam := struct{
+		Code string			`json:"Code"`
+		Message string		`json:"Message"`
+		Data string			`json:"Data"`
+	}{
+		Code:"1",
+		Message:"",
+		Data:"",
+	}
+
+	bodyBuf := make([]byte,1024)
+	n,_ := context.Request.Body.Read(bodyBuf)
+
+	interfaceInfo := struct{
+		Name 	string							`json:"Name"`			//接口名称
+		Type    string          				`json:"Type"`			//接口类型,比如serial,tcp,udp,http
+		Param   device.SerialInterfaceParam     `json:"Param"`
+	}{}
+
+	err := json.Unmarshal(bodyBuf[:n],&interfaceInfo)
+	if err != nil {
+		fmt.Println("CommSerialInterface json unMarshall err,",err)
+
+		aParam.Code = "1"
+		aParam.Message = "json unMarshall err"
+		sJson,_ := json.Marshal(aParam)
+		context.String(http.StatusOK,string(sJson))
+		return
+	}
+
+	for k,v := range device.CommunicationSerialInterfaceList.SerialInterfaceMap{
+		//判断名称是否一致
+		if v.Name == interfaceInfo.Name{
+			device.CommunicationSerialInterfaceList.SerialInterfaceMap[k].Type = interfaceInfo.Type
+			device.CommunicationSerialInterfaceList.SerialInterfaceMap[k].Param = interfaceInfo.Param
+			device.WriteCommSerialInterfaceListToJson()
+
+			aParam.Code = "0"
+			aParam.Message = ""
+			aParam.Data = ""
+			sJson,_ := json.Marshal(aParam)
+			context.String(http.StatusOK,string(sJson))
+			return
+		}
+	}
+
+	aParam.Code = "1"
+	aParam.Message = "addr is not exist"
+	aParam.Data = ""
+
+	sJson,_ := json.Marshal(aParam)
+	context.String(http.StatusOK,string(sJson))
+}
+
+func apiDeleteCommSerialInterface(context *gin.Context){
+
+	aParam := struct{
+		Code string			`json:"Code"`
+		Message string		`json:"Message"`
+		Data string			`json:"Data"`
+	}{
+		Code:"1",
+		Message:"",
+		Data:"",
+	}
+
+	bodyBuf := make([]byte,1024)
+	n,_ := context.Request.Body.Read(bodyBuf)
+
+	interfaceInfo := struct{
+		Name 	string							`json:"Name"`			//接口名称
+		Type    string          				`json:"Type"`			//接口类型,比如serial,tcp,udp,http
+	}{}
+
+	err := json.Unmarshal(bodyBuf[:n],&interfaceInfo)
+	if err != nil {
+		fmt.Println("CommSerialInterface json unMarshall err,",err)
+
+		aParam.Code = "1"
+		aParam.Message = "json unMarshall err"
+		sJson,_ := json.Marshal(aParam)
+		context.String(http.StatusOK,string(sJson))
+		return
+	}
+
+	for k,v := range device.CommunicationSerialInterfaceList.SerialInterfaceMap{
+		//判断名称是否一致
+		if v.Name == interfaceInfo.Name{
+
+			device.CommunicationSerialInterfaceList.SerialInterfaceMap = append(device.CommunicationSerialInterfaceList.SerialInterfaceMap[:k],
+																		device.CommunicationSerialInterfaceList.SerialInterfaceMap[k+1:]...)
+			device.WriteCommSerialInterfaceListToJson()
+
+			aParam.Code = "0"
+			aParam.Message = ""
+			aParam.Data = ""
+			sJson,_ := json.Marshal(aParam)
+			context.String(http.StatusOK,string(sJson))
+			return
+		}
+	}
+
+	aParam.Code = "1"
+	aParam.Message = "addr is not exist"
+	aParam.Data = ""
+
+	sJson,_ := json.Marshal(aParam)
+	context.String(http.StatusOK,string(sJson))
 }

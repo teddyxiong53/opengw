@@ -119,6 +119,15 @@ func RouterWeb() http.Handler {
 
 			//增加通信接口
 			deviceRouter.POST("/commInterface",apiAddCommInterface)
+
+			//增加串口通信接口
+			deviceRouter.POST("/commSerialInterface",apiAddCommSerialInterface)
+
+			//修改串口通信接口
+			deviceRouter.PUT("/commSerialInterface",apiModifyCommSerialInterface)
+
+			//删除串口通信接口
+			deviceRouter.DELETE("/commSerialInterface",apiDeleteCommSerialInterface)
 		}
 
 		remoteRouter := router.Group("/api/v1/remote")

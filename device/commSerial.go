@@ -1,9 +1,13 @@
 package device
 
 import (
+	"encoding/json"
 	"github.com/tarm/serial"
 	"log"
-	"reflect"
+	"os"
+	"path/filepath"
+	"strconv"
+	"time"
 )
 
 type SerialInterfaceParam struct{
@@ -17,24 +21,20 @@ type SerialInterfaceParam struct{
 }
 
 type CommunicationSerialInterface struct{
-	Name     string 		`json:"Name"`
-	BaudRate string 		`json:"BaudRate"`
-	DataBits string			`json:"DataBits"`		//数据位: 5, 6, 7 or 8 (default 8)
-	StopBits string			`json:"StopBits"`		//停止位: 1 or 2 (default 1)
-	Parity 	 string     	`json:"Parity"`			//校验: N - None, E - Even, O - Odd (default E),(The use of no parity requires 2 stop bits.)
-	Timeout  string     	`json:"Timeout"`		//通信超时
-	Interval string			`json:"Interval"`		//通信间隔
-	Port     *serial.Port				`json:"-"`				//通信句柄
+	CommunicationTemplate
+	Param   SerialInterfaceParam     					`json:"Param"`			//接口参数
+	Port    *serial.Port								`json:"-"`				//通信句柄
 }
 
-func (c *CommunicationSerialInterface)Open(param interface{}) bool{
+type CommunicationSerialInterfaceListTemplate struct{
+	SerialInterfaceMap []CommunicationSerialInterface
+}
 
+var CommunicationSerialInterfaceList CommunicationSerialInterfaceListTemplate
 
-	log.Println("  ",reflect.TypeOf(param))
-	//log.Printf("Name is %s\n",serialParam.FieldByName("Name"))
+func (c *CommunicationSerialInterface)Open() bool{
 
-	/*
-	serialParam := param.(CommunicationSerialInterface)
+	serialParam := c.Param
 	serialBaud,_ := strconv.Atoi(serialParam.BaudRate)
 
 	var serialParity serial.Parity
@@ -65,13 +65,15 @@ func (c *CommunicationSerialInterface)Open(param interface{}) bool{
 		ReadTimeout: time.Millisecond*1,
 	}
 
-	serial, err := serial.OpenPort(serialConfig)
+	serialPort, err := serial.OpenPort(serialConfig)
 	if err != nil {
 		log.Printf("open serial err,%s",err)
 		return false
+	}else{
+		log.Printf("open serial %s ok\n",c.Param.Name)
 	}
-	serialParam.Port = serial
-	 */
+
+	c.Port = serialPort
 	return true
 }
 
@@ -93,3 +95,69 @@ func (c *CommunicationSerialInterface)ReadData(data []byte) int{
 
 	return cnt
 }
+
+func NewCommunicationSerialInterface(commName,commType string,param SerialInterfaceParam) *CommunicationSerialInterface{
+
+	return &CommunicationSerialInterface{
+		Param:param,
+		CommunicationTemplate:CommunicationTemplate{
+			Name:commName,
+			Type:commType,
+		},
+	}
+}
+
+func ReadCommSerialInterfaceListFromJson() bool {
+
+	exeCurDir, _ := filepath.Abs(filepath.Dir(os.Args[0]))
+	fileDir := exeCurDir + "/selfpara/commSerialInterface.json"
+
+	if fileExist(fileDir) == true {
+		fp, err := os.OpenFile(fileDir, os.O_RDONLY, 0777)
+		if err != nil {
+			log.Println("open commSerialInterface.json err", err)
+			return false
+		}
+		defer fp.Close()
+
+		data := make([]byte, 20480)
+		dataCnt, err := fp.Read(data)
+
+		CommunicationSerialInterfaceList.SerialInterfaceMap = make([]CommunicationSerialInterface,0)
+
+		err = json.Unmarshal(data[:dataCnt], &CommunicationSerialInterfaceList)
+		if err != nil {
+			log.Println("commSerialInterface unmarshal err", err)
+			return false
+		}
+		//log.Printf("SerialInterfaceMap %+v\n",CommunicationSerialInterfaceList.SerialInterfaceMap)
+		return true
+	} else {
+		log.Println("commSerialInterface.json is not exist")
+
+		return false
+	}
+}
+
+func WriteCommSerialInterfaceListToJson() {
+
+	exeCurDir, _ := filepath.Abs(filepath.Dir(os.Args[0]))
+
+	fileDir := exeCurDir + "/selfpara/commSerialInterface.json"
+
+	fp, err := os.OpenFile(fileDir, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0777)
+	if err != nil {
+		log.Println("open commSerialInterface.json err", err)
+		return
+	}
+	defer fp.Close()
+
+	sJson, _ := json.Marshal(CommunicationSerialInterfaceList)
+
+	_, err = fp.Write(sJson)
+	if err != nil {
+		log.Println("write commSerialInterface.json err", err)
+	}
+	log.Println("write commSerialInterface.json sucess")
+}
+

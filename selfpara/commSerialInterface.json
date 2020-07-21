@@ -1,0 +1,1 @@
+{"SerialInterfaceMap":[{"Name":"1","Type":"serial","Param":{"Name":"/dev/ttyUSB2","BaudRate":"9600","DataBits":"8","StopBits":"1","Parity":"N","Timeout":"1000","Interval":"500"}}]}
