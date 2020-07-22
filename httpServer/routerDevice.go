@@ -563,7 +563,7 @@ func apiGetCommInterface(context *gin.Context) {
 
 	aParam.Code = "0"
 	aParam.Message = ""
-	for _, v := range device.CommunicationSerialInterfaceList.SerialInterfaceMap {
+	for _, v := range device.CommunicationSerialMap {
 
 		CommunicationInterface := CommunicationInterfaceTemplate{
 			Name:  v.Name,
@@ -614,7 +614,7 @@ func apiAddCommSerialInterface(context *gin.Context) {
 		return
 	}
 
-	SerialInterface := device.CommunicationSerialInterface{
+	SerialInterface := device.CommunicationSerialTemplate{
 		Param: interfaceInfo.Param,
 		CommunicationTemplate: device.CommunicationTemplate{
 			Name: interfaceInfo.Name,
@@ -622,8 +622,7 @@ func apiAddCommSerialInterface(context *gin.Context) {
 		},
 	}
 
-	device.CommunicationSerialInterfaceList.SerialInterfaceMap = append(device.CommunicationSerialInterfaceList.SerialInterfaceMap,
-		SerialInterface)
+	device.CommunicationSerialMap = append(device.CommunicationSerialMap,SerialInterface)
 	device.WriteCommSerialInterfaceListToJson()
 
 	aParam.Code = "0"
@@ -666,11 +665,11 @@ func apiModifyCommSerialInterface(context *gin.Context) {
 		return
 	}
 
-	for k, v := range device.CommunicationSerialInterfaceList.SerialInterfaceMap {
+	for k, v := range device.CommunicationSerialMap {
 		//判断名称是否一致
 		if v.Name == interfaceInfo.Name {
-			device.CommunicationSerialInterfaceList.SerialInterfaceMap[k].Type = interfaceInfo.Type
-			device.CommunicationSerialInterfaceList.SerialInterfaceMap[k].Param = interfaceInfo.Param
+			device.CommunicationSerialMap[k].Type = interfaceInfo.Type
+			device.CommunicationSerialMap[k].Param = interfaceInfo.Param
 			device.WriteCommSerialInterfaceListToJson()
 
 			aParam.Code = "0"
@@ -721,12 +720,12 @@ func apiDeleteCommSerialInterface(context *gin.Context) {
 		return
 	}
 
-	for k, v := range device.CommunicationSerialInterfaceList.SerialInterfaceMap {
+	for k, v := range device.CommunicationSerialMap {
 		//判断名称是否一致
 		if v.Name == interfaceInfo.Name {
 
-			device.CommunicationSerialInterfaceList.SerialInterfaceMap = append(device.CommunicationSerialInterfaceList.SerialInterfaceMap[:k],
-				device.CommunicationSerialInterfaceList.SerialInterfaceMap[k+1:]...)
+			device.CommunicationSerialMap = append(device.CommunicationSerialMap[:k],
+				device.CommunicationSerialMap[k+1:]...)
 			device.WriteCommSerialInterfaceListToJson()
 
 			aParam.Code = "0"

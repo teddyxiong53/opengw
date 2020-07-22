@@ -20,19 +20,15 @@ type SerialInterfaceParam struct{
 	Interval string			`json:"Interval"`		//通信间隔
 }
 
-type CommunicationSerialInterface struct{
+type CommunicationSerialTemplate struct{
 	CommunicationTemplate
 	Param   SerialInterfaceParam     					`json:"Param"`			//接口参数
 	Port    *serial.Port								`json:"-"`				//通信句柄
 }
 
-type CommunicationSerialInterfaceListTemplate struct{
-	SerialInterfaceMap []CommunicationSerialInterface
-}
+var CommunicationSerialMap = make([]CommunicationSerialTemplate,0)
 
-var CommunicationSerialInterfaceList CommunicationSerialInterfaceListTemplate
-
-func (c *CommunicationSerialInterface)Open() bool{
+func (c *CommunicationSerialTemplate)Open() bool{
 
 	serialParam := c.Param
 	serialBaud,_ := strconv.Atoi(serialParam.BaudRate)
@@ -77,28 +73,28 @@ func (c *CommunicationSerialInterface)Open() bool{
 	return true
 }
 
-func (c *CommunicationSerialInterface)Close() bool{
+func (c *CommunicationSerialTemplate)Close() bool{
 
 	return true
 }
 
-func (c *CommunicationSerialInterface)WriteData(data []byte) int{
+func (c *CommunicationSerialTemplate)WriteData(data []byte) int{
 
 	cnt,_ := c.Port.Write(data)
 
 	return cnt
 }
 
-func (c *CommunicationSerialInterface)ReadData(data []byte) int{
+func (c *CommunicationSerialTemplate)ReadData(data []byte) int{
 
 	cnt,_ := c.Port.Read(data)
 
 	return cnt
 }
 
-func NewCommunicationSerialInterface(commName,commType string,param SerialInterfaceParam) *CommunicationSerialInterface{
+func NewCommunicationSerialTemplate(commName,commType string,param SerialInterfaceParam) *CommunicationSerialTemplate{
 
-	return &CommunicationSerialInterface{
+	return &CommunicationSerialTemplate{
 		Param:param,
 		CommunicationTemplate:CommunicationTemplate{
 			Name:commName,
@@ -123,14 +119,14 @@ func ReadCommSerialInterfaceListFromJson() bool {
 		data := make([]byte, 20480)
 		dataCnt, err := fp.Read(data)
 
-		CommunicationSerialInterfaceList.SerialInterfaceMap = make([]CommunicationSerialInterface,0)
+		//CommunicationSerialTemplateList.CommunicationSerialMap = make([]CommunicationSerialTemplate,0)
 
-		err = json.Unmarshal(data[:dataCnt], &CommunicationSerialInterfaceList)
+		err = json.Unmarshal(data[:dataCnt], &CommunicationSerialMap)
 		if err != nil {
 			log.Println("commSerialInterface unmarshal err", err)
 			return false
 		}
-		//log.Printf("SerialInterfaceMap %+v\n",CommunicationSerialInterfaceList.SerialInterfaceMap)
+		//log.Printf("CommunicationSerialMap %+v\n",CommunicationSerialTemplateList.CommunicationSerialMap)
 		return true
 	} else {
 		log.Println("commSerialInterface.json is not exist")
@@ -152,7 +148,7 @@ func WriteCommSerialInterfaceListToJson() {
 	}
 	defer fp.Close()
 
-	sJson, _ := json.Marshal(CommunicationSerialInterfaceList)
+	sJson, _ := json.Marshal(CommunicationSerialMap)
 
 	_, err = fp.Write(sJson)
 	if err != nil {

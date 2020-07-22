@@ -1,3 +1,10 @@
 package setting
 
-var SerialPortMap = [...]string{"/dev/ttyUSB0", "/dev/ttyUSB1"}
+type SerialPortNameTemplate struct{
+	Name string			`json:"name"`
+}
+
+var SerialPortNameTemplateMap = [...]SerialPortNameTemplate{
+	{Name:"/dev/ttyUSB0"},
+	{Name:"/dev/ttyUSB1"},
+}

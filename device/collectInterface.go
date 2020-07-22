@@ -41,12 +41,12 @@ type CollectInterfaceParamTemplate struct {
 }
 
 //配置参数
-type CollectInterfaceParamMapTemplate struct {
-	CollectInterfaceParam [MaxCollectInterfaceManage]CollectInterfaceParamTemplate
-}
+//type CollectInterfaceParamMapTemplate struct {
+//	CollectInterfaceParam [MaxCollectInterfaceManage]CollectInterfaceParamTemplate
+//}
 
 var CollectInterfaceMap [MaxCollectInterfaceManage]*CollectInterfaceTemplate
-var CollectInterfaceParamMap CollectInterfaceParamMapTemplate
+//var CollectInterfaceParamMap CollectInterfaceParamMapTemplate
 
 func WriteCollectInterfaceManageToJson() {
 
@@ -131,6 +131,22 @@ func ReadCollectInterfaceManageFromJson() bool {
 			return false
 		}
 
+		for k, v := range CollectInterfaceParamMap.CollectInterfaceParam {
+
+			//创建接口实例
+			CollectInterfaceMap[k] = NewCollectInterface(k,
+				v.PollPeriod,
+				v.OfflinePeriod,
+				v.DeviceNodeCnt)
+
+			//创建设备实例
+			for i := 0; i < v.DeviceNodeCnt; i++ {
+				CollectInterfaceMap[k].NewDeviceNode(
+					v.DeviceNodeTypeMap[i],
+					v.DeviceNodeAddrMap[i])
+			}
+		}
+
 		return true
 	} else {
 		log.Println("deviceNodeManage.json is not exist")
@@ -148,21 +164,6 @@ func DeviceNodeManageInit() {
 	if ReadCollectInterfaceManageFromJson() == true {
 		log.Println("read interface json ok")
 
-		for k, v := range CollectInterfaceParamMap.CollectInterfaceParam {
-
-			//创建接口实例
-			CollectInterfaceMap[k] = NewCollectInterface(k,
-				v.PollPeriod,
-				v.OfflinePeriod,
-				v.DeviceNodeCnt)
-
-			//创建设备实例
-			for i := 0; i < v.DeviceNodeCnt; i++ {
-				CollectInterfaceMap[k].NewDeviceNode(
-					v.DeviceNodeTypeMap[i],
-					v.DeviceNodeAddrMap[i])
-			}
-		}
 	} else {
 
 		for i := 0; i < MaxCollectInterfaceManage; i++ {

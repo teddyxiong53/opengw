@@ -25,14 +25,14 @@ func CommInterfaceInit() {
 
 	if ReadCommSerialInterfaceListFromJson() == false{
 
-		CommunicationSerialInterfaceList.SerialInterfaceMap = make([]CommunicationSerialInterface,0)
+		//CommunicationSerialInterfaceList.SerialInterfaceMap = make([]CommunicationSerialInterface,0)
 	}else{
 		log.Println("read CommSerialInterfaceList.json ok")
 
-		//for _,v := range CommunicationSerialInterfaceList.SerialInterfaceMap{
-		//
-		//	CommunicationInterfaceList.CommunicationInterfaceMap = append(CommunicationInterfaceList.CommunicationInterfaceMap,v)
-		//}
+		for _,v := range CommunicationSerialMap{
+
+			CommunicationInterfaceList.CommunicationInterfaceMap = append(CommunicationInterfaceList.CommunicationInterfaceMap,&v)
+		}
 	}
 
 	for _,v := range CommunicationInterfaceList.CommunicationInterfaceMap{
