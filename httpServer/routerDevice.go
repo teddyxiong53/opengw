@@ -614,6 +614,19 @@ func apiAddCommSerialInterface(context *gin.Context) {
 		return
 	}
 
+	for _, v := range device.CommunicationSerialMap {
+		//判断通信接口名称是否一致
+		if (v.Name==interfaceInfo.Name) || (v.Param.Name == interfaceInfo.Param.Name){
+			aParam.Code = "1"
+			aParam.Message = "name is exist"
+			aParam.Data = ""
+
+			sJson, _ := json.Marshal(aParam)
+			context.String(http.StatusOK, string(sJson))
+			return
+		}
+	}
+
 	SerialInterface := device.CommunicationSerialTemplate{
 		Param: interfaceInfo.Param,
 		CommunicationTemplate: device.CommunicationTemplate{
@@ -628,7 +641,6 @@ func apiAddCommSerialInterface(context *gin.Context) {
 	aParam.Code = "0"
 	aParam.Message = ""
 	aParam.Data = ""
-
 	sJson, _ := json.Marshal(aParam)
 	context.String(http.StatusOK, string(sJson))
 }

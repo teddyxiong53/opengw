@@ -119,14 +119,11 @@ func ReadCommSerialInterfaceListFromJson() bool {
 		data := make([]byte, 20480)
 		dataCnt, err := fp.Read(data)
 
-		//CommunicationSerialTemplateList.CommunicationSerialMap = make([]CommunicationSerialTemplate,0)
-
 		err = json.Unmarshal(data[:dataCnt], &CommunicationSerialMap)
 		if err != nil {
 			log.Println("commSerialInterface unmarshal err", err)
 			return false
 		}
-		//log.Printf("CommunicationSerialMap %+v\n",CommunicationSerialTemplateList.CommunicationSerialMap)
 		return true
 	} else {
 		log.Println("commSerialInterface.json is not exist")

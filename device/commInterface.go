@@ -25,7 +25,6 @@ func CommInterfaceInit() {
 
 	if ReadCommSerialInterfaceListFromJson() == false{
 
-		//CommunicationSerialInterfaceList.SerialInterfaceMap = make([]CommunicationSerialInterface,0)
 	}else{
 		log.Println("read CommSerialInterfaceList.json ok")
 
