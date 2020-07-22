@@ -1,1 +1,0 @@
-{"DeviceInterfaceParam":[{"InterfaceID":0,"PollPeriod":60,"OfflinePeriod":180,"DeviceNodeCnt":2,"DeviceAddrMap":["1","2"],"DeviceTypeMap":["wdt200","wdt200"]},{"InterfaceID":1,"PollPeriod":60,"OfflinePeriod":180,"DeviceNodeCnt":0,"DeviceAddrMap":null,"DeviceTypeMap":null}]}

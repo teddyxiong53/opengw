@@ -15,14 +15,12 @@ type CommunicationTemplate struct{
 	Status  bool 										`json:"-"`			    //接口状态
 }
 
-type CommunicationInterfaceListTemplate struct{
-	CommunicationInterfaceMap []CommunicationInterface
-}
-
-var CommunicationInterfaceList CommunicationInterfaceListTemplate
+//通信接口Map
+var CommunicationInterfaceMap = make([]CommunicationInterface,0)
 
 func CommInterfaceInit() {
 
+	//获取串口通信接口参数
 	if ReadCommSerialInterfaceListFromJson() == false{
 
 	}else{
@@ -30,11 +28,12 @@ func CommInterfaceInit() {
 
 		for _,v := range CommunicationSerialMap{
 
-			CommunicationInterfaceList.CommunicationInterfaceMap = append(CommunicationInterfaceList.CommunicationInterfaceMap,&v)
+			CommunicationInterfaceMap = append(CommunicationInterfaceMap,&v)
 		}
 	}
 
-	for _,v := range CommunicationInterfaceList.CommunicationInterfaceMap{
+	//打开串口通信
+	for _,v := range CommunicationInterfaceMap{
 
 		v.Open()
 	}

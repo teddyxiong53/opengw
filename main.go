@@ -81,23 +81,12 @@ func main() {
 	/**************httpserver初始化****************/
 	// 默认启动方式，包含 Logger、Recovery 中间件
 
-	//serverCommon := &http.Server{
-	//	Addr:         ":8091",
-	//	Handler:      routerCommon(),
-	//	ReadTimeout:  5 * time.Second,
-	//	WriteTimeout: 10 * time.Second,
-	//}
-
 	serverWeb := &http.Server{
 		Addr:         ":80",
 		Handler:      httpServer.RouterWeb(),
 		ReadTimeout:  5 * time.Second,
 		WriteTimeout: 10 * time.Second,
 	}
-
-	//g.Go(func() error {
-	//	return serverCommon.ListenAndServe()
-	//})
 
 	g.Go(func() error {
 		return serverWeb.ListenAndServe()

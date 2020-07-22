@@ -131,6 +131,7 @@ func ReadCollectInterfaceManageFromJson() bool {
 			return false
 		}
 
+		log.Printf("CollectInterfaceParamMap %+v\n",CollectInterfaceParamMap)
 		for k, v := range CollectInterfaceParamMap.CollectInterfaceParam {
 
 			//创建接口实例
@@ -162,8 +163,8 @@ func DeviceNodeManageInit() {
 	CommInterfaceInit()
 	//采集接口
 	if ReadCollectInterfaceManageFromJson() == true {
-		log.Println("read interface json ok")
-
+		log.Println("read collectInterface json ok")
+		//log.Printf("collectMInterfaceMap %+v\n",CollectInterfaceMap)
 	} else {
 
 		for i := 0; i < MaxCollectInterfaceManage; i++ {
