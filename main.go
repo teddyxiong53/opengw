@@ -89,7 +89,7 @@ func main() {
 	//}
 
 	serverWeb := &http.Server{
-		Addr:         ":8090",
+		Addr:         ":80",
 		Handler:      httpServer.RouterWeb(),
 		ReadTimeout:  5 * time.Second,
 		WriteTimeout: 10 * time.Second,

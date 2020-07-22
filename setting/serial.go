@@ -1,7 +1,7 @@
 package setting
 
 type SerialPortNameTemplate struct{
-	Name string			`json:"name"`
+	Name string			`json:"Name"`
 }
 
 var SerialPortNameTemplateMap = [...]SerialPortNameTemplate{
