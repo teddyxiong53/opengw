@@ -12,10 +12,10 @@ import (
 var MaxDeviceNodeTypeCnt int = 10
 
 type DeviceNodeTypeTemplate struct {
-	TemplateID      int    `json:"templateID"`      //模板ID
-	TemplateName    string `json:"templateName"`    //模板名称
-	TemplateType    string `json:"templateType"`    //模板型号
-	TemplateMessage string `json:"templateMessage"` //备注信息
+	TemplateID      int    `json:"TemplateID"`      //模板ID
+	TemplateName    string `json:"TemplateName"`    //模板名称
+	TemplateType    string `json:"TemplateType"`    //模板型号
+	TemplateMessage string `json:"TemplateMessage"` //备注信息
 }
 
 //配置参数

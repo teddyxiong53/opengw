@@ -8,7 +8,6 @@ import (
 	"goAdapter/device"
 	"log"
 	"net/http"
-	"strconv"
 )
 
 func apiAddInterface(context *gin.Context) {
@@ -28,9 +27,10 @@ func apiAddInterface(context *gin.Context) {
 	fmt.Println(string(bodyBuf[:n]))
 
 	interfaceInfo := &struct {
-		CommInterfaceName string `json:"commInterfaceID"` //通信接口名字
-		PollPeriod        int    `json:"pollPeriod"`
-		OfflinePeriod     int    `json:"offlinePeriod"`
+		CollectInterfaceName 	string	`json:"CollInterfaceName"`	 //采集接口名字
+		CommInterfaceName 		string  `json:"CommInterfaceName"`   //通信接口名字
+		PollPeriod        		int     `json:"PollPeriod"`
+		OfflinePeriod     		int     `json:"OfflinePeriod"`
 	}{}
 
 	err := json.Unmarshal(bodyBuf[:n], interfaceInfo)
@@ -45,11 +45,10 @@ func apiAddInterface(context *gin.Context) {
 		return
 	}
 
-	//index := len(device.CollectInterfaceMap)
-
-	//device.CollectInterfaceMap[interfaceInfo.InterfaceID] = device.NewCollectInterface(interfaceInfo.InterfaceID,
-	//	interfaceInfo.PollPeriod,
-	//	interfaceInfo.OfflinePeriod,0)
+	device.CollectInterfaceMap = append(device.CollectInterfaceMap,device.NewCollectInterface(interfaceInfo.CollectInterfaceName,
+		interfaceInfo.CommInterfaceName,
+		interfaceInfo.PollPeriod,
+		interfaceInfo.OfflinePeriod,0))
 
 	device.WriteCollectInterfaceManageToJson()
 
@@ -77,7 +76,8 @@ func apiModifyInterface(context *gin.Context) {
 	fmt.Println(string(bodyBuf[:n]))
 
 	interfaceInfo := &struct {
-		InterfaceID   int
+		CollectInterfaceName 	string	`json:"CollInterfaceName"`	 	//采集接口名字
+		CommInterfaceName 		string  `json:"CommInterfaceName"`       //通信接口名字
 		PollPeriod    int
 		OfflinePeriod int
 	}{}
@@ -94,10 +94,77 @@ func apiModifyInterface(context *gin.Context) {
 		return
 	}
 
-	device.CollectInterfaceMap[interfaceInfo.InterfaceID].ModifyCollectInterface(interfaceInfo.PollPeriod,
-		interfaceInfo.OfflinePeriod)
+	for _,v := range device.CollectInterfaceMap{
+		if v.CollInterfaceName == interfaceInfo.CollectInterfaceName{
+			v.CommInterfaceName = interfaceInfo.CommInterfaceName
+			v.PollPeriod = interfaceInfo.PollPeriod
+			v.OfflinePeriod = interfaceInfo.OfflinePeriod
 
-	aParam.Code = "0"
+			aParam.Code = "0"
+			aParam.Data = ""
+
+			sJson, _ := json.Marshal(aParam)
+			context.String(http.StatusOK, string(sJson))
+			return
+		}
+	}
+
+	aParam.Code = "1"
+	aParam.Message = "collInterface is not exist"
+	aParam.Data = ""
+
+	sJson, _ := json.Marshal(aParam)
+	context.String(http.StatusOK, string(sJson))
+}
+
+func apiDeleteInterface(context *gin.Context) {
+
+	aParam := struct {
+		Code    string `json:"Code"`
+		Message string `json:"Message"`
+		Data    string `json:"Data"`
+	}{
+		Code:    "1",
+		Message: "",
+		Data:    "",
+	}
+
+	bodyBuf := make([]byte, 1024)
+	n, _ := context.Request.Body.Read(bodyBuf)
+	fmt.Println(string(bodyBuf[:n]))
+
+	interfaceInfo := &struct {
+		CollectInterfaceName 	string	`json:"CollInterfaceName"`	 //采集接口名字
+	}{}
+
+	err := json.Unmarshal(bodyBuf[:n], interfaceInfo)
+	if err != nil {
+		fmt.Println("interfaceInfo json unMarshall err,", err)
+
+		aParam.Code = "1"
+		aParam.Message = "json unMarshall err"
+
+		sJson, _ := json.Marshal(aParam)
+		context.String(http.StatusOK, string(sJson))
+		return
+	}
+
+	for k,v := range device.CollectInterfaceMap{
+		if v.CollInterfaceName == interfaceInfo.CollectInterfaceName{
+
+			device.CollectInterfaceMap = append(device.CollectInterfaceMap[:k],device.CollectInterfaceMap[k+1:]...)
+
+			aParam.Code = "0"
+			aParam.Data = ""
+
+			sJson, _ := json.Marshal(aParam)
+			context.String(http.StatusOK, string(sJson))
+			return
+		}
+	}
+
+	aParam.Code = "1"
+	aParam.Message = "collInterface is not exist"
 	aParam.Data = ""
 
 	sJson, _ := json.Marshal(aParam)
@@ -106,8 +173,7 @@ func apiModifyInterface(context *gin.Context) {
 
 func apiGetInterfaceInfo(context *gin.Context) {
 
-	sID := context.Query("interfaceID")
-	fmt.Println(sID)
+	sName := context.Query("CollInterfaceName")
 
 	aParam := &struct {
 		Code    string
@@ -115,34 +181,60 @@ func apiGetInterfaceInfo(context *gin.Context) {
 		Data    device.CollectInterfaceTemplate
 	}{}
 
-	iID, _ := strconv.Atoi(sID)
+	for k,v := range device.CollectInterfaceMap{
+		if v.CollInterfaceName == sName{
 
-	if iID < len(device.CollectInterfaceMap) {
-		aParam.Code = "0"
-		aParam.Message = ""
-		aParam.Data = *device.CollectInterfaceMap[iID]
-	} else {
-		aParam.Code = "1"
-		aParam.Message = "interface is noexist"
-		aParam.Data = device.CollectInterfaceTemplate{}
+			aParam.Code = "0"
+			aParam.Message = ""
+
+			aParam.Data = *device.CollectInterfaceMap[k]
+
+			sJson, _ := json.Marshal(aParam)
+			context.String(http.StatusOK, string(sJson))
+			return
+		}
 	}
 
-	sJson, _ := json.Marshal(aParam)
+	aParam.Code = "1"
+	aParam.Message = "interface is not exist"
 
+	sJson, _ := json.Marshal(aParam)
 	context.String(http.StatusOK, string(sJson))
 }
 
 func apiGetAllInterfaceInfo(context *gin.Context) {
 
+	type InterfaceParamTemplate struct{
+		CollInterfaceName   string          		`json:"CollInterfaceName"`   	//采集接口
+		CommInterfaceName   string					`json:"CommInterfaceName"`   	//通信接口
+		PollPeriod          int                   	`json:"PollPeriod"`    			//采集周期
+		OfflinePeriod       int                   	`json:"OfflinePeriod"` 			//离线超时周期
+		DeviceNodeCnt       int                   	`json:"DeviceNodeCnt"` 			//设备数量
+		DeviceNodeOnlineCnt int             		`json:"DeviceNodeOnlineCnt"`	//设备在线数量
+	}
+
 	aParam := &struct {
 		Code    string
 		Message string
-		Data    [device.MaxCollectInterfaceManage]*device.CollectInterfaceTemplate
+		Data    []InterfaceParamTemplate
 	}{}
+
+	aParam.Data = make([]InterfaceParamTemplate,0)
 
 	aParam.Code = "0"
 	aParam.Message = ""
-	aParam.Data = device.CollectInterfaceMap
+	for _,v := range device.CollectInterfaceMap{
+
+		Param := InterfaceParamTemplate{
+			CollInterfaceName:v.CollInterfaceName,
+			CommInterfaceName:v.CommInterfaceName,
+			PollPeriod: v.PollPeriod,
+			OfflinePeriod: v.OfflinePeriod,
+			DeviceNodeCnt: v.DeviceNodeCnt,
+			DeviceNodeOnlineCnt: v.DeviceNodeOnlineCnt,
+		}
+		aParam.Data = append(aParam.Data,Param)
+	}
 
 	sJson, _ := json.Marshal(aParam)
 
@@ -166,9 +258,10 @@ func apiAddNode(context *gin.Context) {
 	fmt.Println(string(bodyBuf[:n]))
 
 	nodeInfo := &struct {
-		InterfaceID int    `json:"interfaceID"`
-		DAddr       string `json:"addr"`
-		DType       string `json:"type"`
+		InterfaceName string `json:"CollInterfaceName"`
+		DAddr         string `json:"Addr"`
+		DType         string `json:"Type"`
+		DName         string `json:"Name"`
 	}{}
 
 	err := json.Unmarshal(bodyBuf[:n], nodeInfo)
@@ -184,16 +277,28 @@ func apiAddNode(context *gin.Context) {
 	}
 
 	var status bool
-	status, aParam.Message = device.CollectInterfaceMap[nodeInfo.InterfaceID].AddDeviceNode(nodeInfo.DType, nodeInfo.DAddr)
-	if status == true {
-		device.WriteCollectInterfaceManageToJson()
+	for _,v := range device.CollectInterfaceMap{
+		if v.CollInterfaceName == nodeInfo.InterfaceName{
 
-		aParam.Code = "0"
-		aParam.Data = ""
-	} else {
-		aParam.Code = "1"
-		aParam.Data = ""
+			status,aParam.Message = v.AddDeviceNode(nodeInfo.DName,nodeInfo.DType, nodeInfo.DAddr)
+			if status == true {
+				device.WriteCollectInterfaceManageToJson()
+
+				aParam.Code = "0"
+				aParam.Data = ""
+			} else {
+				aParam.Code = "1"
+				aParam.Data = ""
+			}
+			sJson, _ := json.Marshal(aParam)
+			context.String(http.StatusOK, string(sJson))
+			return
+		}
 	}
+
+	aParam.Code = "1"
+	aParam.Data = ""
+	aParam.Message = "interfaceName is not exist"
 
 	sJson, _ := json.Marshal(aParam)
 	context.String(http.StatusOK, string(sJson))
@@ -216,9 +321,10 @@ func apiModifyNode(context *gin.Context) {
 	fmt.Println(string(bodyBuf[:n]))
 
 	nodeInfo := &struct {
-		InterfaceID int    `json:"interfaceID"`
-		DAddr       string `json:"addr"`
-		DType       string `json:"type"`
+		InterfaceName string    `json:"CollInterfaceName"`
+		DAddr         string 	`json:"Addr"`
+		DType         string 	`json:"Type"`
+		DName         string    `json:"Name"`
 	}{}
 
 	err := json.Unmarshal(bodyBuf[:n], nodeInfo)
@@ -233,8 +339,25 @@ func apiModifyNode(context *gin.Context) {
 		return
 	}
 
-	//DeviceNodeManageMap[nodeInfo.InterfaceID].ModifyDeviceNode(nodeInfo.DAddr,nodeInfo.DType)
-	device.WriteCollectInterfaceManageToJson()
+	var status bool
+	for _,v := range device.CollectInterfaceMap{
+		if v.CollInterfaceName == nodeInfo.InterfaceName{
+
+			status,aParam.Message = v.AddDeviceNode(nodeInfo.DName,nodeInfo.DType, nodeInfo.DAddr)
+			if status == true {
+				device.WriteCollectInterfaceManageToJson()
+
+				aParam.Code = "0"
+				aParam.Data = ""
+			} else {
+				aParam.Code = "1"
+				aParam.Data = ""
+			}
+			sJson, _ := json.Marshal(aParam)
+			context.String(http.StatusOK, string(sJson))
+			return
+		}
+	}
 
 	aParam.Code = "0"
 	aParam.Data = ""
@@ -245,28 +368,32 @@ func apiModifyNode(context *gin.Context) {
 
 func apiGetNode(context *gin.Context) {
 
-	sID := context.Query("interfaceID")
-	sAddr := context.Query("addr")
+	sName := context.Query("CollInterfaceName")
+	sAddr := context.Query("Addr")
 
 	aParam := &struct {
 		Code    string
 		Message string
-		Data    []api.VariableTemplate
+		Data    device.DeviceNodeTemplate
 	}{}
 
-	iID, _ := strconv.Atoi(sID)
-	for k, v := range device.CollectInterfaceMap[iID].DeviceNodeMap {
-		if v.Addr == sAddr {
-			aParam.Code = "0"
-			aParam.Message = ""
-			aParam.Data = device.CollectInterfaceMap[iID].DeviceNodeMap[k].VariableMap
-			sJson, _ := json.Marshal(aParam)
-			context.String(http.StatusOK, string(sJson))
-			return
+	for _, v := range device.CollectInterfaceMap {
+		if v.CollInterfaceName == sName {
+			for _, n := range v.DeviceNodeMap {
+				if n.Addr == sAddr {
+					aParam.Code = "0"
+					aParam.Message = ""
+					aParam.Data = *v.GetDeviceNode(sAddr)
+					sJson, _ := json.Marshal(aParam)
+					context.String(http.StatusOK, string(sJson))
+					return
+				}
+			}
 		}
 	}
+
 	aParam.Code = "1"
-	aParam.Message = "node is noexist"
+	aParam.Message = "node is no exist"
 	sJson, _ := json.Marshal(aParam)
 	context.String(http.StatusOK, string(sJson))
 }
@@ -288,9 +415,10 @@ func apiDeleteNode(context *gin.Context) {
 	fmt.Println(string(bodyBuf[:n]))
 
 	nodeInfo := &struct {
-		InterfaceID int    `json:"interfaceID"`
-		DAddr       string `json:"addr"`
-		DType       string `json:"type"`
+		InterfaceName string    `json:"CollInterfaceName"`
+		DAddr         string 	`json:"Addr"`
+		DType         string 	`json:"Type"`
+		DName         string    `json:"Name"`
 	}{}
 
 	err := json.Unmarshal(bodyBuf[:n], nodeInfo)
@@ -305,15 +433,114 @@ func apiDeleteNode(context *gin.Context) {
 		return
 	}
 
-	device.CollectInterfaceMap[nodeInfo.InterfaceID].DeleteDeviceNode(nodeInfo.DAddr, nodeInfo.DType)
+	for _, v := range device.CollectInterfaceMap {
+		if v.CollInterfaceName == nodeInfo.InterfaceName {
+			for _, n := range v.DeviceNodeMap {
+				if n.Addr == nodeInfo.DAddr {
+					v.DeleteDeviceNode(nodeInfo.DName,nodeInfo.DAddr, nodeInfo.DType)
+					device.WriteCollectInterfaceManageToJson()
 
-	device.WriteCollectInterfaceManageToJson()
+					aParam.Code = "0"
+					aParam.Message = ""
+					sJson, _ := json.Marshal(aParam)
+					context.String(http.StatusOK, string(sJson))
+					return
+				}
+			}
+		}
+	}
 
-	aParam.Code = "0"
+	aParam.Code = "1"
 	aParam.Data = ""
+	aParam.Message = "addr is not exist"
 
 	sJson, _ := json.Marshal(aParam)
 	context.String(http.StatusOK, string(sJson))
+}
+
+/**
+从缓存中获取设备变量
+*/
+func apiGetNodeVariableFromCache(context *gin.Context) {
+
+	sName := context.Query("CollInterfaceName")
+	sAddr := context.Query("Addr")
+
+	aParam := &struct {
+		Code    string
+		Message string
+		Data    []api.VariableTemplate
+	}{}
+
+	for _, v := range device.CollectInterfaceMap {
+		if v.CollInterfaceName == sName {
+			for _, v := range v.DeviceNodeMap {
+				if v.Addr == sAddr {
+
+					aParam.Code = "0"
+					aParam.Message = ""
+					aParam.Data = v.VariableMap
+					sJson, _ := json.Marshal(aParam)
+					context.String(http.StatusOK, string(sJson))
+					return
+				}
+			}
+		}
+	}
+
+	aParam.Code = "1"
+	aParam.Message = "node is noexist"
+	sJson, _ := json.Marshal(aParam)
+	context.String(http.StatusOK, string(sJson))
+}
+/**
+  从设备中获取设备变量
+*/
+func apiGetNodeVariableFromDevice(context *gin.Context) {
+
+	//sName := context.Query("interfaceName")
+	//sAddr := context.Query("addr")
+	//
+	//aParam := &struct {
+	//	Code    string
+	//	Message string
+	//	Data    []api.VariableTemplate
+	//}{}
+	//
+	//
+	//for _,v := range device.CollectInterfaceMap {
+	//	if v.CollInterfaceName == nodeInfo.InterfaceName {
+	//
+	//	}
+	//}
+	//
+	//		iID, _ := strconv.Atoi(sID)
+	//		for k, v := range device.CollectInterfaceMap[iID].DeviceNodeMap {
+	//			if v.Addr == sAddr {
+	//
+	//				cmd := device.CommunicationCmd{}
+	//				cmd.InterfaceID = device.InterFaceID0
+	//				cmd.DeviceAddr = v.Addr
+	//				cmd.FunName = "GenerateGetRealVariables"
+	//				if device.CommunicationManageAddEmergency(cmd) == true {
+	//					aParam.Code = "0"
+	//					aParam.Message = ""
+	//					aParam.Data = device.CollectInterfaceMap[iID].DeviceNodeMap[k].VariableMap
+	//				} else {
+	//					aParam.Code = "1"
+	//					aParam.Message = ""
+	//					aParam.Data = device.CollectInterfaceMap[iID].DeviceNodeMap[k].VariableMap
+	//
+	//				}
+	//				sJson, _ := json.Marshal(aParam)
+	//				context.String(http.StatusOK, string(sJson))
+	//				return
+	//			}
+	//		}
+	//		aParam.Code = "1"
+	//		aParam.Message = "node is noexist"
+	//		sJson, _ := json.Marshal(aParam)
+	//		context.String(http.StatusOK, string(sJson))
 }
 
 func apiAddTemplate(context *gin.Context) {
@@ -333,9 +560,9 @@ func apiAddTemplate(context *gin.Context) {
 	fmt.Println(string(bodyBuf[:n]))
 
 	typeInfo := &struct {
-		TemplateName    string `json:"templateName"`    //模板名称
-		TemplateType    string `json:"templateType"`    //模板型号
-		TemplateMessage string `json:"templateMessage"` //备注信息
+		TemplateName    string `json:"TemplateName"`    //模板名称
+		TemplateType    string `json:"TemplateType"`    //模板型号
+		TemplateMessage string `json:"TemplateMessage"` //备注信息
 	}{}
 
 	err := json.Unmarshal(bodyBuf[:n], typeInfo)
@@ -389,80 +616,6 @@ func apiGetTemplate(context *gin.Context) {
 
 	sJson, _ := json.Marshal(aParam)
 
-	context.String(http.StatusOK, string(sJson))
-}
-
-/**
-从缓存中获取设备变量
-*/
-func apiGetNodeVariableFromCache(context *gin.Context) {
-
-	sID := context.Query("interfaceID")
-	sAddr := context.Query("addr")
-
-	aParam := &struct {
-		Code    string
-		Message string
-		Data    []api.VariableTemplate
-	}{}
-
-	iID, _ := strconv.Atoi(sID)
-	for k, v := range device.CollectInterfaceMap[iID].DeviceNodeMap {
-		if v.Addr == sAddr {
-			aParam.Code = "0"
-			aParam.Message = ""
-			aParam.Data = device.CollectInterfaceMap[iID].DeviceNodeMap[k].VariableMap
-			sJson, _ := json.Marshal(aParam)
-			context.String(http.StatusOK, string(sJson))
-			return
-		}
-	}
-	aParam.Code = "1"
-	aParam.Message = "node is noexist"
-	sJson, _ := json.Marshal(aParam)
-	context.String(http.StatusOK, string(sJson))
-}
-
-/**
-从设备中获取设备变量
-*/
-func apiGetNodeVariableFromDevice(context *gin.Context) {
-
-	sID := context.Query("interfaceID")
-	sAddr := context.Query("addr")
-
-	aParam := &struct {
-		Code    string
-		Message string
-		Data    []api.VariableTemplate
-	}{}
-
-	iID, _ := strconv.Atoi(sID)
-	for k, v := range device.CollectInterfaceMap[iID].DeviceNodeMap {
-		if v.Addr == sAddr {
-
-			cmd := device.CommunicationCmd{}
-			cmd.InterfaceID = device.InterFaceID0
-			cmd.DeviceAddr = v.Addr
-			cmd.FunName = "GenerateGetRealVariables"
-			if device.CommunicationManageAddEmergency(cmd) == true {
-				aParam.Code = "0"
-				aParam.Message = ""
-				aParam.Data = device.CollectInterfaceMap[iID].DeviceNodeMap[k].VariableMap
-			} else {
-				aParam.Code = "1"
-				aParam.Message = ""
-				aParam.Data = device.CollectInterfaceMap[iID].DeviceNodeMap[k].VariableMap
-
-			}
-			sJson, _ := json.Marshal(aParam)
-			context.String(http.StatusOK, string(sJson))
-			return
-		}
-	}
-	aParam.Code = "1"
-	aParam.Message = "node is noexist"
-	sJson, _ := json.Marshal(aParam)
 	context.String(http.StatusOK, string(sJson))
 }
 

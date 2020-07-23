@@ -23,30 +23,17 @@ const (
 
 //采集接口模板
 type CollectInterfaceTemplate struct {
-	InterfaceID   int                   `json:"InterfaceID"`   //接口ID
-	PollPeriod    int                   `json:"PollPeriod"`    //采集周期
-	OfflinePeriod int                   `json:"OfflinePeriod"` //离线超时周期
-	DeviceNodeCnt int                   `json:"DeviceNodeCnt"` //设备数量
-	DeviceNodeMap []*DeviceNodeTemplate `json:"DeviceNodeMap"` //节点表
+	CollInterfaceName   string          		`json:"CollInterfaceName"`   	//采集接口
+	CommInterfaceName   string					`json:"CommInterfaceName"`   	//通信接口
+	PollPeriod          int                   	`json:"PollPeriod"`    			//采集周期
+	OfflinePeriod       int                   	`json:"OfflinePeriod"` 			//离线超时周期
+	DeviceNodeCnt       int                   	`json:"DeviceNodeCnt"` 			//设备数量
+	DeviceNodeOnlineCnt int             		`json:"DeviceNodeOnlineCnt"`	//设备在线数量
+	DeviceNodeMap       []*DeviceNodeTemplate 	`json:"DeviceNodeMap"` 			//节点表
 }
 
-//采集接口配置参数
-type CollectInterfaceParamTemplate struct {
-	InterfaceID       int      `json:"InterfaceID"`   //接口ID
-	PollPeriod        int      `json:"PollPeriod"`    //采集周期
-	OfflinePeriod     int      `json:"OfflinePeriod"` //离线超时周期
-	DeviceNodeCnt     int      `json:"DeviceNodeCnt"` //设备数量
-	DeviceNodeAddrMap []string `json:"DeviceAddrMap"` //节点地址
-	DeviceNodeTypeMap []string `json:"DeviceTypeMap"` //节点类型
-}
 
-//配置参数
-//type CollectInterfaceParamMapTemplate struct {
-//	CollectInterfaceParam [MaxCollectInterfaceManage]CollectInterfaceParamTemplate
-//}
-
-var CollectInterfaceMap [MaxCollectInterfaceManage]*CollectInterfaceTemplate
-//var CollectInterfaceParamMap CollectInterfaceParamMapTemplate
+var CollectInterfaceMap = make([]*CollectInterfaceTemplate,0)
 
 func WriteCollectInterfaceManageToJson() {
 
@@ -61,24 +48,45 @@ func WriteCollectInterfaceManageToJson() {
 	}
 	defer fp.Close()
 
-	//定义采集接口参数结构体
-	CollectInterfaceParamMap := struct {
-		CollectInterfaceParam []CollectInterfaceParamTemplate
-	}{
-		CollectInterfaceParam: make([]CollectInterfaceParamTemplate, 0),
+	//采集接口配置参数
+	type CollectInterfaceParamTemplate struct {
+		CollInterfaceName   string          `json:"CollInterfaceName"`   	//采集接口
+		CommInterfaceName string			`json:"CommInterfaceName"`   	//通信接口
+		PollPeriod        int      			`json:"PollPeriod"`    			//采集周期
+		OfflinePeriod     int      			`json:"OfflinePeriod"` 			//离线超时周期
+		DeviceNodeCnt     int      			`json:"DeviceNodeCnt"` 			//设备数量
 	}
 
-	for k, v := range CollectInterfaceMap {
-		CollectInterfaceParamMap.CollectInterfaceParam[k].InterfaceID = v.InterfaceID
-		CollectInterfaceParamMap.CollectInterfaceParam[k].PollPeriod = v.PollPeriod
-		CollectInterfaceParamMap.CollectInterfaceParam[k].OfflinePeriod = v.OfflinePeriod
-		CollectInterfaceParamMap.CollectInterfaceParam[k].DeviceNodeCnt = v.DeviceNodeCnt
+	//定义采集接口参数结构体
+	CollectInterfaceParamMap := struct {
+		CollectInterfaceParam 	[]CollectInterfaceParamTemplate
+		DeviceNodeNameMap       []string 			//节点名称
+		DeviceNodeAddrMap 		[]string
+		DeviceNodeTypeMap 		[]string
+	}{
+		CollectInterfaceParam: make([]CollectInterfaceParamTemplate, 0),
+		DeviceNodeNameMap:make([]string,0),
+		DeviceNodeAddrMap:make([]string,0),
+		DeviceNodeTypeMap:make([]string,0),
+	}
 
-		CollectInterfaceParamMap.CollectInterfaceParam[k].DeviceNodeAddrMap = CollectInterfaceParamMap.CollectInterfaceParam[k].DeviceNodeAddrMap[0:0]
-		CollectInterfaceParamMap.CollectInterfaceParam[k].DeviceNodeTypeMap = CollectInterfaceParamMap.CollectInterfaceParam[k].DeviceNodeTypeMap[0:0]
+	for _, v := range CollectInterfaceMap {
+
+		ParamTemplate := CollectInterfaceParamTemplate{
+			CollInterfaceName : v.CollInterfaceName,
+			CommInterfaceName : v.CommInterfaceName,
+			PollPeriod : v.PollPeriod,
+			OfflinePeriod : v.OfflinePeriod,
+			DeviceNodeCnt : v.DeviceNodeCnt,
+		}
+		CollectInterfaceParamMap.CollectInterfaceParam = append(CollectInterfaceParamMap.CollectInterfaceParam,
+			ParamTemplate)
+
+
 		for i := 0; i < v.DeviceNodeCnt; i++ {
-			CollectInterfaceParamMap.CollectInterfaceParam[k].DeviceNodeAddrMap = append(CollectInterfaceParamMap.CollectInterfaceParam[k].DeviceNodeAddrMap, v.DeviceNodeMap[i].Addr)
-			CollectInterfaceParamMap.CollectInterfaceParam[k].DeviceNodeTypeMap = append(CollectInterfaceParamMap.CollectInterfaceParam[k].DeviceNodeTypeMap, v.DeviceNodeMap[i].Type)
+			CollectInterfaceParamMap.DeviceNodeNameMap = append(CollectInterfaceParamMap.DeviceNodeNameMap, v.DeviceNodeMap[i].Name)
+			CollectInterfaceParamMap.DeviceNodeAddrMap = append(CollectInterfaceParamMap.DeviceNodeAddrMap, v.DeviceNodeMap[i].Addr)
+			CollectInterfaceParamMap.DeviceNodeTypeMap = append(CollectInterfaceParamMap.DeviceNodeTypeMap, v.DeviceNodeMap[i].Type)
 		}
 	}
 
@@ -112,16 +120,26 @@ func ReadCollectInterfaceManageFromJson() bool {
 		data := make([]byte, 20480)
 		dataCnt, err := fp.Read(data)
 
+		//采集接口配置参数
+		type CollectInterfaceParamTemplate struct {
+			CollInterfaceName   string          `json:"CollInterfaceName"`   	//采集接口
+			CommInterfaceName string			`json:"CommInterfaceName"`   	//通信接口
+			PollPeriod        int      			`json:"PollPeriod"`    			//采集周期
+			OfflinePeriod     int      			`json:"OfflinePeriod"` 			//离线超时周期
+			DeviceNodeCnt     int      			`json:"DeviceNodeCnt"` 			//设备数量
+		}
+
 		//定义采集接口参数结构体
 		CollectInterfaceParamMap := struct {
 			CollectInterfaceParam []CollectInterfaceParamTemplate
+			DeviceNodeNameMap []string 			//节点名称
+			DeviceNodeAddrMap []string 			//节点地址
+			DeviceNodeTypeMap []string 			//节点类型
 		}{
 			CollectInterfaceParam: make([]CollectInterfaceParamTemplate, 0),
-		}
-
-		for _, v := range CollectInterfaceParamMap.CollectInterfaceParam {
-			v.DeviceNodeAddrMap = make([]string, 0)
-			v.DeviceNodeTypeMap = make([]string, 0)
+			DeviceNodeNameMap:make([]string,0),
+			DeviceNodeAddrMap:make([]string,0),
+			DeviceNodeTypeMap:make([]string,0),
 		}
 
 		err = json.Unmarshal(data[:dataCnt], &CollectInterfaceParamMap)
@@ -135,16 +153,18 @@ func ReadCollectInterfaceManageFromJson() bool {
 		for k, v := range CollectInterfaceParamMap.CollectInterfaceParam {
 
 			//创建接口实例
-			CollectInterfaceMap[k] = NewCollectInterface(k,
+			CollectInterfaceMap = append(CollectInterfaceMap,NewCollectInterface(v.CollInterfaceName,
+				v.CommInterfaceName,
 				v.PollPeriod,
 				v.OfflinePeriod,
-				v.DeviceNodeCnt)
+				v.DeviceNodeCnt))
 
 			//创建设备实例
 			for i := 0; i < v.DeviceNodeCnt; i++ {
 				CollectInterfaceMap[k].NewDeviceNode(
-					v.DeviceNodeTypeMap[i],
-					v.DeviceNodeAddrMap[i])
+					CollectInterfaceParamMap.DeviceNodeNameMap[i],
+					CollectInterfaceParamMap.DeviceNodeTypeMap[i],
+					CollectInterfaceParamMap.DeviceNodeAddrMap[i])
 			}
 		}
 
@@ -167,13 +187,13 @@ func DeviceNodeManageInit() {
 		//log.Printf("collectMInterfaceMap %+v\n",CollectInterfaceMap)
 	} else {
 
-		for i := 0; i < MaxCollectInterfaceManage; i++ {
-			//创建接口实例
-			CollectInterfaceMap[i] = NewCollectInterface(i,
-				60,
-				180,
-				0)
-		}
+		//for i := 0; i < MaxCollectInterfaceManage; i++ {
+		//	//创建接口实例
+		//	CollectInterfaceMap[i] = NewCollectInterface(i,
+		//		60,
+		//		180,
+		//		0)
+		//}
 	}
 }
 
@@ -187,10 +207,12 @@ func DeviceNodeManageInit() {
 注意事项：
 日期    ：
 ********************************************************/
-func NewCollectInterface(interfaceID, pollPeriod, offlinePeriod int, deviceNodeCnt int) *CollectInterfaceTemplate {
+func NewCollectInterface(collInterfaceName, commInterfaceName string,
+						pollPeriod, offlinePeriod int, deviceNodeCnt int) *CollectInterfaceTemplate {
 
 	nodeManage := &CollectInterfaceTemplate{
-		InterfaceID:   interfaceID,
+		CollInterfaceName: collInterfaceName,
+		CommInterfaceName: commInterfaceName,
 		PollPeriod:    pollPeriod,
 		OfflinePeriod: offlinePeriod,
 		DeviceNodeCnt: deviceNodeCnt,
@@ -229,18 +251,10 @@ func (d *CollectInterfaceTemplate) ModifyCollectInterface(pollPeriod, offlinePer
 注意事项：
 日期    ：
 ********************************************************/
-func (d *CollectInterfaceTemplate) NewDeviceNode(dType string, dAddr string) {
-
-	//builder,ok := DeviceTemplateMap[dType]
-	//if !ok{
-	//	panic("deviceNodeType is not exist")
-	//}
-	//
-	//index := len(d.DeviceNodeMap)
-	//node := builder.New(index,dType,dAddr)
-	//d.DeviceNodeMap = append(d.DeviceNodeMap,node)
+func (d *CollectInterfaceTemplate) NewDeviceNode(dName string,dType string, dAddr string) {
 
 	node := &DeviceNodeTemplate{}
+	node.Name = dName
 	node.Type = dType
 	node.Addr = dAddr
 	node.Index = len(d.DeviceNodeMap)
@@ -251,9 +265,10 @@ func (d *CollectInterfaceTemplate) NewDeviceNode(dType string, dAddr string) {
 	d.DeviceNodeMap = append(d.DeviceNodeMap, node)
 }
 
-func (d *CollectInterfaceTemplate) AddDeviceNode(dType string, dAddr string) (bool, string) {
+func (d *CollectInterfaceTemplate) AddDeviceNode(dName string,dType string, dAddr string) (bool, string) {
 
 	node := &DeviceNodeTemplate{}
+	node.Name = dName
 	node.Type = dType
 	node.Addr = dAddr
 	node.Index = len(d.DeviceNodeMap)
@@ -267,10 +282,7 @@ func (d *CollectInterfaceTemplate) AddDeviceNode(dType string, dAddr string) (bo
 	return true, "add success"
 }
 
-func (d *CollectInterfaceTemplate) DeleteDeviceNode(dAddr string, dType string) {
-
-	log.Printf("addr %s\n", dAddr)
-	log.Printf("type %s\n", dType)
+func (d *CollectInterfaceTemplate) DeleteDeviceNode(dName string, dAddr string, dType string) {
 
 	for k, v := range d.DeviceNodeMap {
 		if v.Addr == dAddr {
@@ -281,7 +293,7 @@ func (d *CollectInterfaceTemplate) DeleteDeviceNode(dAddr string, dType string) 
 	}
 }
 
-func (d *CollectInterfaceTemplate) GetDeviceNode(dAddr string) interface{} {
+func (d *CollectInterfaceTemplate) GetDeviceNode(dAddr string) *DeviceNodeTemplate {
 
 	for _, v := range d.DeviceNodeMap {
 		if v.Addr == dAddr {

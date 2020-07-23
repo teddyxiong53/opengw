@@ -82,11 +82,14 @@ func RouterWeb() http.Handler {
 
 		deviceRouter := router.Group("/api/v1/device")
 		{
-			//增加接口
+			//增加采集接口
 			deviceRouter.POST("/interface", apiAddInterface)
 
-			//修改接口
+			//修改采集接口
 			deviceRouter.PUT("/interface", apiModifyInterface)
+
+			//删除采集接口
+			deviceRouter.DELETE("/interface", apiDeleteInterface)
 
 			//获取接口信息
 			deviceRouter.GET("/interface", apiGetInterfaceInfo)
@@ -102,6 +105,9 @@ func RouterWeb() http.Handler {
 
 			//查看节点
 			deviceRouter.GET("/node", apiGetNode)
+
+			//查看节点变量
+			deviceRouter.GET("/nodeVariable", apiGetNodeVariableFromCache)
 
 			//删除节点
 			deviceRouter.DELETE("/node", apiDeleteNode)
