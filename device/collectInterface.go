@@ -258,6 +258,9 @@ func (d *CollectInterfaceTemplate) NewDeviceNode(dName string,dType string, dAdd
 	node.Type = dType
 	node.Addr = dAddr
 	node.Index = len(d.DeviceNodeMap)
+	node.CommTotalCnt = 0
+	node.CommSuccessCnt = 0
+	node.CommStatus = "onLine"
 	node.VariableMap = make([]api.VariableTemplate, 0)
 	variables := node.NewVariables()
 	node.VariableMap = append(node.VariableMap, variables...)
@@ -272,6 +275,9 @@ func (d *CollectInterfaceTemplate) AddDeviceNode(dName string,dType string, dAdd
 	node.Type = dType
 	node.Addr = dAddr
 	node.Index = len(d.DeviceNodeMap)
+	node.CommTotalCnt = 0
+	node.CommSuccessCnt = 0
+	node.CommStatus = "online"
 	node.VariableMap = make([]api.VariableTemplate, 0)
 	variables := node.NewVariables()
 	node.VariableMap = append(node.VariableMap, variables...)
