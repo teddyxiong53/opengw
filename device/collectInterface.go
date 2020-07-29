@@ -288,11 +288,11 @@ func (d *CollectInterfaceTemplate) AddDeviceNode(dName string,dType string, dAdd
 	return true, "add success"
 }
 
-func (d *CollectInterfaceTemplate) DeleteDeviceNode(dName string, dAddr string, dType string) {
+func (d *CollectInterfaceTemplate) DeleteDeviceNode(dName string) {
 
 	for k, v := range d.DeviceNodeMap {
-		if v.Addr == dAddr {
-			d.DeviceNodeMap = d.DeviceNodeMap[k : k+1]
+		if v.Name == dName {
+			//d.DeviceNodeMap = d.DeviceNodeMap[k : k+1]
 			d.DeviceNodeMap = append(d.DeviceNodeMap[:k], d.DeviceNodeMap[k+1:]...)
 			d.DeviceNodeCnt--
 		}
