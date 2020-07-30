@@ -82,7 +82,7 @@ func ReadDeviceNodeTypeMapFromJson() bool {
 			log.Printf("plugin %+v\n",DeviceNodeTypeMap)
 			template,pluginerr := plugin.Open(str)
 			if pluginerr!=nil{
-				log.Printf("open %s, %\n",pluginerr)
+				log.Printf("openPlug  %s err\n",pluginerr)
 			}
 			DeviceTypePluginMap[k] = template
 		}

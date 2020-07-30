@@ -22,10 +22,7 @@ func main() {
 	//记录起始时间
 	setting.GetTimeStart()
 
-	log.Println("HRx-WDT300 V0.0.1")
-
-	//pluginTest,_ := p.Lookup("PluginTest")
-	//pluginTest.(func())()
+	log.Println("goteway V0.0.1")
 
 	setting.MemoryDataStream = setting.NewDataStreamTemplate("内存使用率")
 	setting.DiskDataStream = setting.NewDataStreamTemplate("硬盘使用率")

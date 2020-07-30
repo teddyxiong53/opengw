@@ -39,11 +39,11 @@ func WriteCollectInterfaceManageToJson() {
 
 	exeCurDir, _ := filepath.Abs(filepath.Dir(os.Args[0]))
 
-	fileDir := exeCurDir + "/selfpara/deviceNodeManage.json"
+	fileDir := exeCurDir + "/selfpara/collInterface.json"
 
 	fp, err := os.OpenFile(fileDir, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0777)
 	if err != nil {
-		log.Println("open deviceNodeManage.json err", err)
+		log.Println("open collInterface.json err", err)
 		return
 	}
 	defer fp.Close()
@@ -94,9 +94,9 @@ func WriteCollectInterfaceManageToJson() {
 
 	_, err = fp.Write(sJson)
 	if err != nil {
-		log.Println("write deviceNodeManage.json err", err)
+		log.Println("write collInterface.json err", err)
 	}
-	log.Println("write deviceNodeManage.json sucess")
+	log.Println("write collInterface.json sucess")
 }
 
 func fileExist(path string) bool {
@@ -107,12 +107,12 @@ func fileExist(path string) bool {
 func ReadCollectInterfaceManageFromJson() bool {
 
 	exeCurDir, _ := filepath.Abs(filepath.Dir(os.Args[0]))
-	fileDir := exeCurDir + "/selfpara/deviceNodeManage.json"
+	fileDir := exeCurDir + "/selfpara/collInterface.json"
 
 	if fileExist(fileDir) == true {
 		fp, err := os.OpenFile(fileDir, os.O_RDONLY, 0777)
 		if err != nil {
-			log.Println("open deviceNodeManage.json err", err)
+			log.Println("open collInterface.json err", err)
 			return false
 		}
 		defer fp.Close()
@@ -144,7 +144,7 @@ func ReadCollectInterfaceManageFromJson() bool {
 
 		err = json.Unmarshal(data[:dataCnt], &CollectInterfaceParamMap)
 		if err != nil {
-			log.Println("deviceNodeManage unmarshal err", err)
+			log.Println("collInterface unmarshal err", err)
 
 			return false
 		}
@@ -170,7 +170,7 @@ func ReadCollectInterfaceManageFromJson() bool {
 
 		return true
 	} else {
-		log.Println("deviceNodeManage.json is not exist")
+		log.Println("collInterface.json is not exist")
 
 		return false
 	}
@@ -277,7 +277,7 @@ func (d *CollectInterfaceTemplate) AddDeviceNode(dName string,dType string, dAdd
 	node.Index = len(d.DeviceNodeMap)
 	node.CommTotalCnt = 0
 	node.CommSuccessCnt = 0
-	node.CommStatus = "online"
+	node.CommStatus = "onLine"
 	node.VariableMap = make([]api.VariableTemplate, 0)
 	variables := node.NewVariables()
 	node.VariableMap = append(node.VariableMap, variables...)
