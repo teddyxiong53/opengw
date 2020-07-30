@@ -276,20 +276,26 @@ func apiAddNode(context *gin.Context) {
 		return
 	}
 
-	var status bool
+
 	for _,v := range device.CollectInterfaceMap{
 		if v.CollInterfaceName == nodeInfo.InterfaceName{
+			for _,v := range v.DeviceNodeMap{
+				if v.Name == nodeInfo.DName{
+					aParam.Code = "1"
+					aParam.Data = ""
+					aParam.Message = "name is exist"
 
-			status,aParam.Message = v.AddDeviceNode(nodeInfo.DName,nodeInfo.DType, nodeInfo.DAddr)
-			if status == true {
-				device.WriteCollectInterfaceManageToJson()
-
-				aParam.Code = "0"
-				aParam.Data = ""
-			} else {
-				aParam.Code = "1"
-				aParam.Data = ""
+					sJson, _ := json.Marshal(aParam)
+					context.String(http.StatusOK, string(sJson))
+					return
+				}
 			}
+			_,aParam.Message = v.AddDeviceNode(nodeInfo.DName,nodeInfo.DType, nodeInfo.DAddr)
+			device.WriteCollectInterfaceManageToJson()
+
+			aParam.Code = "0"
+			aParam.Data = ""
+
 			sJson, _ := json.Marshal(aParam)
 			context.String(http.StatusOK, string(sJson))
 			return
@@ -305,6 +311,75 @@ func apiAddNode(context *gin.Context) {
 }
 
 func apiModifyNode(context *gin.Context) {
+
+	type DeleteAck struct{
+		Name   string
+		Status bool
+	}
+
+	aParam := struct {
+		Code    string `json:"Code"`
+		Message string `json:"Message"`
+		Data    []DeleteAck `json:"Data"`
+	}{
+		Code:    "1",
+		Message: "",
+		Data:    make([]DeleteAck,0),
+	}
+
+	bodyBuf := make([]byte, 1024)
+	n, _ := context.Request.Body.Read(bodyBuf)
+	log.Println(string(bodyBuf[:n]))
+
+	nodeInfo := &struct {
+		InterfaceName string    			`json:"CollInterfaceName"`
+		Name          string				`json:"Name"`
+		DType         string                `json:"Type"`
+		Addr          string                `json:"Addr"`
+	}{
+		InterfaceName:"",
+		DType:"",
+		Name:"",
+		Addr:"",
+	}
+
+	err := json.Unmarshal(bodyBuf[:n], nodeInfo)
+	if err != nil {
+		fmt.Println("nodeInfo json unMarshall err,", err)
+
+		aParam.Code = "1"
+		aParam.Message = "json unMarshall err"
+
+		sJson, _ := json.Marshal(aParam)
+		context.String(http.StatusOK, string(sJson))
+		return
+	}
+
+	for _, v := range device.CollectInterfaceMap {
+		if v.CollInterfaceName == nodeInfo.InterfaceName {
+			for _, v := range v.DeviceNodeMap {
+				if v.Name == nodeInfo.Name {
+					v.Type = nodeInfo.DType
+					v.Addr = nodeInfo.Addr
+					device.WriteCollectInterfaceManageToJson()
+
+					aParam.Code = "0"
+					aParam.Message = ""
+					sJson, _ := json.Marshal(aParam)
+					context.String(http.StatusOK, string(sJson))
+					return
+				}
+			}
+		}
+	}
+
+	aParam.Code = "1"
+	aParam.Message = "name is not exist"
+	sJson, _ := json.Marshal(aParam)
+	context.String(http.StatusOK, string(sJson))
+}
+
+func apiModifyNodes(context *gin.Context) {
 
 	type DeleteAck struct{
 		Name   string

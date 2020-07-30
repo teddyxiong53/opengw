@@ -100,8 +100,11 @@ func RouterWeb() http.Handler {
 			//增加节点
 			deviceRouter.POST("/node", apiAddNode)
 
-			//修改节点
+			//修改单个节点
 			deviceRouter.PUT("/node", apiModifyNode)
+
+			//修改多个节点
+			deviceRouter.PUT("/nodes", apiModifyNodes)
 
 			//查看节点
 			deviceRouter.GET("/node", apiGetNode)
