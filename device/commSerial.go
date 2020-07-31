@@ -26,7 +26,7 @@ type CommunicationSerialTemplate struct{
 	Port    *serial.Port								`json:"-"`				//通信句柄
 }
 
-var CommunicationSerialMap = make([]CommunicationSerialTemplate,0)
+var CommunicationSerialMap = make([]*CommunicationSerialTemplate,0)
 
 func (c *CommunicationSerialTemplate)Open() bool{
 
@@ -61,7 +61,8 @@ func (c *CommunicationSerialTemplate)Open() bool{
 		ReadTimeout: time.Millisecond*1,
 	}
 
-	serialPort, err := serial.OpenPort(serialConfig)
+	var err error
+	c.Port, err = serial.OpenPort(serialConfig)
 	if err != nil {
 		log.Printf("open serial err,%s",err)
 		return false
@@ -69,7 +70,7 @@ func (c *CommunicationSerialTemplate)Open() bool{
 		log.Printf("open serial %s ok\n",c.Param.Name)
 	}
 
-	c.Port = serialPort
+
 	return true
 }
 
@@ -80,7 +81,13 @@ func (c *CommunicationSerialTemplate)Close() bool{
 
 func (c *CommunicationSerialTemplate)WriteData(data []byte) int{
 
-	cnt,_ := c.Port.Write(data)
+	log.Printf("len is %d\n",len(data))
+	//log.Printf("c %+v\n",c)
+
+	cnt,err := c.Port.Write(data)
+	if err != nil{
+		log.Println(err)
+	}
 
 	return cnt
 }

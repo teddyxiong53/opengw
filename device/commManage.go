@@ -6,31 +6,26 @@ import (
 )
 
 type CommunicationCmdTemplate struct {
-	CollInterfaceName string    //采集接口名称
-	DeviceAddr    string 		//采集接口下设备地址
-	FunName       string
-	FunPara       interface{}
+	CollInterfaceName    	string    //采集接口名称
+	DeviceAddr    			string 		//采集接口下设备地址
+	FunName       			string
+	FunPara       			interface{}
 }
 
 type CommunicationManageTemplate struct{
 	EmergencyRequestChan chan CommunicationCmdTemplate
 	CommonRequestChan    chan CommunicationCmdTemplate
 	EmergencyAckChan     chan bool
-	//RxChan               chan bool //接收正确
+	CollInterfaceName    string    //采集接口名称
 }
 
-func NewCommunicationManageTemplate() *CommunicationManageTemplate{
+func NewCommunicationManageTemplate() *CommunicationManageTemplate {
 
 	return &CommunicationManageTemplate{
-		EmergencyRequestChan:make(chan CommunicationCmdTemplate, 100),
-		CommonRequestChan: make(chan CommunicationCmdTemplate, 1),
-		EmergencyAckChan: make(chan bool, 1),
+		EmergencyRequestChan: make(chan CommunicationCmdTemplate, 100),
+		CommonRequestChan:    make(chan CommunicationCmdTemplate, 1),
+		EmergencyAckChan:     make(chan bool, 1),
 	}
-}
-
-func CommunicationManageInit() {
-
-	//go CommunicationManageDel()
 }
 
 func (c *CommunicationManageTemplate)CommunicationManageAddCommon(cmd CommunicationCmdTemplate) {
@@ -68,6 +63,7 @@ func (c *CommunicationManageTemplate)CommunicationManageDel() {
 										v.WriteData(txBuf)
 									}
 								}
+								v.CommTotalCnt++
 								//---------------等待接收----------------------
 								//阻塞读
 								rxBuf := make([]byte, 256)
@@ -86,6 +82,7 @@ func (c *CommunicationManageTemplate)CommunicationManageDel() {
 											//interval,_ := strconv.Atoi(setting.SerialInterface.SerialParam[cmd.InterfaceID].Interval)
 											//time.Sleep(time.Duration(interval)*time.Millisecond)
 											status = true
+											v.CommSuccessCnt++
 											goto LoopEmerg
 										}
 									//是否接收超时
@@ -132,16 +129,22 @@ func (c *CommunicationManageTemplate)CommunicationManageDel() {
 					{
 						log.Println("common chan")
 						log.Printf("funName %s\n", cmd.FunName)
-						for _, v := range CollectInterfaceMap {
-							if v.CollInterfaceName == cmd.CollInterfaceName {
-								for k, v := range v.DeviceNodeMap {
+						for _, c := range CollectInterfaceMap {
+							if c.CollInterfaceName == cmd.CollInterfaceName {
+								for k,v := range c.DeviceNodeMap{
 									if v.Addr == cmd.DeviceAddr {
 										log.Printf("index is %d\n", k)
 										//--------------组包---------------------------
-										txBuf := v.GenerateGetRealVariables(v.Addr)
+										txBuf := make([]byte,0)
+										txBuf = append(txBuf,v.GenerateGetRealVariables(v.Addr)...)
 										log.Printf("tx buf is %+v\n", txBuf)
 										//---------------发送-------------------------
-										//setting.SerialInterface.SerialPort[cmd.InterfaceID].Write(txBuf)
+										for _,v := range CommunicationSerialMap{
+											if v.Name == c.CommInterfaceName{
+												v.WriteData(txBuf)
+											}
+										}
+										v.CommTotalCnt++
 										//---------------等待接收----------------------
 										//阻塞读
 										rxBuf := make([]byte, 256)
@@ -159,7 +162,8 @@ func (c *CommunicationManageTemplate)CommunicationManageDel() {
 													//通信帧延时
 													//interval,_ := strconv.Atoi(setting.SerialInterface.SerialParam[cmd.InterfaceID].Interval)
 													//time.Sleep(time.Duration(interval)*time.Millisecond)
-													goto Loop
+													v.CommSuccessCnt++
+													goto LoopCommon
 												}
 											//是否接收超时
 											case <-timer.C:
@@ -168,12 +172,17 @@ func (c *CommunicationManageTemplate)CommunicationManageDel() {
 													//通信帧延时
 													//interval,_ := strconv.Atoi(setting.SerialInterface.SerialParam[cmd.InterfaceID].Interval)
 													//time.Sleep(time.Duration(interval)*time.Millisecond)
-													goto Loop
+													goto LoopCommon
 												}
 											//继续接收数据
 											default:
 												{
 													//rxBufCnt,_ = setting.SerialInterface.SerialPort[cmd.InterfaceID].Read(rxBuf)
+													for _,v := range CommunicationSerialMap{
+														if v.Name == c.CommInterfaceName{
+															rxBufCnt = v.ReadData(rxBuf)
+														}
+													}
 													if rxBufCnt > 0 {
 														rxTotalBufCnt += rxBufCnt
 														//追加接收的数据到接收缓冲区
@@ -185,9 +194,9 @@ func (c *CommunicationManageTemplate)CommunicationManageDel() {
 												}
 											}
 										}
+									LoopCommon:
 									}
 								}
-							Loop:
 							}
 						}
 					}
@@ -201,15 +210,18 @@ func (c *CommunicationManageTemplate)CommunicationManageDel() {
 
 func (c *CommunicationManageTemplate)CommunicationManagePoll() {
 
-	//cmd := CommunicationCmdTemplate{}
-	//
-	//for i:=0;i<CollectInterfaceMap[InterFaceID0].DeviceNodeCnt;i++{
-	//
-	//	cmd.InterfaceID = InterFaceID0
-	//	cmd.DeviceAddr = CollectInterfaceMap[InterFaceID0].DeviceNodeMap[i].Addr
-	//	cmd.DeviceType = CollectInterfaceMap[InterFaceID0].DeviceNodeMap[i].Type
-	//	cmd.FunName = "GetDeviceRealVariables"
-	//
-	//	CommunicationManageAdd(cmd)
-	//}
+	cmd := CommunicationCmdTemplate{}
+
+	for _, coll := range CollectInterfaceMap {
+		if coll.CollInterfaceName == c.CollInterfaceName {
+			for _,v := range coll.DeviceNodeMap{
+
+				cmd.CollInterfaceName = coll.CollInterfaceName
+				cmd.DeviceAddr = v.Addr
+				cmd.FunName = "GetDeviceRealVariables"
+
+				c.CommunicationManageAddCommon(cmd)
+			}
+		}
+	}
 }
