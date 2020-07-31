@@ -5,48 +5,51 @@ import (
 	"time"
 )
 
-type CommunicationCmd struct {
+type CommunicationCmdTemplate struct {
 	CollInterfaceName string    //采集接口名称
 	DeviceAddr    string 		//采集接口下设备地址
-	DeviceType    string
 	FunName       string
-	FunIndex      int
 	FunPara       interface{}
 }
 
-var (
-	emergencyRequestChan chan CommunicationCmd
-	commonChan           chan CommunicationCmd
-	emergencyAckChan     chan bool
-	rxChan               chan bool //接收正确
-)
+type CommunicationManageTemplate struct{
+	EmergencyRequestChan chan CommunicationCmdTemplate
+	CommonRequestChan    chan CommunicationCmdTemplate
+	EmergencyAckChan     chan bool
+	//RxChan               chan bool //接收正确
+}
+
+func NewCommunicationManageTemplate() *CommunicationManageTemplate{
+
+	return &CommunicationManageTemplate{
+		EmergencyRequestChan:make(chan CommunicationCmdTemplate, 100),
+		CommonRequestChan: make(chan CommunicationCmdTemplate, 1),
+		EmergencyAckChan: make(chan bool, 1),
+	}
+}
 
 func CommunicationManageInit() {
 
-	commonChan = make(chan CommunicationCmd, 100)
-	emergencyRequestChan = make(chan CommunicationCmd, 1)
-	emergencyAckChan = make(chan bool, 1)
-	rxChan = make(chan bool, 1)
-
-	go CommunicationManageDel()
+	//go CommunicationManageDel()
 }
 
-func CommunicationManageAdd(cmd CommunicationCmd) {
+func (c *CommunicationManageTemplate)CommunicationManageAddCommon(cmd CommunicationCmdTemplate) {
 
-	commonChan <- cmd
+	c.CommonRequestChan <- cmd
 }
 
-func CommunicationManageAddEmergency(cmd CommunicationCmd) bool {
+func (c *CommunicationManageTemplate)CommunicationManageAddEmergency(cmd CommunicationCmdTemplate) bool {
 
-	emergencyRequestChan <- cmd
-	return <-emergencyAckChan
+	c.EmergencyRequestChan <- cmd
+
+	return <-c.EmergencyAckChan
 }
 
-func CommunicationManageDel() {
+func (c *CommunicationManageTemplate)CommunicationManageDel() {
 
 	for {
 		select {
-		case cmd := <-emergencyRequestChan:
+		case cmd := <-c.EmergencyRequestChan:
 			{
 				log.Println("emergency chan")
 				log.Printf("funName %s\n", cmd.FunName)
@@ -120,12 +123,12 @@ func CommunicationManageDel() {
 						}
 					}
 				}
-				emergencyAckChan <- status
+				c.EmergencyAckChan <- status
 			}
 		default:
 			{
 				select {
-				case cmd := <-commonChan:
+				case cmd := <-c.CommonRequestChan:
 					{
 						log.Println("common chan")
 						log.Printf("funName %s\n", cmd.FunName)
@@ -196,22 +199,9 @@ func CommunicationManageDel() {
 	}
 }
 
-//func CommunicationManageAddEmergencyTest(){
-//	cmd := CommunicationCmd{}
-//
-//	cmd.interfaceID = InterFaceID1
-//	cmd.DeviceAddr = "2"
-//	cmd.funName = "FCUGetRealData"
-//	cmd.funPara = struct{
-//		addr byte
-//	}{0x02}
-//
-//	CommunicationManageAddEmergency(cmd)
-//}
+func (c *CommunicationManageTemplate)CommunicationManagePoll() {
 
-func CommunicationManagePoll() {
-
-	//cmd := CommunicationCmd{}
+	//cmd := CommunicationCmdTemplate{}
 	//
 	//for i:=0;i<CollectInterfaceMap[InterFaceID0].DeviceNodeCnt;i++{
 	//

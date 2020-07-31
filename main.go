@@ -32,8 +32,6 @@ func main() {
 	/**************获取配置文件***********************/
 	config.GetConf()
 
-	/**************串口初始化***********************/
-
 	/**************网口初始化***********************/
 	for _, v := range setting.NetworkParamList.NetworkParam {
 		log.Println("set network ", v.Name)
