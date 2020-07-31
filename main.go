@@ -57,7 +57,7 @@ func main() {
 	cronGetNetStatus.AddFunc("*/5 * * * * *", setting.GetNetworkStatus)
 
 	// 定时60秒
-	cronGetNetStatus.AddFunc("*/30 * * * * *", device.CommunicationManagePoll)
+	cronGetNetStatus.AddFunc("*/10 * * * * *", device.CommunicationManagePoll)
 
 	// 定时60秒
 	//cronGetNetStatus.AddFunc("*/10 * * * * *", CommunicationManageAddEmergencyTest)
@@ -79,7 +79,7 @@ func main() {
 	// 默认启动方式，包含 Logger、Recovery 中间件
 
 	serverWeb := &http.Server{
-		Addr:         ":80",
+		Addr:         ":8080",
 		Handler:      httpServer.RouterWeb(),
 		ReadTimeout:  5 * time.Second,
 		WriteTimeout: 10 * time.Second,

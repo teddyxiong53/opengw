@@ -26,15 +26,16 @@ func CommInterfaceInit() {
 	} else {
 		log.Println("read CommSerialInterfaceList.json ok")
 
-		for _, v := range CommunicationSerialMap {
-
-			CommunicationInterfaceMap = append(CommunicationInterfaceMap, &v)
-		}
+		//for _, v := range CommunicationSerialMap {
+		//
+		//	CommunicationInterfaceMap = append(CommunicationInterfaceMap, &v)
+		//}
 	}
 
 	//打开串口通信
-	for _, v := range CommunicationInterfaceMap {
+	for _, v := range CommunicationSerialMap {
 
 		v.Open()
+		//log.Printf("c %+v\n",v)
 	}
 }

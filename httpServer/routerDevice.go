@@ -880,7 +880,7 @@ func apiAddCommSerialInterface(context *gin.Context) {
 		}
 	}
 
-	SerialInterface := device.CommunicationSerialTemplate{
+	SerialInterface := &device.CommunicationSerialTemplate{
 		Param: interfaceInfo.Param,
 		CommunicationTemplate: device.CommunicationTemplate{
 			Name: interfaceInfo.Name,

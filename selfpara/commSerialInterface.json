@@ -1,1 +1,1 @@
-[{"Name":"com1","Type":"LocalSerial","Param":{"Name":"/dev/ttyUSB0","BaudRate":"9600","DataBits":"8","StopBits":"1","Parity":"N","Timeout":"1000","Interval":"300"}}]
+[{"Name":"com1","Type":"LocalSerial","Param":{"Name":"/dev/ttyS1","BaudRate":"9600","DataBits":"8","StopBits":"1","Parity":"N","Timeout":"1000","Interval":"300"}}]

@@ -7,4 +7,6 @@ type SerialPortNameTemplate struct{
 var SerialPortNameTemplateMap = [...]SerialPortNameTemplate{
 	{Name:"/dev/ttyUSB0"},
 	{Name:"/dev/ttyUSB1"},
+	{Name:"/dev/ttyS0"},
+	{Name:"/dev/ttyS1"},
 }
