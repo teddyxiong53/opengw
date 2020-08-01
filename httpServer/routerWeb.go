@@ -137,6 +137,11 @@ func RouterWeb() http.Handler {
 			deviceRouter.DELETE("/commSerialInterface", apiDeleteCommSerialInterface)
 		}
 
+		pluginRouter := router.Group("/api/v1/update")
+		{
+			pluginRouter.POST("/plugin", apiUpdatePlugin)
+		}
+
 		remoteRouter := router.Group("/api/v1/remote")
 		{
 			remoteRouter.GET("/param", apiGetRemotePlatformParam)
