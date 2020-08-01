@@ -62,7 +62,6 @@ func ReadDeviceNodeTypeMapFromJson() bool {
 	}{}
 
 	exeCurDir, _ := filepath.Abs(filepath.Dir(os.Args[0]))
-	//fileDir := exeCurDir + "/selfpara/deviceNodeType.json"
 
 	//遍历json和so文件
 	pluginPath := exeCurDir + "/plugin"
@@ -113,50 +112,6 @@ func ReadDeviceNodeTypeMapFromJson() bool {
 	}
 
 	return true
-
-	//if fileExist(fileDir) == true {
-	//	fp, err := os.OpenFile(fileDir, os.O_RDONLY, 0777)
-	//	if err != nil {
-	//		log.Println("open DeviceNodeType.json err", err)
-	//		return false
-	//	}
-	//	defer fp.Close()
-	//
-	//	data := make([]byte, 20480)
-	//	dataCnt, err := fp.Read(data)
-	//
-	//	DeviceNodeTypeMap.DeviceNodeType = make([]DeviceNodeTypeTemplate, 0)
-	//
-	//	err = json.Unmarshal(data[:dataCnt], &DeviceNodeTypeMap)
-	//	if err != nil {
-	//		log.Println("DeviceNodeType unmarshal err", err)
-	//
-	//		return false
-	//	}
-	//	//创建设备模版
-	//	DeviceTypePluginMap = make(map[int]*plugin.Plugin)
-	//	//log.Printf("plugin %+v\n",DeviceNodeTypeMap)
-	//	for k,v := range DeviceNodeTypeMap.DeviceNodeType{
-	//
-	//		str := "plugin/" + v.TemplateType + ".so"
-	//		log.Printf("pluginStr %s\n",str)
-	//		log.Printf("plugin %+v\n",DeviceNodeTypeMap)
-	//		template,pluginerr := plugin.Open(str)
-	//		if pluginerr!=nil{
-	//			log.Printf("openPlug  %s err\n",pluginerr)
-	//		}
-	//		DeviceTypePluginMap[k] = template
-	//	}
-	//	//log.Printf("plugin %+v\n",DeviceTypePluginMap)
-	//
-	//	return true
-	//} else {
-	//	log.Println("DeviceNodeType.json is not exist")
-	//	//创建设备模版
-	//	DeviceTypePluginMap = make(map[int]*plugin.Plugin)
-	//
-	//	return false
-	//}
 }
 
 func updataDeviceType(path string,fileName []string) ([]string,error){

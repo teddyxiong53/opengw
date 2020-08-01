@@ -3,11 +3,14 @@ package setting
 import (
 	"bytes"
 	"encoding/hex"
+	"encoding/json"
 	"fmt"
 	"github.com/safchain/ethtool"
 	"log"
 	"net"
+	"os"
 	"os/exec"
+	"path/filepath"
 	"runtime"
 	"strings"
 )
@@ -95,11 +98,12 @@ func GetNetworkParam() NetworkParamListTemplate{
 
 		GetLinkState(v.ID)
 		ethInfo,err := GetNetInformation(v.Name)
+		log.Printf("ethInfo %+v\n",ethInfo)
 		if err == nil{
 			NetworkParamList.NetworkParam[k].IP = ethInfo.IP
 			NetworkParamList.NetworkParam[k].Netmask = ethInfo.Mask
 			NetworkParamList.NetworkParam[k].Broadcast = ethInfo.GatewayIP
-			NetworkParamList.NetworkParam[k].MAC = ethInfo.Mac
+			NetworkParamList.NetworkParam[k].MAC = strings.ToUpper(ethInfo.Mac)
 		}
 	}
 
@@ -226,4 +230,88 @@ func GetNetInformation(netName string) (NetInformation, error) {
 	}
 	info.GatewayIP = strings.Trim(string(out), "\n")
 	return info, nil
+}
+
+func fileExist(path string) bool {
+	_, err := os.Lstat(path)
+	return !os.IsNotExist(err)
+}
+
+func NetworkParaRead() bool {
+
+	exeCurDir, _ := filepath.Abs(filepath.Dir(os.Args[0]))
+
+	fileDir := exeCurDir + "/selfpara/networkpara.json"
+
+	if fileExist(fileDir) == true {
+		fp, err := os.OpenFile(fileDir, os.O_RDONLY, 0777)
+		if err != nil {
+			fmt.Println("open networkpara.json err", err)
+			return false
+		}
+		defer fp.Close()
+
+		data := make([]byte, 500)
+		dataCnt, err := fp.Read(data)
+
+		//fmt.Println(string(data[:dataCnt]))
+
+		err = json.Unmarshal(data[:dataCnt], &NetworkParamList)
+		if err != nil {
+			fmt.Println("networkpara unmarshal err", err)
+
+			return false
+		}
+		return true
+	} else {
+		fmt.Println("networkpara.json is not exist")
+
+		os.MkdirAll(exeCurDir+"/selfpara", os.ModePerm)
+		fp, err := os.Create(fileDir)
+		if err != nil {
+			fmt.Println("create networkpara.json err", err)
+			return false
+		}
+		defer fp.Close()
+
+		NetworkParamList.NetworkParam = append(NetworkParamList.NetworkParam, NetworkParamTemplate{
+			ID:        "1",
+			Name:      "eth0",
+			DHCP:      "1",
+			IP:        "192.168.4.156",
+			Netmask:   "255.255.255.0",
+			Broadcast: "192.168.4.255"})
+		NetworkParamList.NetworkParam = append(NetworkParamList.NetworkParam, NetworkParamTemplate{
+			ID:        "2",
+			Name:      "eth1",
+			DHCP:      "1",
+			IP:        "192.168.4.156",
+			Netmask:   "255.255.255.0",
+			Broadcast: "192.168.4.255"})
+		NetworkParaWrite()
+
+		return true
+	}
+}
+
+func NetworkParaWrite() {
+
+	exeCurDir, _ := filepath.Abs(filepath.Dir(os.Args[0]))
+
+	fileDir := exeCurDir + "/selfpara/networkpara.json"
+
+	fp, err := os.OpenFile(fileDir, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0777)
+	if err != nil {
+		fmt.Println("open networkpara.json err", err)
+	}
+	defer fp.Close()
+
+	sJson, _ := json.Marshal(NetworkParamList)
+	fmt.Println(string(sJson))
+
+	_, err = fp.Write(sJson)
+	if err != nil {
+		fmt.Println("write networkpara.json err", err)
+	}
+	fp.Sync()
 }

@@ -52,9 +52,7 @@ func apiSetNetwork(context *gin.Context){
 		setting.NetworkParamList.NetworkParam[1] = *rNetworkParam
 		setting.SetNetworkParam("2",*rNetworkParam)
 	}
-
-	//main.networkParaWrite(setting.NetworkParamList)
-
+	setting.NetworkParaWrite()
 
 	aParam := struct{
 		Code string			`json:"Code"`

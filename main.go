@@ -33,6 +33,7 @@ func main() {
 	config.GetConf()
 
 	/**************网口初始化***********************/
+	setting.NetworkParaRead()
 	for _, v := range setting.NetworkParamList.NetworkParam {
 		log.Println("set network ", v.Name)
 		setting.SetNetworkParam(v.ID, v)
@@ -77,9 +78,8 @@ func main() {
 
 	/**************httpserver初始化****************/
 	// 默认启动方式，包含 Logger、Recovery 中间件
-
 	serverWeb := &http.Server{
-		Addr:         ":8080",
+		Addr:         config.HttpPort,
 		Handler:      httpServer.RouterWeb(),
 		ReadTimeout:  5 * time.Second,
 		WriteTimeout: 10 * time.Second,
