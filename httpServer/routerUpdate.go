@@ -1,8 +1,10 @@
 package httpServer
 
 import (
+	"archive/zip"
 	"encoding/json"
 	"github.com/gin-gonic/gin"
+	"io"
 	"log"
 	"net/http"
 	"os"
@@ -13,6 +15,51 @@ func fileExist(path string) bool {
 	_, err := os.Lstat(path)
 	return !os.IsNotExist(err)
 }
+
+func unZip(zipFile string,destDir string) error{
+
+	zipReader,err := zip.OpenReader(zipFile)
+	if err != nil{
+		log.Printf("OpenReader err,",err)
+		return err
+	}
+	defer zipReader.Close()
+
+	for _,f := range zipReader.File{
+		fpath := filepath.Join(destDir,f.Name)
+		log.Println("fpath ",fpath)
+		if f.FileInfo().IsDir(){
+			os.MkdirAll(fpath,os.ModePerm)
+		}else{
+			if err = os.MkdirAll(filepath.Dir(fpath),os.ModePerm);err != nil{
+				log.Println("mkdir err",err)
+				return err
+			}
+			inFile,err := f.Open()
+			if err != nil{
+				log.Println("open err,",err)
+				return err
+			}
+			defer inFile.Close()
+
+			outFile,err := os.OpenFile(fpath,os.O_WRONLY|os.O_CREATE|os.O_TRUNC,f.Mode())
+			if err != nil{
+				log.Println("openFile err,",err)
+				return err
+			}
+			defer outFile.Close()
+
+			_,err = io.Copy(outFile,inFile)
+			if err != nil{
+				log.Println("copy err,",err)
+				return err
+			}
+		}
+	}
+
+	return nil
+}
+
 
 func apiUpdatePlugin(context *gin.Context) {
 
@@ -56,8 +103,12 @@ func apiUpdatePlugin(context *gin.Context) {
 		return
 	}
 
-	// 上传文件到指定的路径
-	//context.SaveUploadedFile(file, "/opt/ibox/")
+	unZip(fileName,fileDir)
+	err = os.Remove(fileName)
+	if err != nil{
+		log.Printf("removeFile err,%s\n",fileName)
+	}
+
 
 	aParam.Code = "0"
 	aParam.Message = "save sucess"
