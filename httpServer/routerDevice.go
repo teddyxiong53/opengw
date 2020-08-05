@@ -704,15 +704,11 @@ func apiGetTemplate(context *gin.Context) {
 		Data    []device.DeviceNodeTypeTemplate
 	}{}
 
-	if len(device.DeviceNodeTypeMap.DeviceNodeType) > 0 {
-		aParam.Code = "0"
-		aParam.Message = ""
-		aParam.Data = device.DeviceNodeTypeMap.DeviceNodeType
-	} else {
-		aParam.Code = "1"
-		aParam.Message = "nodeTypeCnt is 0"
-		aParam.Data = device.DeviceNodeTypeMap.DeviceNodeType
-	}
+	//device.ReadDeviceNodeTypeMapFromJson()
+
+	aParam.Code = "0"
+	aParam.Message = ""
+	aParam.Data = device.DeviceNodeTypeMap.DeviceNodeType
 
 	sJson, _ := json.Marshal(aParam)
 
