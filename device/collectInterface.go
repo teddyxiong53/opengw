@@ -254,13 +254,15 @@ func (d *CollectInterfaceTemplate) ModifyCollectInterface(pollPeriod, offlinePer
 func (d *CollectInterfaceTemplate) NewDeviceNode(dName string,dType string, dAddr string) {
 
 	node := &DeviceNodeTemplate{}
-	node.Name = dName
-	node.Type = dType
-	node.Addr = dAddr
 	node.Index = len(d.DeviceNodeMap)
+	node.Name = dName
+	node.Addr = dAddr
+	node.Type = dType
+	node.LastCommRTC = "1970-01-01 00:00:00"
 	node.CommTotalCnt = 0
 	node.CommSuccessCnt = 0
-	node.CommStatus = "onLine"
+	node.CurCommFailCnt = 0
+	node.CommStatus = "offLine"
 	node.VariableMap = make([]api.VariableTemplate, 0)
 	variables := node.NewVariables()
 	node.VariableMap = append(node.VariableMap, variables...)
@@ -271,18 +273,19 @@ func (d *CollectInterfaceTemplate) NewDeviceNode(dName string,dType string, dAdd
 func (d *CollectInterfaceTemplate) AddDeviceNode(dName string,dType string, dAddr string) (bool, string) {
 
 	node := &DeviceNodeTemplate{}
-	node.Name = dName
-	node.Type = dType
-	node.Addr = dAddr
 	node.Index = len(d.DeviceNodeMap)
+	node.Name = dName
+	node.Addr = dAddr
+	node.Type = dType
+	node.LastCommRTC = "1970-01-01 00:00:00"
 	node.CommTotalCnt = 0
 	node.CommSuccessCnt = 0
-	node.CommStatus = "onLine"
+	node.CurCommFailCnt = 0
+	node.CommStatus = "offLine"
 	node.VariableMap = make([]api.VariableTemplate, 0)
-	variables := node.NewVariables()
-	node.VariableMap = append(node.VariableMap, variables...)
 
 	d.DeviceNodeMap = append(d.DeviceNodeMap, node)
+
 	d.DeviceNodeCnt++
 
 	return true, "add success"

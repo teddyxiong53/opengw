@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/binary"
+	"fmt"
 	"goAdapter/api"
 	"log"
 	"time"
@@ -66,6 +67,10 @@ const (
 	CmdAck_WriteChanAndPanID        =0xE0
 )
 
+const (
+	TotalStep = 2
+)
+
 func AddVariable(vindex int,vname string,vlable string,vtype string) api.VariableTemplate{
 
 	variable := api.VariableTemplate{}
@@ -84,7 +89,7 @@ func NewVariables() []api.VariableTemplate{
 	VariableMap = append(VariableMap, AddVariable(0,"Chan","信道","string"))
 	VariableMap = append(VariableMap, AddVariable(1,"PanID","系统ID","string"))
 	VariableMap = append(VariableMap, AddVariable(2,"SoftVer","软件版本","string"))
-	VariableMap = append(VariableMap, AddVariable(4,"RTC","时钟","string"))
+	VariableMap = append(VariableMap, AddVariable(3,"RTC","时钟","string"))
 
 	return VariableMap
 }
@@ -102,22 +107,35 @@ func TD200GetCRC(buf []byte,bufLen int) byte{
 }
 
 /**
-生成读变量的数据包
+	生成读变量的数据包
 */
-func GenerateGetRealVariables(sAddr string) []byte{
+func GenerateGetRealVariables(sAddr string,step int) ([]byte,bool){
 
 	requestAdu := make([]byte,0)
 
-	requestAdu = append(requestAdu,0xFE)
-	requestAdu = append(requestAdu,0xA5)
-	requestAdu = append(requestAdu,TYPE_CMD)
-	requestAdu = append(requestAdu,0x01)
-	requestAdu = append(requestAdu,CmdRequest_ReadChanAndPanID)
-	crc := TD200GetCRC(requestAdu[2:],3)
-	requestAdu = append(requestAdu,crc)
+	if step == TotalStep{
+		return requestAdu,false
+	}
 
+	if step == 0{
+		requestAdu = append(requestAdu,0xFE)
+		requestAdu = append(requestAdu,0xA5)
+		requestAdu = append(requestAdu,TYPE_CMD)
+		requestAdu = append(requestAdu,0x01)
+		requestAdu = append(requestAdu,CmdRequest_ReadChanAndPanID)
+		crc := TD200GetCRC(requestAdu[2:],3)
+		requestAdu = append(requestAdu,crc)
+	}else if step == 1{
+		requestAdu = append(requestAdu,0xFE)
+		requestAdu = append(requestAdu,0xA5)
+		requestAdu = append(requestAdu,TYPE_CMD)
+		requestAdu = append(requestAdu,0x01)
+		requestAdu = append(requestAdu,CmdRequest_ReadRTC)
+		crc := TD200GetCRC(requestAdu[2:],3)
+		requestAdu = append(requestAdu,crc)
+	}
 
-	return requestAdu
+	return requestAdu,true
 }
 
 func AnalysisRx(sAddr string,variables []api.VariableTemplate,rxBuf []byte,rxBufCnt int) chan bool{
@@ -162,20 +180,28 @@ func AnalysisRx(sAddr string,variables []api.VariableTemplate,rxBuf []byte,rxBuf
 			if frameType != TYPE_CMD{
 				return status
 			}
-			if framePayload[0] != CmdAck_ReadChanAndPanID{
-				return status
+			if framePayload[0] == CmdAck_ReadChanAndPanID{
+				timeNowStr := time.Now().Format("2006-01-02 15:04:05")
+
+				variables[0].TimeStamp = timeNowStr
+				variables[0].Value = framePayload[1]
+
+				variables[1].TimeStamp = timeNowStr
+				variables[1].Value = binary.BigEndian.Uint16(framePayload[2:])
+			}else if framePayload[0] == CmdAck_ReadRTC {
+
+				timeNowStr := time.Now().Format("2006-01-02 15:04:05")
+
+				variables[3].TimeStamp = timeNowStr
+				variables[3].Value = fmt.Sprintf("20%d-%02d-%02d %02d:%02d:%02d",framePayload[1],
+					framePayload[2],
+					framePayload[3],
+					framePayload[4],
+					framePayload[5],
+					framePayload[6])
 			}
 
-			timeNowStr := time.Now().Format("2006-01-02 15:04:05")
-
-			variables[0].TimeStamp = timeNowStr
-			variables[0].Value = framePayload[1]
-
-			variables[1].TimeStamp = timeNowStr
-			variables[1].Value = binary.BigEndian.Uint16(framePayload[2:])
-
 			status<-true
-
 			return status
 		}else{
 			break
