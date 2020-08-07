@@ -1,1 +1,1 @@
-{"CollectInterfaceParam":[{"CollInterfaceName":"1","CommInterfaceName":"com1","PollPeriod":60,"OfflinePeriod":3,"DeviceNodeCnt":2}],"DeviceNodeNameMap":["1","2"],"DeviceNodeAddrMap":["1","2"],"DeviceNodeTypeMap":["wdt200","wdt200"]}
+{"CollectInterfaceParam":[{"CollInterfaceName":"1","CommInterfaceName":"com1","PollPeriod":60,"OfflinePeriod":3,"DeviceNodeCnt":2}],"DeviceNodeNameMap":["1","2"],"DeviceNodeAddrMap":["1","2"],"DeviceNodeTypeMap":["td200","wdt200"]}

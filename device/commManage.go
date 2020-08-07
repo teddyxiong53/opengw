@@ -152,7 +152,7 @@ func (c *CommunicationManageTemplate)CommunicationManageDel() {
 										rxBufCnt := 0
 										rxTotalBufCnt := 0
 										//timeOut,_ := strconv.Atoi(setting.SerialInterface.SerialParam[cmd.InterfaceID].Timeout)
-										timer := time.NewTimer(time.Duration(100) * time.Millisecond)
+										timer := time.NewTimer(time.Duration(1000) * time.Millisecond)
 										for {
 											select {
 											//是否正确收到数据包
@@ -189,7 +189,7 @@ func (c *CommunicationManageTemplate)CommunicationManageDel() {
 														rxTotalBuf = append(rxTotalBuf, rxBuf[:rxBufCnt]...)
 														//清除本地接收数据
 														rxBufCnt = 0
-														log.Printf("rxbuf %+v\n", rxTotalBuf)
+														log.Printf("rxbuf %X\n", rxTotalBuf)
 													}
 												}
 											}
