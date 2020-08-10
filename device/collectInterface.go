@@ -1,8 +1,8 @@
 package device
 
 import (
+	api "deviceAPI"
 	"encoding/json"
-	"goAdapter/api"
 	"log"
 	"os"
 	"path/filepath"

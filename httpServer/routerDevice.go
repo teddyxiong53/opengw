@@ -1,10 +1,10 @@
 package httpServer
 
 import (
+	api "deviceAPI"
 	"encoding/json"
 	"fmt"
 	"github.com/gin-gonic/gin"
-	"goAdapter/api"
 	"goAdapter/device"
 	"log"
 	"net/http"

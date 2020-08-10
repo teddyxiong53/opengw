@@ -1,7 +1,7 @@
 package device
 
 import (
-	"goAdapter/api"
+	api "deviceAPI"
 )
 
 var MaxDeviceNodeCnt int = 50
