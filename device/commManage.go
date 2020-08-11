@@ -140,10 +140,10 @@ func (c *CommunicationManageTemplate)CommunicationManageDel() {
 										for{
 											//--------------组包---------------------------
 											txBuf := make([]byte,0)
-											log.Printf("step %d\n",step)
+											//log.Printf("step %d\n",step)
 											buf,ok := v.GenerateGetRealVariables(v.Addr,step)
 											if ok == false{
-												log.Printf("getVariables false\n")
+												//log.Printf("getVariables false\n")
 												goto LoopCommonStep
 											}
 											step++

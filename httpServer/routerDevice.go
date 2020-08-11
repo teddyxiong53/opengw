@@ -100,6 +100,8 @@ func apiModifyInterface(context *gin.Context) {
 			v.PollPeriod = interfaceInfo.PollPeriod
 			v.OfflinePeriod = interfaceInfo.OfflinePeriod
 
+			device.WriteCollectInterfaceManageToJson()
+
 			aParam.Code = "0"
 			aParam.Data = ""
 
