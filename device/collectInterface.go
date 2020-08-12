@@ -283,6 +283,8 @@ func (d *CollectInterfaceTemplate) AddDeviceNode(dName string,dType string, dAdd
 	node.CurCommFailCnt = 0
 	node.CommStatus = "offLine"
 	node.VariableMap = make([]api.VariableTemplate, 0)
+	variables := node.NewVariables()
+	node.VariableMap = append(node.VariableMap, variables...)
 
 	d.DeviceNodeMap = append(d.DeviceNodeMap, node)
 
