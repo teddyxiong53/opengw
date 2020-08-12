@@ -9,14 +9,24 @@ import (
 
 func apiGetSerial(context *gin.Context) {
 
+	type SerialPortNameTemplate struct{
+		Name string			`json:"Name"`
+	}
+
 	aParam := struct {
 		Code    string   							`json:"Code"`
 		Message string   							`json:"Message"`
-		Data    []setting.SerialPortNameTemplate 	`json:"Data"`
+		Data    []SerialPortNameTemplate 			`json:"Data"`
 	}{
 		Code:    "0",
 		Message: "",
-		Data:    setting.SerialPortNameTemplateMap[:],
+		Data:    make([]SerialPortNameTemplate,0),
+	}
+
+	SerialPortName := SerialPortNameTemplate{}
+	for _,v := range setting.SerialPortNameTemplateMap.Name{
+		SerialPortName.Name = v
+		aParam.Data = append(aParam.Data,SerialPortName)
 	}
 
 	sJson, _ := json.Marshal(aParam)
