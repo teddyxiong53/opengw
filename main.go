@@ -1,7 +1,6 @@
 package main
 
 import (
-	"goAdapter/config"
 	"goAdapter/device"
 	"goAdapter/httpServer"
 	"goAdapter/setting"
@@ -30,7 +29,7 @@ func main() {
 	setting.DevicePacketLossDataStream = setting.NewDataStreamTemplate("通信丢包率")
 
 	/**************获取配置文件***********************/
-	config.GetConf()
+	setting.GetConf()
 
 	/**************网口初始化***********************/
 	setting.NetworkParaRead()
@@ -79,7 +78,7 @@ func main() {
 	/**************httpserver初始化****************/
 	// 默认启动方式，包含 Logger、Recovery 中间件
 	serverWeb := &http.Server{
-		Addr:         config.HttpPort,
+		Addr:         setting.HttpPort,
 		Handler:      httpServer.RouterWeb(),
 		ReadTimeout:  5 * time.Second,
 		WriteTimeout: 10 * time.Second,

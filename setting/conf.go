@@ -1,4 +1,4 @@
-package config
+package setting
 
 import (
 	"gopkg.in/ini.v1"
@@ -26,6 +26,17 @@ func GetConf() {
 	iniFile, err := ini.Load(path)
 	if err != nil{
 		log.Println("Load config.ini err,",err)
+
+		cfg := ini.Empty()
+
+		AppMode = "debug"
+		HttpPort = ":8080"
+		cfg.Section("server").Key("AppMode").SetValue("debug")
+		cfg.Section("server").Key("HttpPort").SetValue(":8080")
+
+
+		cfg.SaveTo(path)
+		return
 	}
 	LoadServer(iniFile)
 }
