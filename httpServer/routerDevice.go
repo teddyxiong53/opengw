@@ -565,13 +565,22 @@ func apiDeleteNode(context *gin.Context) {
 */
 func apiGetNodeVariableFromCache(context *gin.Context) {
 
+	type VariableTemplate struct{
+		Index   	int      										`json:"index"`			//变量偏移量
+		Name 		string											`json:"name"`			//变量名
+		Lable 		string											`json:"lable"`			//变量标签
+		Value 		interface{}										`json:"value"`			//变量值
+		TimeStamp   string											`json:"timestamp"`		//变量时间戳
+		Type    	string                  						`json:"type"`			//变量类型
+	}
+
 	sName := context.Query("CollInterfaceName")
 	sAddr := context.Query("Addr")
 
 	aParam := &struct {
 		Code    string
 		Message string
-		Data    []api.VariableTemplate
+		Data    []VariableTemplate
 	}{}
 
 	for _, v := range device.CollectInterfaceMap {
@@ -581,7 +590,26 @@ func apiGetNodeVariableFromCache(context *gin.Context) {
 
 					aParam.Code = "0"
 					aParam.Message = ""
-					aParam.Data = v.VariableMap
+					aParam.Data = make([]VariableTemplate,0)
+					index := 0
+					variable := VariableTemplate{}
+					for _,v := range v.VariableMap{
+						variable.Index = v.Index
+						variable.Name = v.Name
+						variable.Lable = v.Lable
+						//取出切片中最后一个值
+						if len(v.Value) > 0{
+							index = len(v.Value)-1
+							variable.Value = v.Value[index].Value
+							variable.TimeStamp = v.Value[index].TimeStamp
+						}else{
+							variable.Value = ""
+							variable.TimeStamp = ""
+						}
+						variable.Type = v.Type
+						aParam.Data = append(aParam.Data,variable)
+					}
+
 					sJson, _ := json.Marshal(aParam)
 					context.String(http.StatusOK, string(sJson))
 					return
@@ -595,6 +623,47 @@ func apiGetNodeVariableFromCache(context *gin.Context) {
 	sJson, _ := json.Marshal(aParam)
 	context.String(http.StatusOK, string(sJson))
 }
+
+
+func apiGetNodeHistoryVariableFromCache(context *gin.Context) {
+
+	sName := context.Query("CollInterfaceName")
+	sAddr := context.Query("Addr")
+	sVariable := context.Query("VariableName")
+
+	aParam := &struct {
+		Code    string
+		Message string
+		Data    []api.ValueTemplate
+	}{}
+
+	for _, v := range device.CollectInterfaceMap {
+		if v.CollInterfaceName == sName {
+			for _, v := range v.DeviceNodeMap {
+				if v.Addr == sAddr {
+
+					aParam.Code = "0"
+					aParam.Message = ""
+					for _,v := range v.VariableMap{
+						if v.Name == sVariable{
+							aParam.Data = v.Value
+						}
+					}
+
+					sJson, _ := json.Marshal(aParam)
+					context.String(http.StatusOK, string(sJson))
+					return
+				}
+			}
+		}
+	}
+
+	aParam.Code = "1"
+	aParam.Message = "node is noexist"
+	sJson, _ := json.Marshal(aParam)
+	context.String(http.StatusOK, string(sJson))
+}
+
 /**
   从设备中获取设备变量
 */

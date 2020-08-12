@@ -112,6 +112,9 @@ func RouterWeb() http.Handler {
 			//查看节点变量
 			deviceRouter.GET("/nodeVariable", apiGetNodeVariableFromCache)
 
+			//查看节点历史变量
+			deviceRouter.GET("/nodeHistoryVariable", apiGetNodeHistoryVariableFromCache)
+
 			//删除节点
 			deviceRouter.DELETE("/node", apiDeleteNode)
 
