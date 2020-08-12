@@ -49,81 +49,99 @@ func (c *CommunicationManageTemplate)CommunicationManageDel() {
 			{
 				log.Println("emergency chan")
 				log.Printf("funName %s\n", cmd.FunName)
-				/*
-				var status bool = false
+				status := false
 				for _, c := range CollectInterfaceMap {
 					if c.CollInterfaceName == cmd.CollInterfaceName {
 						for k,v := range c.DeviceNodeMap{
 							if v.Addr == cmd.DeviceAddr {
 								log.Printf("index is %d\n", k)
-								//--------------组包---------------------------
-								txBuf := v.GenerateGetRealVariables(v.Addr)
-								log.Printf("tx buf is %+v\n", txBuf)
-								//---------------发送-------------------------
-								for _,v := range CommunicationSerialMap{
-									if v.Name == c.CommInterfaceName{
-										v.WriteData(txBuf)
+								step := 0
+								for{
+									//--------------组包---------------------------
+									txBuf,ok := v.GenerateGetRealVariables(v.Addr,step)
+									if ok == false{
+										//log.Printf("getVariables false\n")
+										goto LoopEmergency
 									}
-								}
-								v.CommTotalCnt++
-								//---------------等待接收----------------------
-								//阻塞读
-								rxBuf := make([]byte, 256)
-								rxTotalBuf := make([]byte, 0)
-								rxBufCnt := 0
-								rxTotalBufCnt := 0
-								//timeOut,_ := strconv.Atoi(setting.SerialInterface.SerialParam[cmd.InterfaceID].Timeout)
-								timer := time.NewTimer(time.Duration(100) * time.Millisecond)
-								for {
-									select {
-									//是否正确收到数据包
-									case <-v.AnalysisRx(v.Addr, v.VariableMap, rxTotalBuf, rxTotalBufCnt):
-										{
-											log.Println("rx ok")
-											//通信帧延时
-											//interval,_ := strconv.Atoi(setting.SerialInterface.SerialParam[cmd.InterfaceID].Interval)
-											//time.Sleep(time.Duration(interval)*time.Millisecond)
-											status = true
-											v.CommSuccessCnt++
-											goto LoopEmerg
+									step++
+									log.Printf("tx buf is %X\n", txBuf)
+									//---------------发送-------------------------
+									var timeout int
+									var interval int
+									for _,v := range CommunicationSerialMap{
+										if v.Name == c.CommInterfaceName{
+											v.WriteData(txBuf)
+											timeout,_ = strconv.Atoi(v.Param.Timeout)
+											interval,_ = strconv.Atoi(v.Param.Interval)
 										}
-									//是否接收超时
-									case <-timer.C:
-										{
-											log.Println("rx timeout")
-											//通信帧延时
-											//interval,_ := strconv.Atoi(setting.SerialInterface.SerialParam[cmd.InterfaceID].Interval)
-											//time.Sleep(time.Duration(interval)*time.Millisecond)
-											status = false
-											goto LoopEmerg
-										}
-									//继续接收数据
-									default:
-										{
-											//rxBufCnt,_ = setting.SerialInterface.SerialPort[cmd.InterfaceID].Read(rxBuf)
-											for _,v := range CommunicationSerialMap{
-												if v.Name == c.CommInterfaceName{
-													rxBufCnt = v.ReadData(rxBuf)
+									}
+									v.CommTotalCnt++
+									//---------------等待接收----------------------
+									//阻塞读
+									rxBuf := make([]byte, 256)
+									rxTotalBuf := make([]byte, 0)
+									rxBufCnt := 0
+									rxTotalBufCnt := 0
+									timerOut := time.NewTimer(time.Duration(timeout) * time.Millisecond)
+									for {
+										select {
+										//是否正确收到数据包
+										case <-v.AnalysisRx(v.Addr, v.VariableMap, rxTotalBuf, rxTotalBufCnt):
+											{
+												log.Println("rx ok")
+												log.Printf("rxbuf %X\n", rxTotalBuf)
+												//通信帧延时
+												time.Sleep(time.Duration(interval)*time.Millisecond)
+												v.CommSuccessCnt++
+												v.CurCommFailCnt = 0
+												v.CommStatus = "onLine"
+												v.LastCommRTC = time.Now().Format("2006-01-02 15:04:05")
+												rxTotalBufCnt = 0
+												rxTotalBuf = rxTotalBuf[0:0]
+												goto LoopEmergencyStep
+											}
+										//是否接收超时
+										case <-timerOut.C:
+											{
+												log.Println("rx timeout")
+												//通信帧延时
+												time.Sleep(time.Duration(interval)*time.Millisecond)
+												v.CurCommFailCnt++
+												if v.CurCommFailCnt >= c.OfflinePeriod{
+													v.CurCommFailCnt = 0
+													v.CommStatus = "offLine"
+												}
+												rxTotalBufCnt = 0
+												rxTotalBuf = rxTotalBuf[0:0]
+												goto LoopEmergencyStep
+											}
+										//继续接收数据
+										default:
+											{
+												//rxBufCnt,_ = setting.SerialInterface.SerialPort[cmd.InterfaceID].Read(rxBuf)
+												for _,v := range CommunicationSerialMap{
+													if v.Name == c.CommInterfaceName{
+														rxBufCnt = v.ReadData(rxBuf)
+													}
+												}
+												if rxBufCnt > 0 {
+													rxTotalBufCnt += rxBufCnt
+													//追加接收的数据到接收缓冲区
+													rxTotalBuf = append(rxTotalBuf, rxBuf[:rxBufCnt]...)
+													//清除本地接收数据
+													rxBufCnt = 0
 												}
 											}
-											if rxBufCnt > 0 {
-												rxTotalBufCnt += rxBufCnt
-												//追加接收的数据到接收缓冲区
-												rxTotalBuf = append(rxTotalBuf, rxBuf[:rxBufCnt]...)
-												//清除本地接收数据
-												rxBufCnt = 0
-												log.Printf("rxbuf %+v\n", rxTotalBuf)
-											}
 										}
 									}
+								LoopEmergencyStep:
 								}
-							LoopEmerg:
+							LoopEmergency:
 							}
 						}
 					}
 				}
 				c.EmergencyAckChan <- status
-				*/
 			}
 		default:
 			{
@@ -131,27 +149,25 @@ func (c *CommunicationManageTemplate)CommunicationManageDel() {
 				case cmd := <-c.CommonRequestChan:
 					{
 						log.Println("common chan")
-						log.Printf("funName %s\n", cmd.FunName)
 						for _, c := range CollectInterfaceMap {
 							if c.CollInterfaceName == cmd.CollInterfaceName {
-								for k,v := range c.DeviceNodeMap{
+								for _,v := range c.DeviceNodeMap{
 									if v.Addr == cmd.DeviceAddr {
-										log.Printf("index is %d\n", k)
+										log.Printf("addr is %+v\n", v.Addr)
 										step := 0
 										for{
 											//--------------组包---------------------------
-											txBuf := make([]byte,0)
-											buf,ok := v.GenerateGetRealVariables(v.Addr,step)
+											txBuf,ok := v.GenerateGetRealVariables(v.Addr,step)
 											if ok == false{
 												//log.Printf("getVariables false\n")
 												goto LoopCommon
 											}
 											step++
-											txBuf = append(txBuf,buf...)
 											log.Printf("tx buf is %X\n", txBuf)
 											//---------------发送-------------------------
 											var timeout int
 											var interval int
+											//判断是否是串口采集
 											for _,v := range CommunicationSerialMap{
 												if v.Name == c.CommInterfaceName{
 													v.WriteData(txBuf)
@@ -166,7 +182,7 @@ func (c *CommunicationManageTemplate)CommunicationManageDel() {
 											rxTotalBuf := make([]byte, 0)
 											rxBufCnt := 0
 											rxTotalBufCnt := 0
-											timer := time.NewTimer(time.Duration(timeout) * time.Millisecond)
+											timerOut := time.NewTimer(time.Duration(timeout) * time.Millisecond)
 											for {
 												select {
 												//是否正确收到数据包
@@ -177,6 +193,7 @@ func (c *CommunicationManageTemplate)CommunicationManageDel() {
 														//通信帧延时
 														time.Sleep(time.Duration(interval)*time.Millisecond)
 														v.CommSuccessCnt++
+														v.CurCommFailCnt = 0
 														v.CommStatus = "onLine"
 														v.LastCommRTC = time.Now().Format("2006-01-02 15:04:05")
 														rxTotalBufCnt = 0
@@ -184,7 +201,7 @@ func (c *CommunicationManageTemplate)CommunicationManageDel() {
 														goto LoopCommonStep
 													}
 												//是否接收超时
-												case <-timer.C:
+												case <-timerOut.C:
 													{
 														log.Println("rx timeout")
 														//通信帧延时
@@ -201,7 +218,6 @@ func (c *CommunicationManageTemplate)CommunicationManageDel() {
 												//继续接收数据
 												default:
 													{
-														//rxBufCnt,_ = setting.SerialInterface.SerialPort[cmd.InterfaceID].Read(rxBuf)
 														for _,v := range CommunicationSerialMap{
 															if v.Name == c.CommInterfaceName{
 																rxBufCnt = v.ReadData(rxBuf)
@@ -211,9 +227,8 @@ func (c *CommunicationManageTemplate)CommunicationManageDel() {
 															rxTotalBufCnt += rxBufCnt
 															//追加接收的数据到接收缓冲区
 															rxTotalBuf = append(rxTotalBuf, rxBuf[:rxBufCnt]...)
-															//清除本地接收数据
+															//清除本次接收数据
 															rxBufCnt = 0
-															//log.Printf("rxbuf %X\n", rxTotalBuf)
 														}
 													}
 												}
@@ -237,11 +252,11 @@ func (c *CommunicationManageTemplate)CommunicationManageDel() {
 func (c *CommunicationManageTemplate)CommunicationManagePoll() {
 
 	cmd := CommunicationCmdTemplate{}
-
+	//对采集接口进行遍历
 	for _, coll := range CollectInterfaceMap {
 		if coll.CollInterfaceName == c.CollInterfaceName {
+			//对采集接口下设备进行遍历
 			for _,v := range coll.DeviceNodeMap{
-
 				cmd.CollInterfaceName = coll.CollInterfaceName
 				cmd.DeviceAddr = v.Addr
 				cmd.FunName = "GetDeviceRealVariables"

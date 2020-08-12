@@ -915,7 +915,6 @@ func apiAddCommSerialInterface(context *gin.Context) {
 
 	bodyBuf := make([]byte, 1024)
 	n, _ := context.Request.Body.Read(bodyBuf)
-	//fmt.Println(string(bodyBuf[:n]))
 
 	interfaceInfo := struct {
 		Name  string                      `json:"Name"` //接口名称

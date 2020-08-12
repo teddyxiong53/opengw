@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"goAdapter/device"
 	"goAdapter/httpServer"
 	"goAdapter/setting"
@@ -18,15 +19,18 @@ var (
 
 func main() {
 
+	//log输出行号和ms
+	log.SetFlags(log.Lshortfile | log.Ldate | log.Lmicroseconds)
+
 	//记录起始时间
 	setting.GetTimeStart()
 
 	log.Println("goteway V0.0.1")
 
-	setting.MemoryDataStream = setting.NewDataStreamTemplate("内存使用率")
-	setting.DiskDataStream = setting.NewDataStreamTemplate("硬盘使用率")
-	setting.DeviceOnlineDataStream = setting.NewDataStreamTemplate("设备在线率")
-	setting.DevicePacketLossDataStream = setting.NewDataStreamTemplate("通信丢包率")
+	setting.MemoryDataStream 			= setting.NewDataStreamTemplate("内存使用率")
+	setting.DiskDataStream 				= setting.NewDataStreamTemplate("硬盘使用率")
+	setting.DeviceOnlineDataStream 		= setting.NewDataStreamTemplate("设备在线率")
+	setting.DevicePacketLossDataStream 	= setting.NewDataStreamTemplate("通信丢包率")
 
 	/**************获取配置文件***********************/
 	setting.GetConf()
@@ -51,23 +55,19 @@ func main() {
 	// 定时5秒，每5秒执行print5
 	cronGetNetStatus.AddFunc("*/5 * * * * *", setting.GetNetworkStatus)
 
-	// 定时60秒
+	// 定时
 	for _,v := range device.CollectInterfaceMap{
 		CommunicationManage := device.NewCommunicationManageTemplate()
 		CommunicationManage.CollInterfaceName = v.CollInterfaceName
-		cronGetNetStatus.AddFunc("*/10 * * * * *", CommunicationManage.CommunicationManagePoll)
+		str := fmt.Sprintf("/%d */%d * * * ?",v.PollPeriod%60,v.PollPeriod/60)
+		log.Printf("str %+v\n",str)
+
+		cronGetNetStatus.AddFunc("* */1 * * * *", CommunicationManage.CommunicationManagePoll)
+
 		go CommunicationManage.CommunicationManageDel()
 	}
 
-	// 定时60秒
-	//cronGetNetStatus.AddFunc("*/10 * * * * *", CommunicationManageAddEmergencyTest)
-
-	// 定时60s
-	cronGetNetStatus.AddFunc("*/60 * * * * *", func() {
-		//threadModuleParam.threadModuleReadNetStatus()
-	})
-
-	// 定时60秒
+	// 定时60秒,定时获取系统信息
 	cronGetNetStatus.AddFunc("*/60 * * * * *", setting.CollectSystemParam)
 
 	cronGetNetStatus.Start()
