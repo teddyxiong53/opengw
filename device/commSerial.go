@@ -84,6 +84,11 @@ func (c *CommunicationSerialTemplate)WriteData(data []byte) int{
 	log.Printf("len is %d\n",len(data))
 	//log.Printf("c %+v\n",c)
 
+	if c.Port == nil{
+		log.Println("serial writeData err")
+		return 0
+	}
+
 	cnt,err := c.Port.Write(data)
 	if err != nil{
 		log.Println(err)
@@ -93,6 +98,10 @@ func (c *CommunicationSerialTemplate)WriteData(data []byte) int{
 }
 
 func (c *CommunicationSerialTemplate)ReadData(data []byte) int{
+
+	if c.Port == nil{
+		return 0
+	}
 
 	cnt,_ := c.Port.Read(data)
 

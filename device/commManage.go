@@ -159,7 +159,7 @@ func (c *CommunicationManageTemplate)CommunicationManageDel() {
 											//--------------组包---------------------------
 											txBuf,ok := v.GenerateGetRealVariables(v.Addr,step)
 											if ok == false{
-												//log.Printf("getVariables false\n")
+												log.Printf("getVariables finish\n")
 												goto LoopCommon
 											}
 											step++
@@ -236,6 +236,12 @@ func (c *CommunicationManageTemplate)CommunicationManageDel() {
 											LoopCommonStep:
 										}
 										LoopCommon:
+									}
+								}
+								c.DeviceNodeOnlineCnt = 0
+								for _,v := range c.DeviceNodeMap{
+									if v.CommStatus == "onLine"{
+										c.DeviceNodeOnlineCnt++
 									}
 								}
 							}
