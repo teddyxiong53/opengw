@@ -62,7 +62,7 @@ func main() {
 		str := fmt.Sprintf("/%d */%d * * * ?",v.PollPeriod%60,v.PollPeriod/60)
 		log.Printf("str %+v\n",str)
 
-		cronGetNetStatus.AddFunc("* */1 * * * *", CommunicationManage.CommunicationManagePoll)
+		cronGetNetStatus.AddFunc("*/60 * * * * *", CommunicationManage.CommunicationManagePoll)
 
 		go CommunicationManage.CommunicationManageDel()
 	}

@@ -570,6 +570,7 @@ func apiGetNodeVariableFromCache(context *gin.Context) {
 		Name 		string											`json:"name"`			//变量名
 		Lable 		string											`json:"lable"`			//变量标签
 		Value 		interface{}										`json:"value"`			//变量值
+		Explain     interface{}										`json:"explain"`
 		TimeStamp   string											`json:"timestamp"`		//变量时间戳
 		Type    	string                  						`json:"type"`			//变量类型
 	}
@@ -601,9 +602,11 @@ func apiGetNodeVariableFromCache(context *gin.Context) {
 						if len(v.Value) > 0{
 							index = len(v.Value)-1
 							variable.Value = v.Value[index].Value
+							variable.Explain = v.Value[index].Explain
 							variable.TimeStamp = v.Value[index].TimeStamp
 						}else{
 							variable.Value = ""
+							variable.Explain = ""
 							variable.TimeStamp = ""
 						}
 						variable.Type = v.Type
