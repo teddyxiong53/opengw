@@ -51,27 +51,24 @@ func WriteCollectInterfaceManageToJson() {
 	//采集接口配置参数
 	type CollectInterfaceParamTemplate struct {
 		CollInterfaceName   string          `json:"CollInterfaceName"`   	//采集接口
-		CommInterfaceName string			`json:"CommInterfaceName"`   	//通信接口
-		PollPeriod        int      			`json:"PollPeriod"`    			//采集周期
-		OfflinePeriod     int      			`json:"OfflinePeriod"` 			//离线超时周期
-		DeviceNodeCnt     int      			`json:"DeviceNodeCnt"` 			//设备数量
+		CommInterfaceName   string			`json:"CommInterfaceName"`   	//通信接口
+		PollPeriod          int      		`json:"PollPeriod"`    			//采集周期
+		OfflinePeriod       int      		`json:"OfflinePeriod"` 			//离线超时周期
+		DeviceNodeCnt       int      		`json:"DeviceNodeCnt"` 			//设备数量
+		DeviceNodeNameMap   []string 		`json:"DeviceNodeNameMap"`      //节点名称
+		DeviceNodeAddrMap 	[]string		`json:"DeviceNodeAddrMap"`      //节点地址
+		DeviceNodeTypeMap 	[]string		`json:"DeviceNodeTypeMap"`      //节点类型
+
 	}
 
 	//定义采集接口参数结构体
 	CollectInterfaceParamMap := struct {
 		CollectInterfaceParam 	[]CollectInterfaceParamTemplate
-		DeviceNodeNameMap       []string 			//节点名称
-		DeviceNodeAddrMap 		[]string
-		DeviceNodeTypeMap 		[]string
 	}{
 		CollectInterfaceParam: make([]CollectInterfaceParamTemplate, 0),
-		DeviceNodeNameMap:make([]string,0),
-		DeviceNodeAddrMap:make([]string,0),
-		DeviceNodeTypeMap:make([]string,0),
 	}
 
 	for _, v := range CollectInterfaceMap {
-
 		ParamTemplate := CollectInterfaceParamTemplate{
 			CollInterfaceName : v.CollInterfaceName,
 			CommInterfaceName : v.CommInterfaceName,
@@ -79,15 +76,18 @@ func WriteCollectInterfaceManageToJson() {
 			OfflinePeriod : v.OfflinePeriod,
 			DeviceNodeCnt : v.DeviceNodeCnt,
 		}
-		CollectInterfaceParamMap.CollectInterfaceParam = append(CollectInterfaceParamMap.CollectInterfaceParam,
-			ParamTemplate)
 
+		ParamTemplate.DeviceNodeNameMap = make([]string,0)
+		ParamTemplate.DeviceNodeAddrMap = make([]string,0)
+		ParamTemplate.DeviceNodeTypeMap = make([]string,0)
 
 		for i := 0; i < v.DeviceNodeCnt; i++ {
-			CollectInterfaceParamMap.DeviceNodeNameMap = append(CollectInterfaceParamMap.DeviceNodeNameMap, v.DeviceNodeMap[i].Name)
-			CollectInterfaceParamMap.DeviceNodeAddrMap = append(CollectInterfaceParamMap.DeviceNodeAddrMap, v.DeviceNodeMap[i].Addr)
-			CollectInterfaceParamMap.DeviceNodeTypeMap = append(CollectInterfaceParamMap.DeviceNodeTypeMap, v.DeviceNodeMap[i].Type)
+			ParamTemplate.DeviceNodeNameMap = append(ParamTemplate.DeviceNodeNameMap, v.DeviceNodeMap[i].Name)
+			ParamTemplate.DeviceNodeAddrMap = append(ParamTemplate.DeviceNodeAddrMap, v.DeviceNodeMap[i].Addr)
+			ParamTemplate.DeviceNodeTypeMap = append(ParamTemplate.DeviceNodeTypeMap, v.DeviceNodeMap[i].Type)
 		}
+		CollectInterfaceParamMap.CollectInterfaceParam = append(CollectInterfaceParamMap.CollectInterfaceParam,
+			ParamTemplate)
 	}
 
 	sJson, _ := json.Marshal(CollectInterfaceParamMap)
@@ -127,19 +127,16 @@ func ReadCollectInterfaceManageFromJson() bool {
 			PollPeriod        int      			`json:"PollPeriod"`    			//采集周期
 			OfflinePeriod     int      			`json:"OfflinePeriod"` 			//离线超时周期
 			DeviceNodeCnt     int      			`json:"DeviceNodeCnt"` 			//设备数量
+			DeviceNodeNameMap   []string 		`json:"DeviceNodeNameMap"`      //节点名称
+			DeviceNodeAddrMap 	[]string		`json:"DeviceNodeAddrMap"`      //节点地址
+			DeviceNodeTypeMap 	[]string		`json:"DeviceNodeTypeMap"`      //节点类型
 		}
 
 		//定义采集接口参数结构体
 		CollectInterfaceParamMap := struct {
 			CollectInterfaceParam []CollectInterfaceParamTemplate
-			DeviceNodeNameMap []string 			//节点名称
-			DeviceNodeAddrMap []string 			//节点地址
-			DeviceNodeTypeMap []string 			//节点类型
 		}{
 			CollectInterfaceParam: make([]CollectInterfaceParamTemplate, 0),
-			DeviceNodeNameMap:make([]string,0),
-			DeviceNodeAddrMap:make([]string,0),
-			DeviceNodeTypeMap:make([]string,0),
 		}
 
 		err = json.Unmarshal(data[:dataCnt], &CollectInterfaceParamMap)
@@ -162,9 +159,9 @@ func ReadCollectInterfaceManageFromJson() bool {
 			//创建设备实例
 			for i := 0; i < v.DeviceNodeCnt; i++ {
 				CollectInterfaceMap[k].NewDeviceNode(
-					CollectInterfaceParamMap.DeviceNodeNameMap[i],
-					CollectInterfaceParamMap.DeviceNodeTypeMap[i],
-					CollectInterfaceParamMap.DeviceNodeAddrMap[i])
+					v.DeviceNodeNameMap[i],
+					v.DeviceNodeTypeMap[i],
+					v.DeviceNodeAddrMap[i])
 			}
 		}
 

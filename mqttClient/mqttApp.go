@@ -1,13 +1,24 @@
 package mqttClient
 
 import (
-	"bytes"
-	"encoding/json"
+	"fmt"
 	"github.com/eclipse/paho.mqtt.golang"
+	aiot "github.com/thinkgos/aliyun-iot"
+	"github.com/thinkgos/aliyun-iot/dm"
+	"github.com/thinkgos/aliyun-iot/infra"
+	"github.com/thinkgos/aliyun-iot/sign"
 	"log"
-	"os"
-	"time"
+	"math/rand"
 )
+
+const (
+	productKey    = "a1oSllgBCjt"
+	productSecret = ""
+	deviceName    = "1111"
+	deviceSecret  = "2d7d200249a49568cfbdace0900e6dcd"
+)
+
+var dmClient *aiot.MQTTClient
 
 type Properties struct{
 	Value interface{}           `json:value`
@@ -51,8 +62,53 @@ var messageSubHandler mqtt.MessageHandler = func(client mqtt.Client, msg mqtt.Me
 	log.Printf("Sub Client msg : %s \n", msg.Payload())
 }
 
-func MqttAppConnect(){
+func MqttAppConnect() {
 
+	//设备三元信息
+	metaInfo := &infra.MetaInfo{
+		ProductKey:    productKey,
+		ProductSecret: productSecret,
+		DeviceName:    deviceName,
+		DeviceSecret:  deviceSecret,
+	}
+	//设备域名信息
+	cloudRegionDomain := infra.CloudRegionDomain{
+		Region: infra.CloudRegionShangHai,
+	}
+
+	mqttSign := sign.NewMQTTSign()
+	mqttSign.SetSDKVersion(infra.IOTSDKVersion)
+	mqttSignInfo,err := mqttSign.Generate(metaInfo,cloudRegionDomain)
+	if err != nil {
+		panic(err)
+	}
+
+	clientOpts := mqtt.NewClientOptions()
+	clientOpts = clientOpts.AddBroker(fmt.Sprintf("%s:%d", mqttSignInfo.HostName, mqttSignInfo.Port))
+	clientOpts.SetClientID(mqttSignInfo.ClientID)
+	clientOpts.SetUsername(mqttSignInfo.UserName)
+	clientOpts.SetPassword(mqttSignInfo.Password)
+	clientOpts.SetCleanSession(true)
+	clientOpts.SetAutoReconnect(true)
+	clientOpts.SetOnConnectHandler(func(cli mqtt.Client) {
+		log.Println("mqtt client connection success")
+	})
+	clientOpts.SetConnectionLostHandler(func(cli mqtt.Client, err error) {
+		log.Println("mqtt client connection lost, ", err)
+	})
+
+	dmOpt := dm.NewConfig(productKey, deviceName, deviceSecret)
+	dmOpt = dmOpt.Valid()
+
+	dmClient = aiot.NewWithMQTT(dmOpt, mqtt.NewClient(clientOpts))
+	dmClient.LogMode(true)
+
+	dmClient.UnderlyingClient().Connect().Wait()
+	if err = dmClient.AlinkConnect(); err != nil {
+		panic(err)
+	}
+
+	/*
 	//mqtt.DEBUG = log.New(os.Stdout, "", 0)
 	mqtt.ERROR = log.New(os.Stdout, "", 0)
 
@@ -100,8 +156,13 @@ func MqttAppConnect(){
 
 	//
 	//c.Disconnect(250)
+
+
+	 */
+
 }
 
+/*
 func mqttAppPublish(){
 
 	var topic string = "$oc/devices/{" + "5ea67d5d58115909547f50e8_11111112" + "}/sys/properties/report"
@@ -127,5 +188,23 @@ func mqttAppPublish(){
 
 	token := mClient.Publish(topic, 0, false, string(sJson))
 	token.Wait()
+}
+
+ */
+
+func MqttAppPublish(){
+
+	publishParam := map[string]interface{}{
+		"Temp":         rand.Intn(200),
+		"Humi":         rand.Intn(100),
+	}
+
+	err := dmClient.AlinkReport(dm.MsgTypeEventPropertyPost,
+								dm.DevNodeLocal,
+								publishParam)
+
+	if err != nil {
+		log.Printf("error: %#v", err)
+	}
 }
 

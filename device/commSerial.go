@@ -81,7 +81,7 @@ func (c *CommunicationSerialTemplate)Close() bool{
 
 func (c *CommunicationSerialTemplate)WriteData(data []byte) int{
 
-	log.Printf("len is %d\n",len(data))
+	//log.Printf("len is %d\n",len(data))
 	//log.Printf("c %+v\n",c)
 
 	if c.Port == nil{

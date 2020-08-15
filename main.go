@@ -68,8 +68,12 @@ func main() {
 		go CommunicationManage.CommunicationManageDel()
 	}
 
+
 	// 定时60秒,定时获取系统信息
 	cronGetNetStatus.AddFunc("*/60 * * * * *", setting.CollectSystemParam)
+
+	// 定时60秒,mqtt发布消息
+	//cronGetNetStatus.AddFunc("*/30 * * * * *", mqttClient.MqttAppPublish)
 
 	cronGetNetStatus.Start()
 	defer cronGetNetStatus.Stop()
