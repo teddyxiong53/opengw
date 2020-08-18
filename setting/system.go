@@ -116,7 +116,11 @@ func GetDevicePacketLossState(){
 			deviceCommLossCnt += v.CommTotalCnt-v.CommSuccessCnt
 		}
 	}
-	SystemState.DevicePacketLoss = fmt.Sprintf("%2.1f",float32(deviceCommLossCnt*100.0/deviceCommTotalCnt))
+	if deviceCommLossCnt == 0{
+		SystemState.DevicePacketLoss = "0"
+	}else{
+		SystemState.DevicePacketLoss = fmt.Sprintf("%2.1f",float32(deviceCommLossCnt*100.0/deviceCommTotalCnt))
+	}
 }
 
 func GetTimeStart(){

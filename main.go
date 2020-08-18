@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"goAdapter/device"
 	"goAdapter/httpServer"
-	"goAdapter/mqttClient"
 	"goAdapter/setting"
 	"log"
 	"net/http"
@@ -79,7 +78,7 @@ func main() {
 	cronGetNetStatus.Start()
 	defer cronGetNetStatus.Stop()
 
-	mqttClient.MQTTClient_Init()
+	//mqttClient.MQTTClient_Init()
 
 	/**************httpserver初始化****************/
 	// 默认启动方式，包含 Logger、Recovery 中间件
