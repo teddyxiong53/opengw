@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/shirou/gopsutil/disk"
 	"github.com/shirou/gopsutil/mem"
+	"goAdapter/device"
 	"os/exec"
 	"time"
 )
@@ -46,7 +47,7 @@ var SystemState = SystemStateTemplate{
 	SoftVer			:"V0.0.1",
 	SystemRTC		:"2020-05-26 12:00:00",
 	RunTime			:"0",
-	DeviceOnline    :"100",
+	DeviceOnline    :"0",
 	DevicePacketLoss : "0",
 }
 
@@ -94,6 +95,30 @@ func GetDiskState(){
 	SystemState.DiskUse = fmt.Sprintf("%3.1f",v.UsedPercent)
 }
 
+func GetDeviceOnlineState(){
+
+	deviceTotalCnt := 0
+	deviceOnlineCnt := 0
+	for _,v := range device.CollectInterfaceMap{
+		deviceTotalCnt += v.DeviceNodeCnt
+		deviceOnlineCnt += v.DeviceNodeOnlineCnt
+	}
+	SystemState.DeviceOnline = fmt.Sprintf("%2.1f",float32(deviceOnlineCnt*100.0/deviceTotalCnt))
+}
+
+func GetDevicePacketLossState(){
+
+	deviceCommTotalCnt := 0
+	deviceCommLossCnt := 0
+	for _,v := range device.CollectInterfaceMap{
+		for _,v := range v.DeviceNodeMap{
+			deviceCommTotalCnt += v.CommTotalCnt
+			deviceCommLossCnt += v.CommTotalCnt-v.CommSuccessCnt
+		}
+	}
+	SystemState.DevicePacketLoss = fmt.Sprintf("%2.1f",float32(deviceCommLossCnt*100.0/deviceCommTotalCnt))
+}
+
 func GetTimeStart(){
 
 	timeStart = time.Now()
@@ -125,7 +150,7 @@ func NewDataStreamTemplate(legend string) *DataStreamTemplate{
 
 func (d *DataStreamTemplate)AddDataPoint(data DataPointTemplate){
 
-	if d.DataPointCnt < 300{
+	if d.DataPointCnt < 2880{
 		d.DataPoint = append(d.DataPoint,data)
 		d.DataPointCnt++
 	}else{
@@ -138,6 +163,8 @@ func CollectSystemParam(){
 
 	GetMemState()
 	GetRunTime()
+	GetDeviceOnlineState()
+	GetDevicePacketLossState()
 
 	point := DataPointTemplate{}
 
@@ -148,5 +175,13 @@ func CollectSystemParam(){
 	point.Value = SystemState.DiskUse
 	point.Time = SystemState.SystemRTC
 	DiskDataStream.AddDataPoint(point)
+
+	point.Value = SystemState.DeviceOnline
+	point.Time = SystemState.SystemRTC
+	DeviceOnlineDataStream.AddDataPoint(point)
+
+	point.Value = SystemState.DevicePacketLoss
+	point.Time = SystemState.SystemRTC
+	DevicePacketLossDataStream.AddDataPoint(point)
 }
 

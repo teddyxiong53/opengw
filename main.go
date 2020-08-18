@@ -60,10 +60,11 @@ func main() {
 	for _,v := range device.CollectInterfaceMap{
 		CommunicationManage := device.NewCommunicationManageTemplate()
 		CommunicationManage.CollInterfaceName = v.CollInterfaceName
-		str := fmt.Sprintf("/%d */%d * * * ?",v.PollPeriod%60,v.PollPeriod/60)
+		str := fmt.Sprintf("@every %dm%ds",v.PollPeriod/60,v.PollPeriod%60)
 		log.Printf("str %+v\n",str)
 
-		cronGetNetStatus.AddFunc("*/60 * * * * *", CommunicationManage.CommunicationManagePoll)
+		//cronGetNetStatus.AddFunc("10 */1 * * * *", CommunicationManage.CommunicationManagePoll)
+		cronGetNetStatus.AddFunc(str, CommunicationManage.CommunicationManagePoll)
 
 		go CommunicationManage.CommunicationManageDel()
 	}
@@ -78,7 +79,7 @@ func main() {
 	cronGetNetStatus.Start()
 	defer cronGetNetStatus.Stop()
 
-	mqttClient.MqttAppConnect()
+	mqttClient.MQTTClient_Init()
 
 	/**************httpserver初始化****************/
 	// 默认启动方式，包含 Logger、Recovery 中间件
