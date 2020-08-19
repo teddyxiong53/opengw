@@ -156,6 +156,8 @@ func apiDeleteInterface(context *gin.Context) {
 
 			device.CollectInterfaceMap = append(device.CollectInterfaceMap[:k],device.CollectInterfaceMap[k+1:]...)
 
+			device.WriteCollectInterfaceManageToJson()
+
 			aParam.Code = "0"
 			aParam.Data = ""
 
