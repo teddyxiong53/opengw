@@ -103,7 +103,11 @@ func GetDeviceOnlineState(){
 		deviceTotalCnt += v.DeviceNodeCnt
 		deviceOnlineCnt += v.DeviceNodeOnlineCnt
 	}
-	SystemState.DeviceOnline = fmt.Sprintf("%2.1f",float32(deviceOnlineCnt*100.0/deviceTotalCnt))
+	if deviceOnlineCnt == 0{
+		SystemState.DeviceOnline = "0"
+	}else{
+		SystemState.DeviceOnline = fmt.Sprintf("%2.1f",float32(deviceOnlineCnt*100.0/deviceTotalCnt))
+	}
 }
 
 func GetDevicePacketLossState(){
