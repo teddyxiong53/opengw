@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"github.com/shirou/gopsutil/disk"
 	"github.com/shirou/gopsutil/mem"
-	"goAdapter/device"
 	"os/exec"
 	"time"
 )
@@ -95,38 +94,6 @@ func GetDiskState(){
 	SystemState.DiskUse = fmt.Sprintf("%3.1f",v.UsedPercent)
 }
 
-func GetDeviceOnlineState(){
-
-	deviceTotalCnt := 0
-	deviceOnlineCnt := 0
-	for _,v := range device.CollectInterfaceMap{
-		deviceTotalCnt += v.DeviceNodeCnt
-		deviceOnlineCnt += v.DeviceNodeOnlineCnt
-	}
-	if deviceOnlineCnt == 0{
-		SystemState.DeviceOnline = "0"
-	}else{
-		SystemState.DeviceOnline = fmt.Sprintf("%2.1f",float32(deviceOnlineCnt*100.0/deviceTotalCnt))
-	}
-}
-
-func GetDevicePacketLossState(){
-
-	deviceCommTotalCnt := 0
-	deviceCommLossCnt := 0
-	for _,v := range device.CollectInterfaceMap{
-		for _,v := range v.DeviceNodeMap{
-			deviceCommTotalCnt += v.CommTotalCnt
-			deviceCommLossCnt += v.CommTotalCnt-v.CommSuccessCnt
-		}
-	}
-	if deviceCommLossCnt == 0{
-		SystemState.DevicePacketLoss = "0"
-	}else{
-		SystemState.DevicePacketLoss = fmt.Sprintf("%2.1f",float32(deviceCommLossCnt*100.0/deviceCommTotalCnt))
-	}
-}
-
 func GetTimeStart(){
 
 	timeStart = time.Now()
@@ -171,8 +138,6 @@ func CollectSystemParam(){
 
 	GetMemState()
 	GetRunTime()
-	GetDeviceOnlineState()
-	GetDevicePacketLossState()
 
 	point := DataPointTemplate{}
 

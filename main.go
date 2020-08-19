@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	//	"log"
 	"net/http"
 	"time"
 
@@ -12,64 +11,31 @@ import (
 	"goAdapter/device"
 	"goAdapter/httpServer"
 	"goAdapter/setting"
-
-	rotatelogs "github.com/lestrrat-go/file-rotatelogs"
-	log "github.com/sirupsen/logrus"
 )
 
 var (
 	g errgroup.Group
 )
 
-func logInit(){
 
-	//log输出行号和ms
-	//log.SetFlags(log.Lshortfile | log.Ldate | log.Lmicroseconds)
-
-	// 设置日志格式为json格式　自带的只有两种样式logrus.JSONFormatter{}和logrus.TextFormatter{}
-	log.SetFormatter(&log.JSONFormatter{})
-
-	path := "/Users/opensource/test/go.log"
-	/* 日志轮转相关函数
-	`WithLinkName` 为最新的日志建立软连接
-	`WithRotationTime` 设置日志分割的时间，隔多久分割一次
-	`WithMaxAge 和 WithRotationCount二者只能设置一个
-	`WithMaxAge` 设置文件清理前的最长保存时间
-	`WithRotationCount` 设置文件清理前最多保存的个数
-	*/
-	// 下面配置日志每隔 60 分钟轮转一个新文件，保留最近 3 分钟的日志文件，多余的自动清理掉。
-	writer, _ := rotatelogs.New(
-		path+".%Y%m%d%H%M",
-		rotatelogs.WithLinkName(path),
-		rotatelogs.WithRotationCount(5),
-		rotatelogs.WithRotationTime(time.Hour),
-	)
-	log.SetOutput(writer)
-
-	// 设置将日志输出到标准输出（默认的输出为stderr，标准错误）
-	// 日志消息输出可以是任意的io.writer类型
-	//log.SetOutput(os.Stdout)
-
-	// 设置日志级别为warn以上
-	log.SetLevel(log.DebugLevel)
-}
 
 func main() {
 
-	logInit()
+	/**************获取配置文件***********************/
+	setting.GetConf()
+
+	setting.LogerInit(setting.LogLevel,setting.LogSaveToFile,setting.LogFileMaxCnt)
 
 	//记录起始时间
 	setting.GetTimeStart()
 
-	log.Info("goteway V0.0.1")
+	setting.Loger.Info("goteway V0.0.1")
 
 	setting.MemoryDataStream 			= setting.NewDataStreamTemplate("内存使用率")
 	setting.DiskDataStream 				= setting.NewDataStreamTemplate("硬盘使用率")
 	setting.DeviceOnlineDataStream 		= setting.NewDataStreamTemplate("设备在线率")
 	setting.DevicePacketLossDataStream 	= setting.NewDataStreamTemplate("通信丢包率")
 
-	/**************获取配置文件***********************/
-	setting.GetConf()
 
 	/**************网口初始化***********************/
 	setting.NetworkParaRead()
@@ -80,7 +46,7 @@ func main() {
 		//	"networkName": v.Name,
 		//}).Info("set network")
 
-		log.Infof("set network %v\n",v.Name)
+		setting.Loger.Infof("set network %v\n",v.Name)
 
 		setting.SetNetworkParam(v.ID, v)
 	}
@@ -103,7 +69,7 @@ func main() {
 		CommunicationManage := device.NewCommunicationManageTemplate()
 		CommunicationManage.CollInterfaceName = v.CollInterfaceName
 		str := fmt.Sprintf("@every %dm%ds",v.PollPeriod/60,v.PollPeriod%60)
-		log.Infof("str %+v",str)
+		setting.Loger.Infof("str %+v",str)
 
 		//cronGetNetStatus.AddFunc("10 */1 * * * *", CommunicationManage.CommunicationManagePoll)
 		cronGetNetStatus.AddFunc(str, CommunicationManage.CommunicationManagePoll)
@@ -137,6 +103,6 @@ func main() {
 	})
 
 	if err := g.Wait(); err != nil {
-		log.Fatal(err)
+		setting.Loger.Fatal(err)
 	}
 }

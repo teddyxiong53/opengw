@@ -8,8 +8,11 @@ import (
 )
 
 var (
-	AppMode string
-	HttpPort string
+	AppMode 			string
+	HttpPort 			string
+	LogLevel 			string		//日志等级
+	LogSaveToFile 		bool		//日志储存到文件中
+	LogFileMaxCnt 		uint		//日志储存最多文件数量
 )
 
 func LoadServer(file *ini.File){
@@ -30,6 +33,11 @@ func LoadSerial(file *ini.File){
 	}
 }
 
+func LoadLog(file *ini.File){
+	LogLevel = file.Section("log").Key("Level").MustString("DebugLevel")
+	LogSaveToFile = file.Section("log").Key("SaveToFile").MustBool(false)
+	LogFileMaxCnt = uint(file.Section("log").Key("FileMaxCnt").MustInt(10))
+}
 
 /**************获取配置信息************************/
 func GetConf() {
@@ -56,7 +64,7 @@ func GetConf() {
 
 	LoadServer(iniFile)
 	LoadSerial(iniFile)
-	log.Printf("serial %+v\n",SerialPortNameTemplateMap)
+	LoadLog(iniFile)
 }
 
 

@@ -1,6 +1,9 @@
 package device
 
 import (
+	"fmt"
+	"github.com/sirupsen/logrus"
+	"goAdapter/setting"
 	"log"
 	"strconv"
 	"time"
@@ -148,7 +151,11 @@ func (c *CommunicationManageTemplate)CommunicationManageDel() {
 				select {
 				case cmd := <-c.CommonRequestChan:
 					{
-						log.Printf("%v:common chan\n",c.CollInterfaceName)
+						//setting.Logrus.Printf("%v:common chan\n",c.CollInterfaceName)
+						setting.Loger.WithFields(logrus.Fields{
+							"collName": c.CollInterfaceName,
+						}).Info("common chan")
+
 						for _, c := range CollectInterfaceMap {
 							if c.CollInterfaceName == cmd.CollInterfaceName {
 								for _,v := range c.DeviceNodeMap{
@@ -245,6 +252,34 @@ func (c *CommunicationManageTemplate)CommunicationManageDel() {
 									}
 								}
 							}
+						}
+
+						//更新设备在线率
+						deviceTotalCnt := 0
+						deviceOnlineCnt := 0
+						for _,v := range CollectInterfaceMap{
+							deviceTotalCnt += v.DeviceNodeCnt
+							deviceOnlineCnt += v.DeviceNodeOnlineCnt
+						}
+						if deviceOnlineCnt == 0{
+							setting.SystemState.DeviceOnline = "0"
+						}else{
+							setting.SystemState.DeviceOnline = fmt.Sprintf("%2.1f",float32(deviceOnlineCnt*100.0/deviceTotalCnt))
+						}
+
+						//更新设备丢包率
+						deviceCommTotalCnt := 0
+						deviceCommLossCnt := 0
+						for _,v := range CollectInterfaceMap{
+							for _,v := range v.DeviceNodeMap{
+								deviceCommTotalCnt += v.CommTotalCnt
+								deviceCommLossCnt += v.CommTotalCnt-v.CommSuccessCnt
+							}
+						}
+						if deviceCommLossCnt == 0{
+							setting.SystemState.DevicePacketLoss = "0"
+						}else{
+							setting.SystemState.DevicePacketLoss = fmt.Sprintf("%2.1f",float32(deviceCommLossCnt*100.0/deviceCommTotalCnt))
 						}
 					}
 				default:
