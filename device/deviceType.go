@@ -101,7 +101,7 @@ func ReadDeviceNodeTypeMapFromJson() bool {
 				if strings.Contains(fileName, v.TemplateType) {
 					template, err := plugin.Open(fileName)
 					if err != nil {
-						log.Printf("openPlug  err,%s\n", err)
+						log.Printf("openPlug %s err,%s\n",fileName,err)
 					}else{
 						log.Printf("openPlug  %s ok\n", fileName)
 					}
