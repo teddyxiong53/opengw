@@ -1,7 +1,6 @@
 package httpServer
 
 import (
-	api "deviceAPI"
 	"encoding/json"
 	"fmt"
 	"github.com/gin-gonic/gin"
@@ -570,7 +569,7 @@ func apiGetNodeVariableFromCache(context *gin.Context) {
 	type VariableTemplate struct{
 		Index   	int      										`json:"index"`			//变量偏移量
 		Name 		string											`json:"name"`			//变量名
-		Lable 		string											`json:"lable"`			//变量标签
+		Label 		string											`json:"lable"`			//变量标签
 		Value 		interface{}										`json:"value"`			//变量值
 		Explain     interface{}										`json:"explain"`
 		TimeStamp   string											`json:"timestamp"`		//变量时间戳
@@ -599,7 +598,7 @@ func apiGetNodeVariableFromCache(context *gin.Context) {
 					for _,v := range v.VariableMap{
 						variable.Index = v.Index
 						variable.Name = v.Name
-						variable.Lable = v.Lable
+						variable.Label = v.Label
 						//取出切片中最后一个值
 						if len(v.Value) > 0{
 							index = len(v.Value)-1
@@ -639,7 +638,7 @@ func apiGetNodeHistoryVariableFromCache(context *gin.Context) {
 	aParam := &struct {
 		Code    string
 		Message string
-		Data    []api.ValueTemplate
+		Data    []device.ValueTemplate
 	}{}
 
 	for _, v := range device.CollectInterfaceMap {

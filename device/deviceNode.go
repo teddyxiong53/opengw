@@ -1,10 +1,27 @@
 package device
 
 import (
-	api "deviceAPI"
+	"github.com/yuin/gluamapper"
+	lua "github.com/yuin/gopher-lua"
+	"goAdapter/setting"
 )
 
 var MaxDeviceNodeCnt int = 50
+
+type ValueTemplate struct{
+	Value       interface{}		//变量值，不可以是字符串
+	Explain     interface{}     //变量值解释，字符串
+	TimeStamp   string
+}
+
+//变量标签模版
+type VariableTemplate struct{
+	Index   	int      										`json:"index"`			//变量偏移量
+	Name 		string											`json:"name"`			//变量名
+	Label 		string											`json:"lable"`			//变量标签
+	Value 		[]ValueTemplate									`json:"value"`			//变量值
+	Type    	string                  						`json:"type"`			//变量类型
+}
 
 //设备模板
 type DeviceNodeTemplate struct {
@@ -17,18 +34,69 @@ type DeviceNodeTemplate struct {
 	CommSuccessCnt int                    `json:"CommSuccessCnt"` //通信成功次数
 	CurCommFailCnt int 				      `json:"-"` 			  //当前通信失败次数
 	CommStatus     string                 `json:"CommStatus"`     //通信状态
-	VariableMap    []api.VariableTemplate `json:"-"`    //变量列表
+	VariableMap    []VariableTemplate 	   `json:"-"`    //变量列表
 }
 
-func (d *DeviceNodeTemplate) NewVariables() []api.VariableTemplate {
+func (d *DeviceNodeTemplate) NewVariables() []VariableTemplate {
+
+	type LuaVariableTemplate struct{
+		Index int
+		Name string
+		Label string
+		Type string
+	}
+
+	type LuaVariableMapTemplate struct{
+		Variable []*LuaVariableTemplate
+	}
 
 	for k,v := range DeviceNodeTypeMap.DeviceNodeType{
 		if d.Type == v.TemplateType{
-			newVariablesFun, _ := DeviceTypePluginMap[k].Lookup("NewVariables")
-			variables := newVariablesFun.(func() []api.VariableTemplate)()
+
+			//调用NewVariables
+			err := DeviceTypePluginMap[k].CallByParam(lua.P{
+				Fn:DeviceTypePluginMap[k].GetGlobal("NewVariables"),
+				NRet:1,
+				Protect: true,
+			})
+			if err != nil{
+				setting.Loger.Warning("NewVariables err,",err)
+			}
+
+			//获取返回结果
+			ret := DeviceTypePluginMap[k].Get(-1)
+			DeviceTypePluginMap[k].Pop(1)
+
+			LuaVariableMap := LuaVariableMapTemplate{}
+
+			if err := gluamapper.Map(ret.(*lua.LTable), &LuaVariableMap); err != nil {
+				setting.Loger.Warning("gluamapper.Map err,",err)
+			}
+
+			variables := make([]VariableTemplate,0)
+
+			for _,v := range LuaVariableMap.Variable{
+				variable := VariableTemplate{}
+				variable.Index = v.Index
+				variable.Name = v.Name
+				variable.Label = v.Label
+				variable.Type = v.Type
+
+				variable.Value = make([]ValueTemplate,0)
+
+				variables = append(variables,variable)
+			}
 			return variables
 		}
 	}
+
+	//for k,v := range DeviceNodeTypeMap.DeviceNodeType{
+	//	if d.Type == v.TemplateType{
+	//		newVariablesFun, _ := DeviceTypePluginMap[k].Lookup("NewVariables")
+	//		variables := newVariablesFun.(func() []VariableTemplate)()
+	//		return variables
+	//	}
+	//}
 	return nil
 }
 
@@ -36,24 +104,58 @@ func (d *DeviceNodeTemplate) GenerateGetRealVariables(sAddr string,step int) ([]
 
 	for k,v := range DeviceNodeTypeMap.DeviceNodeType {
 		if d.Type == v.TemplateType {
-			generateGetRealVariablesFun, _ := DeviceTypePluginMap[k].Lookup("GenerateGetRealVariables")
-			nBytes,ok := generateGetRealVariablesFun.(func(string,int) ([]byte,bool))(sAddr,step)
+
+			//调用NewVariables
+			err := DeviceTypePluginMap[k].CallByParam(lua.P{
+				Fn:DeviceTypePluginMap[k].GetGlobal("GenerateGetRealVariables"),
+				NRet:1,
+				Protect: true,
+			},lua.LString(sAddr),lua.LNumber(step))
+			if err != nil{
+				setting.Loger.Warning("NewVariables err,",err)
+			}
+
+			//获取返回结果
+			ret := DeviceTypePluginMap[k].Get(-1)
+			DeviceTypePluginMap[k].Pop(1)
+
+			switch ret.(type){
+			case *lua.LTable:
+				setting.Loger.Info("table")
+			}
+
+			if tbl, ok := ret.(*lua.LTable); ok {
+				// lv is LTable
+				setting.Loger.Info(DeviceTypePluginMap[k].ObjLen(tbl))
+				
+			}
+
+			ok := true
+			nBytes := make([]byte,0)
 			return nBytes,ok
 		}
 	}
+
+	//for k,v := range DeviceNodeTypeMap.DeviceNodeType {
+	//	if d.Type == v.TemplateType {
+	//		generateGetRealVariablesFun, _ := DeviceTypePluginMap[k].Lookup("GenerateGetRealVariables")
+	//		nBytes,ok := generateGetRealVariablesFun.(func(string,int) ([]byte,bool))(sAddr,step)
+	//		return nBytes,ok
+	//	}
+	//}
 	return nil,false
 }
 
-func (d *DeviceNodeTemplate) AnalysisRx(sAddr string,variables []api.VariableTemplate,rxBuf []byte,rxBufCnt int) chan bool{
+func (d *DeviceNodeTemplate) AnalysisRx(sAddr string,variables []VariableTemplate,rxBuf []byte,rxBufCnt int) chan bool{
 
 	status := make(chan bool,1)
 
-	for k,v := range DeviceNodeTypeMap.DeviceNodeType {
-		if d.Type == v.TemplateType {
-			analysisRxFun, _ := DeviceTypePluginMap[k].Lookup("AnalysisRx")
-			status = analysisRxFun.(func(string,[]api.VariableTemplate,[]byte, int) chan bool)(sAddr, variables, rxBuf, rxBufCnt)
-			return status
-		}
-	}
+	//for k,v := range DeviceNodeTypeMap.DeviceNodeType {
+	//	if d.Type == v.TemplateType {
+	//		analysisRxFun, _ := DeviceTypePluginMap[k].Lookup("AnalysisRx")
+	//		status = analysisRxFun.(func(string,[]VariableTemplate,[]byte, int) chan bool)(sAddr, variables, rxBuf, rxBufCnt)
+	//		return status
+	//	}
+	//}
 	return status
 }

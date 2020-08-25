@@ -2,11 +2,12 @@ package device
 
 import (
 	"encoding/json"
+	lua "github.com/yuin/gopher-lua"
+	"goAdapter/setting"
 	"io/ioutil"
 	"log"
 	"os"
 	"path/filepath"
-	"plugin"
 	"strings"
 )
 
@@ -29,7 +30,8 @@ var DeviceNodeTypeMap = DeviceNodeTypeMapStruct{
 	DeviceNodeType : make([]DeviceNodeTypeTemplate,0),
 }
 
-var DeviceTypePluginMap = make(map[int]*plugin.Plugin)
+//var DeviceTypePluginMap = make(map[int]*plugin.Plugin)
+var DeviceTypePluginMap = make(map[int]*lua.LState)
 
 func WriteDeviceNodeTypeMapToJson() {
 
@@ -94,12 +96,12 @@ func ReadDeviceNodeTypeMapFromJson() bool {
 			DeviceNodeTypeMap.DeviceNodeType = append(DeviceNodeTypeMap.DeviceNodeType,nodeType)
 		}
 	}
-	//打开so文件
+	//打开lua文件
 	for k,v := range DeviceNodeTypeMap.DeviceNodeType{
 		for _,fileName := range fileNameMap{
-			if strings.Contains(fileName,".so") {
+			if strings.Contains(fileName,".lua") {
 				if strings.Contains(fileName, v.TemplateType) {
-					template, err := plugin.Open(fileName)
+					template, err := setting.LuaOpenFile(fileName)
 					if err != nil {
 						log.Printf("openPlug  err,%s\n", err)
 					}else{
@@ -110,6 +112,22 @@ func ReadDeviceNodeTypeMapFromJson() bool {
 			}
 		}
 	}
+
+	//for k,v := range DeviceNodeTypeMap.DeviceNodeType{
+	//	for _,fileName := range fileNameMap{
+	//		if strings.Contains(fileName,".so") {
+	//			if strings.Contains(fileName, v.TemplateType) {
+	//				template, err := plugin.Open(fileName)
+	//				if err != nil {
+	//					log.Printf("openPlug  err,%s\n", err)
+	//				}else{
+	//					log.Printf("openPlug  %s ok\n", fileName)
+	//				}
+	//				DeviceTypePluginMap[k] = template
+	//			}
+	//		}
+	//	}
+	//}
 
 	return true
 }
@@ -131,7 +149,7 @@ func updataDeviceType(path string,fileName []string) ([]string,error){
 			if strings.Contains(fi.Name(),".json"){
 				//log.Println("fullName ",fullName)
 				fileName = append(fileName,fullName)
-			}else if strings.Contains(fi.Name(),".so"){
+			}else if strings.Contains(fi.Name(),".lua"){
 				//log.Println("fullName ",fullName)
 				fileName = append(fileName,fullName)
 			}

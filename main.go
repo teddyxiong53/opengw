@@ -36,6 +36,7 @@ func main() {
 	setting.DeviceOnlineDataStream 		= setting.NewDataStreamTemplate("设备在线率")
 	setting.DevicePacketLossDataStream 	= setting.NewDataStreamTemplate("通信丢包率")
 
+	//setting.LuaInit()
 
 	/**************网口初始化***********************/
 	setting.NetworkParaRead()

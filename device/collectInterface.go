@@ -1,7 +1,6 @@
 package device
 
 import (
-	api "deviceAPI"
 	"encoding/json"
 	"log"
 	"os"
@@ -260,7 +259,7 @@ func (d *CollectInterfaceTemplate) NewDeviceNode(dName string,dType string, dAdd
 	node.CommSuccessCnt = 0
 	node.CurCommFailCnt = 0
 	node.CommStatus = "offLine"
-	node.VariableMap = make([]api.VariableTemplate, 0)
+	node.VariableMap = make([]VariableTemplate, 0)
 	variables := node.NewVariables()
 	node.VariableMap = append(node.VariableMap, variables...)
 
@@ -279,7 +278,7 @@ func (d *CollectInterfaceTemplate) AddDeviceNode(dName string,dType string, dAdd
 	node.CommSuccessCnt = 0
 	node.CurCommFailCnt = 0
 	node.CommStatus = "offLine"
-	node.VariableMap = make([]api.VariableTemplate, 0)
+	node.VariableMap = make([]VariableTemplate, 0)
 	variables := node.NewVariables()
 	node.VariableMap = append(node.VariableMap, variables...)
 
