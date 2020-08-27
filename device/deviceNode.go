@@ -34,7 +34,7 @@ type DeviceNodeTemplate struct {
 	CommSuccessCnt int                    `json:"CommSuccessCnt"` //通信成功次数
 	CurCommFailCnt int 				      `json:"-"` 			  //当前通信失败次数
 	CommStatus     string                 `json:"CommStatus"`     //通信状态
-	VariableMap    []VariableTemplate 	   `json:"-"`    //变量列表
+	VariableMap    []VariableTemplate 	  `json:"-"`    //变量列表
 }
 
 func (d *DeviceNodeTemplate) NewVariables() []VariableTemplate {
@@ -70,7 +70,7 @@ func (d *DeviceNodeTemplate) NewVariables() []VariableTemplate {
 			LuaVariableMap := LuaVariableMapTemplate{}
 
 			if err := gluamapper.Map(ret.(*lua.LTable), &LuaVariableMap); err != nil {
-				setting.Loger.Warning("gluamapper.Map err,",err)
+				setting.Loger.Warning("NewVariables gluamapper.Map err,",err)
 			}
 
 			variables := make([]VariableTemplate,0)
@@ -102,6 +102,10 @@ func (d *DeviceNodeTemplate) NewVariables() []VariableTemplate {
 
 func (d *DeviceNodeTemplate) GenerateGetRealVariables(sAddr string,step int) ([]byte,bool) {
 
+	type LuaVariableMapTemplate struct{
+		Variable []*byte
+	}
+
 	for k,v := range DeviceNodeTypeMap.DeviceNodeType {
 		if d.Type == v.TemplateType {
 
@@ -112,26 +116,30 @@ func (d *DeviceNodeTemplate) GenerateGetRealVariables(sAddr string,step int) ([]
 				Protect: true,
 			},lua.LString(sAddr),lua.LNumber(step))
 			if err != nil{
-				setting.Loger.Warning("NewVariables err,",err)
+				setting.Loger.Warning("GenerateGetRealVariables err,",err)
 			}
 
 			//获取返回结果
 			ret := DeviceTypePluginMap[k].Get(-1)
 			DeviceTypePluginMap[k].Pop(1)
 
-			switch ret.(type){
-			case *lua.LTable:
-				setting.Loger.Info("table")
+			LuaVariableMap := LuaVariableMapTemplate{}
+			if err := gluamapper.Map(ret.(*lua.LTable), &LuaVariableMap); err != nil {
+				setting.Loger.Warning("GenerateGetRealVariables gluamapper.Map err,",err)
 			}
 
-			if tbl, ok := ret.(*lua.LTable); ok {
-				// lv is LTable
-				setting.Loger.Info(DeviceTypePluginMap[k].ObjLen(tbl))
-				
-			}
-
-			ok := true
+			ok := false
 			nBytes := make([]byte,0)
+
+			if len(LuaVariableMap.Variable) > 0{
+				ok = true
+				for _,v := range LuaVariableMap.Variable{
+					nBytes = append(nBytes,*v)
+				}
+			}else{
+				ok = false
+			}
+
 			return nBytes,ok
 		}
 	}
