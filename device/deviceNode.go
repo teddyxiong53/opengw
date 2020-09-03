@@ -4,13 +4,15 @@ import (
 	"github.com/yuin/gluamapper"
 	lua "github.com/yuin/gopher-lua"
 	"goAdapter/setting"
+	"layeh.com/gopher-luar"
+	"time"
 )
 
 var MaxDeviceNodeCnt int = 50
 
 type ValueTemplate struct{
 	Value       interface{}		//变量值，不可以是字符串
-	Explain     interface{}     //变量值解释，字符串
+	Explain     interface{}     //变量值解释，必须是字符串
 	TimeStamp   string
 }
 
@@ -34,7 +36,7 @@ type DeviceNodeTemplate struct {
 	CommSuccessCnt int                    `json:"CommSuccessCnt"` //通信成功次数
 	CurCommFailCnt int 				      `json:"-"` 			  //当前通信失败次数
 	CommStatus     string                 `json:"CommStatus"`     //通信状态
-	VariableMap    []VariableTemplate 	  `json:"-"`    //变量列表
+	VariableMap    []VariableTemplate 	  `json:"-"`    		  //变量列表
 }
 
 func (d *DeviceNodeTemplate) NewVariables() []VariableTemplate {
@@ -83,7 +85,6 @@ func (d *DeviceNodeTemplate) NewVariables() []VariableTemplate {
 				variable.Type = v.Type
 
 				variable.Value = make([]ValueTemplate,0)
-
 				variables = append(variables,variable)
 			}
 			return variables
@@ -157,6 +158,74 @@ func (d *DeviceNodeTemplate) GenerateGetRealVariables(sAddr string,step int) ([]
 func (d *DeviceNodeTemplate) AnalysisRx(sAddr string,variables []VariableTemplate,rxBuf []byte,rxBufCnt int) chan bool{
 
 	status := make(chan bool,1)
+
+	type LuaVariableTemplate struct{
+		Index   int
+		Name    string
+		Label   string
+		Type    string
+		Value   interface{}
+		Explain string
+	}
+
+	type LuaVariableMapTemplate struct{
+		Variable []*LuaVariableTemplate
+	}
+
+	for k,v := range DeviceNodeTypeMap.DeviceNodeType{
+		if d.Type == v.TemplateType{
+
+			tbl := lua.LTable{}
+			for _,v := range rxBuf{
+				tbl.Append(lua.LNumber(v))
+			}
+
+			DeviceTypePluginMap[k].SetGlobal("rxBuf", luar.New(DeviceTypePluginMap[k], &tbl))
+
+			//调用NewVariables
+			err := DeviceTypePluginMap[k].CallByParam(lua.P{
+				Fn:DeviceTypePluginMap[k].GetGlobal("AnalysisRx"),
+				NRet:1,
+				Protect: true,
+			},lua.LString(sAddr),lua.LNumber(rxBufCnt))
+			if err != nil{
+				setting.Loger.Warning("AnalysisRx err,",err)
+			}
+
+			//获取返回结果
+			ret := DeviceTypePluginMap[k].Get(-1)
+			DeviceTypePluginMap[k].Pop(1)
+
+			LuaVariableMap := LuaVariableMapTemplate{}
+
+			if err := gluamapper.Map(ret.(*lua.LTable), &LuaVariableMap); err != nil {
+				setting.Loger.Warning("AnalysisRx gluamapper.Map err,",err)
+			}
+
+			timeNowStr := time.Now().Format("2006-01-02 15:04:05")
+			value := ValueTemplate{}
+			if len(LuaVariableMap.Variable) > 0{
+				for _,lv := range LuaVariableMap.Variable{
+					for k,v := range variables{
+						if lv.Index == v.Index{
+
+							variables[k].Index = lv.Index
+							variables[k].Name = lv.Name
+							variables[k].Label = lv.Label
+							variables[k].Type = lv.Type
+
+							value.Value = lv.Value
+							value.Explain = lv.Explain
+							value.TimeStamp = timeNowStr
+							variables[k].Value = append(variables[k].Value,value)
+						}
+					}
+				}
+				status <-true
+			}
+		}
+	}
+
 
 	//for k,v := range DeviceNodeTypeMap.DeviceNodeType {
 	//	if d.Type == v.TemplateType {

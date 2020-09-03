@@ -197,6 +197,7 @@ func (c *CommunicationManageTemplate)CommunicationManageDel() {
 													{
 														log.Printf("%v:rx ok\n",c.CollInterfaceName)
 														log.Printf("%v:rxbuf %X\n", c.CollInterfaceName,rxTotalBuf)
+
 														//通信帧延时
 														time.Sleep(time.Duration(interval)*time.Millisecond)
 														v.CommSuccessCnt++
@@ -236,6 +237,8 @@ func (c *CommunicationManageTemplate)CommunicationManageDel() {
 															rxTotalBuf = append(rxTotalBuf, rxBuf[:rxBufCnt]...)
 															//清除本次接收数据
 															rxBufCnt = 0
+
+															//log.Printf("rxbuf %X\n",rxTotalBuf)
 														}
 													}
 												}
