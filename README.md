@@ -5,8 +5,7 @@
 
 #### 软件架构
 软件架构说明
-
-<img src="/Users/feiye/Documents/OneDrive/01.Reatgreen2020/01.Develop/14.WDT/2.WDT300/架构.png" style="zoom:50%;" />
+![输入图片说明](https://images.gitee.com/uploads/images/2020/0904/151353_9a19564a_1979498.png "架构.png")
 
 #### 安装教程
 
