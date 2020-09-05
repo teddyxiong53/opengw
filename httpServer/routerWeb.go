@@ -140,6 +140,12 @@ func RouterWeb() http.Handler {
 			deviceRouter.DELETE("/commSerialInterface", apiDeleteCommSerialInterface)
 		}
 
+		toolRouter := router.Group("/api/v1/tool")
+		{
+			//获取通信报文
+			toolRouter.POST("/commMessage", apiGetCommMessage)
+		}
+
 		pluginRouter := router.Group("/api/v1/update")
 		{
 			pluginRouter.POST("/plugin", apiUpdatePlugin)

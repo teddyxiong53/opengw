@@ -67,8 +67,8 @@ func main() {
 
 	// 定时
 	for _,v := range device.CollectInterfaceMap{
-		CommunicationManage := device.NewCommunicationManageTemplate()
-		CommunicationManage.CollInterfaceName = v.CollInterfaceName
+		CommunicationManage := device.NewCommunicationManageTemplate(v)
+		//CommunicationManage.CollInterfaceName = v.CollInterfaceName
 		str := fmt.Sprintf("@every %dm%ds",v.PollPeriod/60,v.PollPeriod%60)
 		setting.Loger.Infof("str %+v",str)
 
@@ -77,7 +77,6 @@ func main() {
 
 		go CommunicationManage.CommunicationManageDel()
 	}
-
 
 	// 定时60秒,定时获取系统信息
 	cronGetNetStatus.AddFunc("*/60 * * * * *", setting.CollectSystemParam)

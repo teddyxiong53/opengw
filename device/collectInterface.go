@@ -20,17 +20,24 @@ const (
 	InterFaceID7 int = 7
 )
 
-//采集接口模板
-type CollectInterfaceTemplate struct {
-	CollInterfaceName   string          		`json:"CollInterfaceName"`   	//采集接口
-	CommInterfaceName   string					`json:"CommInterfaceName"`   	//通信接口
-	PollPeriod          int                   	`json:"PollPeriod"`    			//采集周期
-	OfflinePeriod       int                   	`json:"OfflinePeriod"` 			//离线超时周期
-	DeviceNodeCnt       int                   	`json:"DeviceNodeCnt"` 			//设备数量
-	DeviceNodeOnlineCnt int             		`json:"DeviceNodeOnlineCnt"`	//设备在线数量
-	DeviceNodeMap       []*DeviceNodeTemplate 	`json:"DeviceNodeMap"` 			//节点表
+type CommunicationMessageTemplate struct {
+	CollName       string       `json:"CollInterfaceName"`  		//接口名称
+	TimeStamp      string       `json:"TimeStamp"` 					//时间戳
+	Direction      string      	`json:"DataDirection"`   			//数据方向
+	Content        string      	`json:"DataContent"`     			//数据内容
 }
 
+//采集接口模板
+type CollectInterfaceTemplate struct {
+	CollInterfaceName   string          				`json:"CollInterfaceName"`   	//采集接口
+	CommInterfaceName   string							`json:"CommInterfaceName"`   	//通信接口
+	CommMessage         []CommunicationMessageTemplate	`json:"-"`
+	PollPeriod          int                   			`json:"PollPeriod"`    			//采集周期
+	OfflinePeriod       int                   			`json:"OfflinePeriod"` 			//离线超时周期
+	DeviceNodeCnt       int                   			`json:"DeviceNodeCnt"` 			//设备数量
+	DeviceNodeOnlineCnt int             				`json:"DeviceNodeOnlineCnt"`	//设备在线数量
+	DeviceNodeMap       []*DeviceNodeTemplate 			`json:"DeviceNodeMap"` 			//节点表
+}
 
 var CollectInterfaceMap = make([]*CollectInterfaceTemplate,0)
 
@@ -209,6 +216,7 @@ func NewCollectInterface(collInterfaceName, commInterfaceName string,
 	nodeManage := &CollectInterfaceTemplate{
 		CollInterfaceName: collInterfaceName,
 		CommInterfaceName: commInterfaceName,
+		CommMessage: make([]CommunicationMessageTemplate,0),
 		PollPeriod:    pollPeriod,
 		OfflinePeriod: offlinePeriod,
 		DeviceNodeCnt: deviceNodeCnt,

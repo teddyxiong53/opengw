@@ -20,16 +20,19 @@ type CommunicationManageTemplate struct{
 	EmergencyRequestChan chan CommunicationCmdTemplate
 	CommonRequestChan    chan CommunicationCmdTemplate
 	EmergencyAckChan     chan bool
-	CollInterfaceName    string    //采集接口名称
+	CollInterface        *CollectInterfaceTemplate
 }
 
-func NewCommunicationManageTemplate() *CommunicationManageTemplate {
+func NewCommunicationManageTemplate(coll *CollectInterfaceTemplate) *CommunicationManageTemplate {
 
-	return &CommunicationManageTemplate{
+	template := &CommunicationManageTemplate{
 		EmergencyRequestChan: make(chan CommunicationCmdTemplate, 1),
 		CommonRequestChan:    make(chan CommunicationCmdTemplate, 100),
 		EmergencyAckChan:     make(chan bool, 1),
+		CollInterface:        coll,
 	}
+
+	return template
 }
 
 func (c *CommunicationManageTemplate)CommunicationManageAddCommon(cmd CommunicationCmdTemplate) {
@@ -153,30 +156,44 @@ func (c *CommunicationManageTemplate)CommunicationManageDel() {
 					{
 						//setting.Logrus.Printf("%v:common chan\n",c.CollInterfaceName)
 						setting.Loger.WithFields(logrus.Fields{
-							"collName": c.CollInterfaceName,
+							"collName": c.CollInterface.CollInterfaceName,
 						}).Info("common chan")
 
-						for _, c := range CollectInterfaceMap {
-							if c.CollInterfaceName == cmd.CollInterfaceName {
-								for _,v := range c.DeviceNodeMap{
+						for _, coll := range CollectInterfaceMap {
+							if coll.CollInterfaceName == cmd.CollInterfaceName {
+								for _,v := range coll.DeviceNodeMap{
 									if v.Addr == cmd.DeviceAddr {
-										log.Printf("%v:addr %v\n", c.CollInterfaceName,v.Addr)
+										log.Printf("%v:addr %v\n", coll.CollInterfaceName,v.Addr)
 										step := 0
 										for{
 											//--------------组包---------------------------
 											txBuf,ok := v.GenerateGetRealVariables(v.Addr,step)
 											if ok == false{
-												log.Printf("%v:getVariables finish\n",c.CollInterfaceName)
+												log.Printf("%v:getVariables finish\n",coll.CollInterfaceName)
 												goto LoopCommon
 											}
 											step++
-											log.Printf("%v:txbuf %X\n", c.CollInterfaceName,txBuf)
+											log.Printf("%v:txbuf %X\n", coll.CollInterfaceName,txBuf)
+
+											CommunicationMessage := CommunicationMessageTemplate{
+												CollName: coll.CollInterfaceName,
+												TimeStamp: time.Now().Format("2006-01-02 15:04:05"),
+												Direction: "send",
+												Content: fmt.Sprintf("%X",txBuf),
+											}
+											if len(c.CollInterface.CommMessage) < 1024{
+												c.CollInterface.CommMessage = append(c.CollInterface.CommMessage,CommunicationMessage)
+											}else{
+												c.CollInterface.CommMessage = c.CollInterface.CommMessage[1:]
+												c.CollInterface.CommMessage = append(c.CollInterface.CommMessage,CommunicationMessage)
+											}
+
 											//---------------发送-------------------------
 											var timeout int
 											var interval int
 											//判断是否是串口采集
 											for _,v := range CommunicationSerialMap{
-												if v.Name == c.CommInterfaceName{
+												if v.Name == coll.CommInterfaceName{
 													v.WriteData(txBuf)
 													timeout,_ = strconv.Atoi(v.Param.Timeout)
 													interval,_ = strconv.Atoi(v.Param.Interval)
@@ -195,8 +212,21 @@ func (c *CommunicationManageTemplate)CommunicationManageDel() {
 												//是否正确收到数据包
 												case <-v.AnalysisRx(v.Addr, v.VariableMap, rxTotalBuf, rxTotalBufCnt):
 													{
-														log.Printf("%v:rx ok\n",c.CollInterfaceName)
-														log.Printf("%v:rxbuf %X\n", c.CollInterfaceName,rxTotalBuf)
+														log.Printf("%v:rx ok\n",coll.CollInterfaceName)
+														log.Printf("%v:rxbuf %X\n", coll.CollInterfaceName,rxTotalBuf)
+
+														CommunicationMessage := CommunicationMessageTemplate{
+															CollName: coll.CollInterfaceName,
+															TimeStamp: time.Now().Format("2006-01-02 15:04:05"),
+															Direction: "receive",
+															Content: fmt.Sprintf("%X",rxTotalBuf),
+														}
+														if len(c.CollInterface.CommMessage) < 1024{
+															c.CollInterface.CommMessage = append(c.CollInterface.CommMessage,CommunicationMessage)
+														}else{
+															c.CollInterface.CommMessage = c.CollInterface.CommMessage[1:]
+															c.CollInterface.CommMessage = append(c.CollInterface.CommMessage,CommunicationMessage)
+														}
 
 														//通信帧延时
 														time.Sleep(time.Duration(interval)*time.Millisecond)
@@ -211,11 +241,24 @@ func (c *CommunicationManageTemplate)CommunicationManageDel() {
 												//是否接收超时
 												case <-timerOut.C:
 													{
-														log.Printf("%v,rx timeout\n",c.CollInterfaceName)
+														CommunicationMessage := CommunicationMessageTemplate{
+															CollName: coll.CollInterfaceName,
+															TimeStamp: time.Now().Format("2006-01-02 15:04:05"),
+															Direction: "receive",
+															Content: fmt.Sprintf("%X",rxTotalBuf),
+														}
+														if len(c.CollInterface.CommMessage) < 1024{
+															c.CollInterface.CommMessage = append(c.CollInterface.CommMessage,CommunicationMessage)
+														}else{
+															c.CollInterface.CommMessage = c.CollInterface.CommMessage[1:]
+															c.CollInterface.CommMessage = append(c.CollInterface.CommMessage,CommunicationMessage)
+														}
+
+													    log.Printf("%v,rx timeout\n",coll.CollInterfaceName)
 														//通信帧延时
 														time.Sleep(time.Duration(interval)*time.Millisecond)
 														v.CurCommFailCnt++
-														if v.CurCommFailCnt >= c.OfflinePeriod{
+														if v.CurCommFailCnt >= coll.OfflinePeriod{
 															v.CurCommFailCnt = 0
 															v.CommStatus = "offLine"
 														}
@@ -227,7 +270,7 @@ func (c *CommunicationManageTemplate)CommunicationManageDel() {
 												default:
 													{
 														for _,v := range CommunicationSerialMap{
-															if v.Name == c.CommInterfaceName{
+															if v.Name == coll.CommInterfaceName{
 																rxBufCnt = v.ReadData(rxBuf)
 															}
 														}
@@ -248,10 +291,10 @@ func (c *CommunicationManageTemplate)CommunicationManageDel() {
 										LoopCommon:
 									}
 								}
-								c.DeviceNodeOnlineCnt = 0
-								for _,v := range c.DeviceNodeMap{
+								coll.DeviceNodeOnlineCnt = 0
+								for _,v := range coll.DeviceNodeMap{
 									if v.CommStatus == "onLine"{
-										c.DeviceNodeOnlineCnt++
+										coll.DeviceNodeOnlineCnt++
 									}
 								}
 							}
@@ -298,7 +341,7 @@ func (c *CommunicationManageTemplate)CommunicationManagePoll() {
 	cmd := CommunicationCmdTemplate{}
 	//对采集接口进行遍历
 	for _, coll := range CollectInterfaceMap {
-		if coll.CollInterfaceName == c.CollInterfaceName {
+		if coll.CollInterfaceName == c.CollInterface.CollInterfaceName {
 			//对采集接口下设备进行遍历
 			for _,v := range coll.DeviceNodeMap{
 				cmd.CollInterfaceName = coll.CollInterfaceName
