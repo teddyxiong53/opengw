@@ -177,7 +177,7 @@ func (c *CommunicationManageTemplate)CommunicationManageDel() {
 
 											CommunicationMessage := CommunicationMessageTemplate{
 												CollName: coll.CollInterfaceName,
-												TimeStamp: time.Now().Format("2006-01-02 15:04:05"),
+												TimeStamp: time.Now().Format("2006-01-02 15:04:05.999"),
 												Direction: "send",
 												Content: fmt.Sprintf("%X",txBuf),
 											}
@@ -217,7 +217,7 @@ func (c *CommunicationManageTemplate)CommunicationManageDel() {
 
 														CommunicationMessage := CommunicationMessageTemplate{
 															CollName: coll.CollInterfaceName,
-															TimeStamp: time.Now().Format("2006-01-02 15:04:05"),
+															TimeStamp: time.Now().Format("2006-01-02 15:04:05.999"),
 															Direction: "receive",
 															Content: fmt.Sprintf("%X",rxTotalBuf),
 														}
@@ -233,7 +233,7 @@ func (c *CommunicationManageTemplate)CommunicationManageDel() {
 														v.CommSuccessCnt++
 														v.CurCommFailCnt = 0
 														v.CommStatus = "onLine"
-														v.LastCommRTC = time.Now().Format("2006-01-02 15:04:05")
+														v.LastCommRTC = time.Now().Format("2006-01-02 15:04:05.999")
 														rxTotalBufCnt = 0
 														rxTotalBuf = rxTotalBuf[0:0]
 														goto LoopCommonStep
@@ -243,7 +243,7 @@ func (c *CommunicationManageTemplate)CommunicationManageDel() {
 													{
 														CommunicationMessage := CommunicationMessageTemplate{
 															CollName: coll.CollInterfaceName,
-															TimeStamp: time.Now().Format("2006-01-02 15:04:05"),
+															TimeStamp: time.Now().Format("2006-01-02 15:04:05.999"),
 															Direction: "receive",
 															Content: fmt.Sprintf("%X",rxTotalBuf),
 														}
