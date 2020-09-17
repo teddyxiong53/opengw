@@ -9,7 +9,7 @@ import (
 	"time"
 )
 
-var Loger = logrus.New()
+var Logger = logrus.New()
 
 func LogerInit(level string,save bool,cnt uint){
 
@@ -17,7 +17,7 @@ func LogerInit(level string,save bool,cnt uint){
 	//log.SetFlags(log.Lshortfile | log.Ldate | log.Lmicroseconds)
 
 	// 设置日志格式为json格式　自带的只有两种样式logrus.JSONFormatter{}和logrus.TextFormatter{}
-	Loger.Formatter = &logrus.JSONFormatter{}
+	Logger.Formatter = &logrus.JSONFormatter{}
 	//fmt.Printf("level %v\n",level)
 	//fmt.Printf("save %v\n",save)
 	if save == true{
@@ -44,23 +44,23 @@ func LogerInit(level string,save bool,cnt uint){
 		}
 		//Loger.SetOutput(writer)
 
-		Loger.Out = writer
+		Logger.Out = writer
 	}else{
 		// 设置将日志输出到标准输出（默认的输出为stderr，标准错误）
 		// 日志消息输出可以是任意的io.writer类型
-		Loger.SetOutput(os.Stdout)
+		Logger.SetOutput(os.Stdout)
 	}
 
 	// 设置日志级别为warn以上
 	switch level {
 	case "DebugLevel":
 		//Loger.SetLevel(logrus.DebugLevel)
-		Loger.Level = logrus.DebugLevel
+		Logger.Level = logrus.DebugLevel
 	case "InfoLevel":
 		//Loger.SetLevel(logrus.InfoLevel)
-		Loger.Level = logrus.InfoLevel
+		Logger.Level = logrus.InfoLevel
 	case "WarnLevel":
 		//Loger.SetLevel(logrus.WarnLevel)
-		Loger.Level = logrus.WarnLevel
+		Logger.Level = logrus.WarnLevel
 	}
 }

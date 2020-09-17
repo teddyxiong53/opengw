@@ -70,6 +70,14 @@ func SystemReboot() {
 	fmt.Println(str)
 }
 
+func SystemSetRTC(rtc string){
+
+	cmd := exec.Command("date","-s",rtc)
+	var out bytes.Buffer
+	cmd.Stdout = &out
+	cmd.Start()
+}
+
 func GetMemState(){
 
 	v, _ := mem.VirtualMemory()

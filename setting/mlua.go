@@ -22,9 +22,9 @@ func LuaCallNewVariables(L *lua.LState){
 	L.Pop(1)
 	switch ret.(type) {
 	case lua.LString:
-		Loger.Info("string")
+		Logger.Info("string")
 	case *lua.LTable:
-		Loger.Info("table")
+		Logger.Info("table")
 	}
 
 	type VariableTemplate struct{
@@ -45,7 +45,7 @@ func LuaCallNewVariables(L *lua.LState){
 	}
 
 	for _,v := range VariableMap.Variable{
-		Loger.Infof("%+v",v.Label)
+		Logger.Infof("%+v",v.Label)
 	}
 }
 
@@ -59,9 +59,9 @@ func LuaInit() {
 	defer L.Close()
 	//加载Lua
 	if err := L.DoFile(path+"td200.lua"); err != nil {
-		Loger.Warning("open td200.lua fail",err)
+		Logger.Warning("open td200.lua fail",err)
 	}
-	Loger.Info("open TD200.lua OK")
+	Logger.Info("open TD200.lua OK")
 
 	LuaCallNewVariables(L)
 }

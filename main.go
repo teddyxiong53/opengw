@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"github.com/sirupsen/logrus"
 	"net/http"
 	"time"
 
@@ -29,27 +30,27 @@ func main() {
 	//记录起始时间
 	setting.GetTimeStart()
 
-	setting.Loger.Info("goteway V0.0.1")
+	setting.Logger.Info("goteway V0.0.1")
 
 	setting.MemoryDataStream 			= setting.NewDataStreamTemplate("内存使用率")
 	setting.DiskDataStream 				= setting.NewDataStreamTemplate("硬盘使用率")
 	setting.DeviceOnlineDataStream 		= setting.NewDataStreamTemplate("设备在线率")
 	setting.DevicePacketLossDataStream 	= setting.NewDataStreamTemplate("通信丢包率")
 
-	//setting.LuaInit()
-
 	/**************网口初始化***********************/
 	setting.NetworkParaRead()
 	for _, v := range setting.NetworkParamList.NetworkParam {
-		//log.Info("set network ", v.Name)
-
-		//log.WithFields(log.Fields{
-		//	"networkName": v.Name,
-		//}).Info("set network")
-
-		setting.Loger.Infof("set network %v\n",v.Name)
-
-		setting.SetNetworkParam(v.ID, v)
+		if setting.SetNetworkParam(v.ID, v) == true{
+			setting.Logger.WithFields(logrus.Fields{
+				"networkName": v.Name,
+				"status": "true",
+			}).Info("set network")
+		}else {
+			setting.Logger.WithFields(logrus.Fields{
+				"networkName": v.Name,
+				"status": "false",
+			}).Info("set network")
+		}
 	}
 	setting.NetworkParamList = setting.GetNetworkParam()
 
@@ -58,34 +59,41 @@ func main() {
 
 	/**************目标平台初始化****************/
 	setting.RemotePlatformInit()
+	/**************NTP校时初始化****************/
+	setting.NTPInit()
 
 	/**************创建定时获取网络状态的任务***********************/
 	// 定义一个cron运行器
-	cronGetNetStatus := cron.New()
+	cronProcess := cron.New()
 	// 定时5秒，每5秒执行print5
-	cronGetNetStatus.AddFunc("*/5 * * * * *", setting.GetNetworkStatus)
+	cronProcess.AddFunc("*/5 * * * * *", setting.GetNetworkStatus)
 
 	// 定时
 	for _,v := range device.CollectInterfaceMap{
 		CommunicationManage := device.NewCommunicationManageTemplate(v)
 		//CommunicationManage.CollInterfaceName = v.CollInterfaceName
 		str := fmt.Sprintf("@every %dm%ds",v.PollPeriod/60,v.PollPeriod%60)
-		setting.Loger.Infof("str %+v",str)
+		setting.Logger.Infof("str %+v",str)
 
 		//cronGetNetStatus.AddFunc("10 */1 * * * *", CommunicationManage.CommunicationManagePoll)
-		cronGetNetStatus.AddFunc(str, CommunicationManage.CommunicationManagePoll)
+		cronProcess.AddFunc(str, CommunicationManage.CommunicationManagePoll)
 
 		go CommunicationManage.CommunicationManageDel()
 	}
 
 	// 定时60秒,定时获取系统信息
-	cronGetNetStatus.AddFunc("*/60 * * * * *", setting.CollectSystemParam)
+	cronProcess.AddFunc("*/60 * * * * *", setting.CollectSystemParam)
+
+	// 每天0点,定时获取NTP服务器的时间，并校时
+	cronProcess.AddFunc("0 0 0 * * ?", func(){
+		setting.NTPGetTime()
+	})
 
 	// 定时60秒,mqtt发布消息
 	//cronGetNetStatus.AddFunc("*/30 * * * * *", mqttClient.MqttAppPublish)
 
-	cronGetNetStatus.Start()
-	defer cronGetNetStatus.Stop()
+	cronProcess.Start()
+	defer cronProcess.Stop()
 
 	//mqttClient.MQTTClient_Init()
 
@@ -103,6 +111,6 @@ func main() {
 	})
 
 	if err := g.Wait(); err != nil {
-		setting.Loger.Fatal(err)
+		setting.Logger.Fatal(err)
 	}
 }

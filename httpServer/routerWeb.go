@@ -51,6 +51,13 @@ func RouterWeb() http.Handler {
 			systemRouter.POST("/systemRTC", apiSystemSetSystemRTC)
 		}
 
+		ntpRouter := router.Group("/api/v1/system/ntp")
+		{
+			ntpRouter.POST("/hostAddr", apiSystemSetNTPHost)
+
+			ntpRouter.GET("/hostAddr", apiSystemGetNTPHost)
+		}
+
 		//userRouter := router.Group("/api/v1/modbus")
 		//{
 		//	userRouter.POST("/cmd03",apiReadHoldReg)

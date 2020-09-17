@@ -62,7 +62,7 @@ func (d *DeviceNodeTemplate) NewVariables() []VariableTemplate {
 				Protect: true,
 			})
 			if err != nil{
-				setting.Loger.Warning("NewVariables err,",err)
+				setting.Logger.Warning("NewVariables err,",err)
 			}
 
 			//获取返回结果
@@ -72,7 +72,7 @@ func (d *DeviceNodeTemplate) NewVariables() []VariableTemplate {
 			LuaVariableMap := LuaVariableMapTemplate{}
 
 			if err := gluamapper.Map(ret.(*lua.LTable), &LuaVariableMap); err != nil {
-				setting.Loger.Warning("NewVariables gluamapper.Map err,",err)
+				setting.Logger.Warning("NewVariables gluamapper.Map err,",err)
 			}
 
 			variables := make([]VariableTemplate,0)
@@ -117,7 +117,7 @@ func (d *DeviceNodeTemplate) GenerateGetRealVariables(sAddr string,step int) ([]
 				Protect: true,
 			},lua.LString(sAddr),lua.LNumber(step))
 			if err != nil{
-				setting.Loger.Warning("GenerateGetRealVariables err,",err)
+				setting.Logger.Warning("GenerateGetRealVariables err,",err)
 			}
 
 			//获取返回结果
@@ -126,7 +126,7 @@ func (d *DeviceNodeTemplate) GenerateGetRealVariables(sAddr string,step int) ([]
 
 			LuaVariableMap := LuaVariableMapTemplate{}
 			if err := gluamapper.Map(ret.(*lua.LTable), &LuaVariableMap); err != nil {
-				setting.Loger.Warning("GenerateGetRealVariables gluamapper.Map err,",err)
+				setting.Logger.Warning("GenerateGetRealVariables gluamapper.Map err,",err)
 			}
 
 			ok := false
@@ -189,7 +189,7 @@ func (d *DeviceNodeTemplate) AnalysisRx(sAddr string,variables []VariableTemplat
 				Protect: true,
 			},lua.LString(sAddr),lua.LNumber(rxBufCnt))
 			if err != nil{
-				setting.Loger.Warning("AnalysisRx err,",err)
+				setting.Logger.Warning("AnalysisRx err,",err)
 			}
 
 			//获取返回结果
@@ -199,7 +199,7 @@ func (d *DeviceNodeTemplate) AnalysisRx(sAddr string,variables []VariableTemplat
 			LuaVariableMap := LuaVariableMapTemplate{}
 
 			if err := gluamapper.Map(ret.(*lua.LTable), &LuaVariableMap); err != nil {
-				setting.Loger.Warning("AnalysisRx gluamapper.Map err,",err)
+				setting.Logger.Warning("AnalysisRx gluamapper.Map err,",err)
 			}
 
 			timeNowStr := time.Now().Format("2006-01-02 15:04:05")

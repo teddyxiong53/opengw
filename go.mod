@@ -5,6 +5,7 @@ go 1.14
 require (
 	//deviceAPI v0.0.0
 	github.com/StackExchange/wmi v0.0.0-20190523213315-cbe66965904d // indirect
+	github.com/beevik/ntp v0.3.0
 	github.com/dgrijalva/jwt-go v3.2.0+incompatible
 	github.com/eclipse/paho.mqtt.golang v1.2.0
 	github.com/fastly/go-utils v0.0.0-20180712184237-d95a45783239 // indirect

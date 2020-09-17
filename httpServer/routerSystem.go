@@ -1,13 +1,11 @@
 package httpServer
 
 import (
-	"bytes"
 	"encoding/json"
 	"fmt"
 	"github.com/gin-gonic/gin"
 	"goAdapter/setting"
 	"net/http"
-	"os/exec"
 )
 
 func apiSystemReboot(context *gin.Context){
@@ -151,7 +149,7 @@ func apiSystemSetSystemRTC(context *gin.Context){
 
 	bodyBuf := make([]byte,1024)
 	n,_ := context.Request.Body.Read(bodyBuf)
-	fmt.Println(string(bodyBuf[:n]))
+	//fmt.Println(string(bodyBuf[:n]))
 
 	rRTC := &struct{
 		systemRTC  string
@@ -168,12 +166,68 @@ func apiSystemSetSystemRTC(context *gin.Context){
 		return
 	}
 
-	cmd := exec.Command("date","-s",rRTC.systemRTC)
-	var out bytes.Buffer
-	cmd.Stdout = &out
-	cmd.Start()
+	setting.SystemSetRTC(rRTC.systemRTC)
 
 	aParam.Code = "0"
+	aParam.Message = ""
+	aParam.Data = ""
+
+	sJson,_ := json.Marshal(aParam)
+	context.String(http.StatusOK,string(sJson))
+}
+
+func apiSystemSetNTPHost(context *gin.Context) {
+
+	aParam := struct {
+		Code    string `json:"Code"`
+		Message string `json:"Message"`
+		Data    string `json:"Data"`
+	}{
+		Code:    "1",
+		Message: "",
+		Data:    "",
+	}
+
+	bodyBuf := make([]byte, 1024)
+	n, _ := context.Request.Body.Read(bodyBuf)
+	//fmt.Println(string(bodyBuf[:n]))
+
+	rNTPHostAddr := setting.NTPHostAddrTemplate{}
+
+	err := json.Unmarshal(bodyBuf[:n], &rNTPHostAddr)
+	if err != nil {
+		fmt.Println("rNTPHostAddr json unMarshall err,", err)
+
+		aParam.Code = "1"
+		aParam.Message = "json unMarshall err"
+
+		sJson, _ := json.Marshal(aParam)
+		context.String(http.StatusOK, string(sJson))
+		return
+	}
+
+	setting.NTPHostAddr = rNTPHostAddr
+	setting.WriteNTPHostAddrToJson()
+
+	aParam.Code = "0"
+	aParam.Data = ""
+	aParam.Message = ""
+
+	sJson, _ := json.Marshal(aParam)
+	context.String(http.StatusOK, string(sJson))
+}
+
+func apiSystemGetNTPHost(context *gin.Context){
+
+	aParam := struct{
+		Code    string
+		Message string
+		Data    setting.NTPHostAddrTemplate
+	}{
+		Code:"0",
+		Message:"",
+		Data:setting.NTPHostAddr,
+	}
 
 	sJson,_ := json.Marshal(aParam)
 	context.String(http.StatusOK,string(sJson))

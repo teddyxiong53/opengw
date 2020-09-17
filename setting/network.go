@@ -98,7 +98,7 @@ func GetNetworkParam() NetworkParamListTemplate{
 
 		GetLinkState(v.ID)
 		ethInfo,err := GetNetInformation(v.Name)
-		log.Printf("ethInfo %+v\n",ethInfo)
+		//log.Printf("ethInfo %+v\n",ethInfo)
 		if err == nil{
 			NetworkParamList.NetworkParam[k].IP = ethInfo.IP
 			NetworkParamList.NetworkParam[k].Netmask = ethInfo.Mask
@@ -111,46 +111,43 @@ func GetNetworkParam() NetworkParamListTemplate{
 }
 
 //设置网络参数
-func SetNetworkParam(id string,param NetworkParamTemplate){
+func SetNetworkParam(id string,param NetworkParamTemplate) bool{
 
 	GetLinkState(id)
 
 	if id == "1"{
 		if NetworkLinkState.State[0] == 0{
-			log.Printf("setNetworkParam %s err\n",id)
-			return
+			//log.Printf("setNetworkParam %s err\n",id)
+			return false
 		}
 
 		NetworkParamList.NetworkParam[0] = param
 
 		if NetworkParamList.NetworkParam[0].DHCP == "1"{
 			//开启动态IP
-
 			cmdSetDHCP(0)
 		}else if NetworkParamList.NetworkParam[0].DHCP == "0"{
 			//开启静态IP
-
 			cmdSetStaticIP(0)
 		}
 	}else if id == "2"{
 		if NetworkLinkState.State[1] == 0{
-			log.Printf("setNetworkParam %s err\n",id)
-			return
+			//log.Printf("setNetworkParam %s err\n",id)
+			return false
 		}
 
 		NetworkParamList.NetworkParam[1] = param
 
 		if NetworkParamList.NetworkParam[1].DHCP == "1"{
 			//开启动态IP
-
 			cmdSetDHCP(1)
 		}else if NetworkParamList.NetworkParam[1].DHCP == "0"{
 			//开启静态IP
-
 			cmdSetStaticIP(1)
 		}
 	}
 
+	return true
 }
 
 func findNetCard(name string) (string, error) {

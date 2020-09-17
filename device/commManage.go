@@ -155,7 +155,7 @@ func (c *CommunicationManageTemplate)CommunicationManageDel() {
 				case cmd := <-c.CommonRequestChan:
 					{
 						//setting.Logrus.Printf("%v:common chan\n",c.CollInterfaceName)
-						setting.Loger.WithFields(logrus.Fields{
+						setting.Logger.WithFields(logrus.Fields{
 							"collName": c.CollInterface.CollInterfaceName,
 						}).Info("common chan")
 
