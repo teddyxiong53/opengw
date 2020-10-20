@@ -11,7 +11,11 @@ import (
 
 var Logger = logrus.New()
 
-func LogerInit(level string,save bool,cnt uint){
+func init() {
+	LogerInit(LogLevel, LogSaveToFile, LogFileMaxCnt)
+}
+
+func LogerInit(level string, save bool, cnt uint) {
 
 	//log输出行号和ms
 	//log.SetFlags(log.Lshortfile | log.Ldate | log.Lmicroseconds)
@@ -20,7 +24,7 @@ func LogerInit(level string,save bool,cnt uint){
 	Logger.Formatter = &logrus.JSONFormatter{}
 	//fmt.Printf("level %v\n",level)
 	//fmt.Printf("save %v\n",save)
-	if save == true{
+	if save == true {
 
 		exeCurDir, _ := filepath.Abs(filepath.Dir(os.Args[0]))
 
@@ -39,13 +43,13 @@ func LogerInit(level string,save bool,cnt uint){
 			rotatelogs.WithRotationCount(cnt),
 			rotatelogs.WithRotationTime(time.Hour),
 		)
-		if err != nil{
+		if err != nil {
 			fmt.Println(err)
 		}
 		//Loger.SetOutput(writer)
 
 		Logger.Out = writer
-	}else{
+	} else {
 		// 设置将日志输出到标准输出（默认的输出为stderr，标准错误）
 		// 日志消息输出可以是任意的io.writer类型
 		Logger.SetOutput(os.Stdout)
