@@ -58,13 +58,6 @@ func RouterWeb() http.Handler {
 			ntpRouter.GET("/hostAddr", apiSystemGetNTPHost)
 		}
 
-		//userRouter := router.Group("/api/v1/modbus")
-		//{
-		//	userRouter.POST("/cmd03",apiReadHoldReg)
-		//
-		//	userRouter.POST("/cmd10",apiWriteMultiReg)
-		//}
-
 		networkRouter := router.Group("/api/v1/network")
 		{
 			networkRouter.POST("/param", apiSetNetwork)
@@ -81,10 +74,10 @@ func RouterWeb() http.Handler {
 			networkDHCPRouter.GET("", apiGetNetwork)
 		}
 
-		serialRouter := router.Group("/api/v1/serial/param")
+		serialRouter := router.Group("/api/v1/serial")
 		{
 
-			serialRouter.GET("", apiGetSerial)
+			serialRouter.GET("/param", apiGetSerial)
 		}
 
 		deviceRouter := router.Group("/api/v1/device")
@@ -153,14 +146,24 @@ func RouterWeb() http.Handler {
 			toolRouter.POST("/commMessage", apiGetCommMessage)
 		}
 
-		pluginRouter := router.Group("/api/v1/update")
-		{
-			pluginRouter.POST("/plugin", apiUpdatePlugin)
-		}
+		//pluginRouter := router.Group("/api/v1/update")
+		//{
+		//	pluginRouter.POST("/plugin", apiUpdatePlugin)
+		//}
 
-		remoteRouter := router.Group("/api/v1/remote")
+		ReportRouter := router.Group("/api/v1/report")
 		{
-			remoteRouter.GET("/param", apiGetRemotePlatformParam)
+			ReportRouter.POST("/param", apiSetReportGWParam)
+
+			ReportRouter.GET("/param", apiGetReportGWParam)
+
+			ReportRouter.DELETE("/param", apiDeleteReportGWParam)
+
+			ReportRouter.POST("/node/param", apiSetReportNodeWParam)
+
+			ReportRouter.GET("/node/param", apiGetReportNodeWParam)
+
+			ReportRouter.DELETE("/node/param", apiDeleteReportNodeWParam)
 		}
 	}
 

@@ -37,6 +37,9 @@ type CollectInterfaceTemplate struct {
 	DeviceNodeCnt       int                   			`json:"DeviceNodeCnt"` 			//设备数量
 	DeviceNodeOnlineCnt int             				`json:"DeviceNodeOnlineCnt"`	//设备在线数量
 	DeviceNodeMap       []*DeviceNodeTemplate 			`json:"DeviceNodeMap"` 			//节点表
+	OnlineReportChan    chan string                    `json:"-"`
+	OfflineReportChan   chan string                    `json:"-"`
+	PropertyReportChan  chan string                    `json:"-"`
 }
 
 var CollectInterfaceMap = make([]*CollectInterfaceTemplate,0)
@@ -221,6 +224,9 @@ func NewCollectInterface(collInterfaceName, commInterfaceName string,
 		OfflinePeriod: offlinePeriod,
 		DeviceNodeCnt: deviceNodeCnt,
 		DeviceNodeMap: make([]*DeviceNodeTemplate, 0),
+		OfflineReportChan:  make(chan string, 100),
+		OnlineReportChan:   make(chan string, 100),
+		PropertyReportChan: make(chan string, 100),
 	}
 
 	//打开串口
