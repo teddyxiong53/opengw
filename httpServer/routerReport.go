@@ -271,12 +271,11 @@ func apiGetReportNodeWParam(context *gin.Context) {
 		Code    string                      `json:"Code"`
 		Message string                      `json:"Message"`
 		Data    []ReportServiceNodeTemplate `json:"Data"`
-	}{}
+	}{
+		Data:make([]ReportServiceNodeTemplate,0),
+	}
 
 	ServiceName := context.Query("ServiceName")
-
-	aParam.Code = "0"
-	aParam.Message = ""
 
 	for _, v := range report.ReportServiceParamListAliyun.ServiceList {
 		if v.GWParam.ServiceName == ServiceName {
@@ -291,12 +290,19 @@ func apiGetReportNodeWParam(context *gin.Context) {
 				ReportServiceNode.ReportStatus = d.ReportStatus
 				ReportServiceNode.Param = d.Param
 				aParam.Data = append(aParam.Data, ReportServiceNode)
+
+				aParam.Code = "0"
+				aParam.Message = ""
+				sJson, _ := json.Marshal(aParam)
+				context.String(http.StatusOK, string(sJson))
+				return
 			}
 		}
 	}
 
+	aParam.Code = "1"
+	aParam.Message = ""
 	sJson, _ := json.Marshal(aParam)
-
 	context.String(http.StatusOK, string(sJson))
 }
 
