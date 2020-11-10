@@ -286,44 +286,56 @@ func (r *ReportServiceParamAliyunTemplate) GWPropertyPost() {
 
 	valueMap := make([]mqttClient.MQTTAliyunValueTemplate, 0)
 
-	for _, n := range r.NodeList {
-		for _, c := range device.CollectInterfaceMap {
-			if c.CollInterfaceName == n.CollInterfaceName {
-				for _, d := range c.DeviceNodeMap {
-					////无线主站中TD200的地址为0
-					//if d.Addr == "0" {
-					//	for _, v := range d.VariableMap {
-					//		if v.Name == "Chan" {
-					//			if len(v.Value) > 1 {
-					//				index := len(v.Value) - 1
-					//				mqttAliyunValue := mqttClient.MQTTAliyunValueTemplate{}
-					//				mqttAliyunValue.Name = v.Name
-					//				mqttAliyunValue.Value = v.Value[index].Value
-					//				valueMap = append(valueMap, mqttAliyunValue)
-					//			}
-					//		} else if v.Name == "SystemID" {
-					//			if len(v.Value) > 1 {
-					//				index := len(v.Value) - 1
-					//				mqttAliyunValue := mqttClient.MQTTAliyunValueTemplate{}
-					//				mqttAliyunValue.Name = v.Name
-					//				mqttAliyunValue.Value = v.Value[index].Value
-					//				valueMap = append(valueMap, mqttAliyunValue)
-					//			}
-					//		}
-					//	}
-					//}
-					if d.Addr == "0" {
-						mqttAliyunValue := mqttClient.MQTTAliyunValueTemplate{}
-						mqttAliyunValue.Name = "Chan"
-						mqttAliyunValue.Value = 12
-						valueMap = append(valueMap, mqttAliyunValue)
-					}
-				}
-			}
-		}
-	}
+	mqttAliyunValue := mqttClient.MQTTAliyunValueTemplate{}
 
-	//if len(valueMap) > 0 {
+	mqttAliyunValue.Name = "MemTotal"
+	mqttAliyunValue.Value = setting.SystemState.MemTotal
+	valueMap = append(valueMap, mqttAliyunValue)
+
+	mqttAliyunValue.Name = "MemUse"
+	mqttAliyunValue.Value = setting.SystemState.MemUse
+	valueMap = append(valueMap, mqttAliyunValue)
+
+	mqttAliyunValue.Name = "DiskTotal"
+	mqttAliyunValue.Value = setting.SystemState.DiskTotal
+	valueMap = append(valueMap, mqttAliyunValue)
+
+	mqttAliyunValue.Name = "DiskUse"
+	mqttAliyunValue.Value = setting.SystemState.DiskUse
+	valueMap = append(valueMap, mqttAliyunValue)
+
+	mqttAliyunValue.Name = "Name"
+	mqttAliyunValue.Value = setting.SystemState.Name
+	valueMap = append(valueMap, mqttAliyunValue)
+
+	mqttAliyunValue.Name = "SN"
+	mqttAliyunValue.Value = setting.SystemState.SN
+	valueMap = append(valueMap, mqttAliyunValue)
+
+	mqttAliyunValue.Name = "HardVer"
+	mqttAliyunValue.Value = setting.SystemState.HardVer
+	valueMap = append(valueMap, mqttAliyunValue)
+
+	mqttAliyunValue.Name = "SoftVer"
+	mqttAliyunValue.Value = setting.SystemState.SoftVer
+	valueMap = append(valueMap, mqttAliyunValue)
+
+	mqttAliyunValue.Name = "SystemRTC"
+	mqttAliyunValue.Value = setting.SystemState.SystemRTC
+	valueMap = append(valueMap, mqttAliyunValue)
+
+	mqttAliyunValue.Name = "RunTime"
+	mqttAliyunValue.Value = setting.SystemState.RunTime
+	valueMap = append(valueMap, mqttAliyunValue)
+
+	mqttAliyunValue.Name = "DeviceOnline"
+	mqttAliyunValue.Value = setting.SystemState.DeviceOnline
+	valueMap = append(valueMap, mqttAliyunValue)
+
+	mqttAliyunValue.Name = "DevicePacketLoss"
+	mqttAliyunValue.Value = setting.SystemState.DevicePacketLoss
+	valueMap = append(valueMap, mqttAliyunValue)
+
 	mqttAliyunRegister := mqttClient.MQTTAliyunRegisterTemplate{
 		RemoteIP:     r.GWParam.IP,
 		RemotePort:   r.GWParam.Port,
@@ -333,7 +345,6 @@ func (r *ReportServiceParamAliyunTemplate) GWPropertyPost() {
 	}
 
 	mqttClient.MQTTAliyunGWPropertyPost(r.GWParam.MQTTClient, mqttAliyunRegister, valueMap)
-	//}
 }
 
 func (r *ReportServiceParamAliyunTemplate) AllNodePropertyPost() {
@@ -490,47 +501,67 @@ func ReportServiceAliyunPoll(r *ReportServiceParamAliyunTemplate) {
 	}
 }
 
+func ReportServiceAliyunProcessGetSubDeviceProperty(r *ReportServiceParamAliyunTemplate, message mqttClient.MQTTAliyunMessageTemplate,
+	gw mqttClient.MQTTAliyunRegisterTemplate, cmdName string) {
+
+	addrArray := strings.Split(message.Params["Addr"].(string), ",")
+	for _, v := range addrArray {
+		cmd := device.CommunicationCmdTemplate{}
+		cmd.CollInterfaceName = "coll1"
+		cmd.DeviceAddr = v
+		cmd.FunName = cmdName
+		paramStr, _ := json.Marshal(message.Params)
+		cmd.FunPara = string(paramStr)
+
+		if len(device.CommunicationManage) > 0 {
+			if device.CommunicationManage[0].CommunicationManageAddEmergency(cmd) == true {
+				payload := mqttClient.MQTTAliyunThingServiceAckTemplate{
+					Identifier: cmdName,
+					ID:         message.ID,
+					Code:       200,
+					Data:       make(map[string]interface{}),
+				}
+				mqttClient.MQTTAliyunThingServiceAck(r.GWParam.MQTTClient, gw, payload)
+			} else {
+				payload := mqttClient.MQTTAliyunThingServiceAckTemplate{
+					Identifier: cmdName,
+					ID:         message.ID,
+					Code:       1000,
+					Data:       make(map[string]interface{}),
+				}
+				mqttClient.MQTTAliyunThingServiceAck(r.GWParam.MQTTClient, gw, payload)
+			}
+		}
+	}
+}
+
 func ReportServiceAliyunProcessMessage(r *ReportServiceParamAliyunTemplate, topic string, payload []byte) {
 
 	log.Printf("TOPIC: %s\n", topic)
 	log.Printf("MSG: %s\n", payload)
 
-	//属性设置
-	if strings.Contains(topic, "/thing/service/property/set") {
+	property := mqttClient.MQTTAliyunMessageTemplate{}
+	err := json.Unmarshal(payload, &property)
+	if err != nil {
+		log.Printf("/thing/service/property/set json unmarshal err")
+		return
+	}
+	log.Printf("param %v\n", property.Params)
 
-		property := mqttClient.MQTTAliyunPropertySetTemplate{}
-		err := json.Unmarshal(payload, &property)
-		if err != nil {
-			log.Printf("/thing/service/property/set json unmarshal err")
-			return
-		}
-		log.Printf("param %v\n", property.Params)
+	mqttAliyunRegister := mqttClient.MQTTAliyunRegisterTemplate{
+		RemoteIP:     r.GWParam.IP,
+		RemotePort:   r.GWParam.Port,
+		ProductKey:   r.GWParam.Param.ProductKey,
+		DeviceName:   r.GWParam.Param.DeviceName,
+		DeviceSecret: r.GWParam.Param.DeviceSecret,
+	}
 
-		splitTopic := strings.Split(topic, "/")
-		log.Printf("msg %v\n", splitTopic)
-		if len(splitTopic) > 2 {
-			deviceName := splitTopic[2]
-			//判断网关
-			if r.GWParam.Param.DeviceName == deviceName {
+	if strings.Contains(topic, "/thing/event/property/pack/post_reply") { //属性上报回应
 
-			} else {
-				//判断设备
-				for _, v := range r.NodeList {
-					if v.Param.DeviceName == deviceName {
-						cmd := device.CommunicationCmdTemplate{}
-						cmd.CollInterfaceName = "coll1"
-						cmd.DeviceAddr = v.Addr
-						cmd.FunName = "SetRemoteCmdAdjust"
-						//cmd.FunPara = string(bodyBuf[:n])
+	} else if strings.Contains(topic, "/thing/service/property/set") { //属性设置
 
-						if len(device.CommunicationManage) > 0 {
-							if device.CommunicationManage[0].CommunicationManageAddEmergency(cmd) == true {
+	} else if strings.Contains(topic, "/thing/service/GetSubDeviceProperty") { //读取子设备的属性
 
-							}
-						}
-					}
-				}
-			}
-		}
+		ReportServiceAliyunProcessGetSubDeviceProperty(r, property, mqttAliyunRegister, "GetDeviceRealVariables")
 	}
 }

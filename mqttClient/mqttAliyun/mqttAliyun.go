@@ -41,6 +41,21 @@ type MQTTAliyunPropertySetTemplate struct {
 	Version string                 `json:"version"`
 }
 
+
+type MQTTAliyunMessageTemplate struct {
+	Method  string                 `json:"method"`
+	ID      string                 `json:"id"`
+	Params  map[string]interface{} `json:"params"`
+	Version string                 `json:"version"`
+}
+
+type MQTTAliyunThingServiceAckTemplate struct {
+	Identifier string                 `json:"identifier"`
+	ID         string                 `json:"id"`
+	Code       int                    `json:"code"`
+	Data       map[string]interface{} `json:"data"`
+}
+
 var (
 	timeStamp string = "1528018257135"
 	MsgID     int    = 0
@@ -316,4 +331,31 @@ func MQTTAliyunNodePropertyPost(client MQTT.Client, gw MQTTAliyunRegisterTemplat
 	propertyPostTopic := "/sys/" + gw.ProductKey + "/" + gw.DeviceName + "/thing/event/property/pack/post"
 	token := client.Publish(propertyPostTopic, 0, false, sJson)
 	token.Wait()
+}
+
+func MQTTAliyunThingServiceAck(client MQTT.Client, gw MQTTAliyunRegisterTemplate, ackMessage MQTTAliyunThingServiceAckTemplate) {
+
+	type MQTTThingServicePayloadTemplate struct {
+		ID   string                 `json:"id"`
+		Code int                    `json:"code"`
+		Data map[string]interface{} `json:"data"`
+	}
+
+	payload := MQTTThingServicePayloadTemplate{
+		ID:   ackMessage.ID,
+		Code: ackMessage.Code,
+		Data: ackMessage.Data,
+	}
+
+	sJson, _ := json.Marshal(payload)
+	log.Printf("thingServiceAck post msg: %s\n", sJson)
+
+	thingServiceTopic := "/sys/" + gw.ProductKey + "/" + gw.DeviceName +
+		"/thing/service/" + ackMessage.Identifier + "_reply"
+	log.Printf("thingServiceAck post topic: %s\n", thingServiceTopic)
+
+	if client != nil {
+		token := client.Publish(thingServiceTopic, 0, false, sJson)
+		token.Wait()
+	}
 }
