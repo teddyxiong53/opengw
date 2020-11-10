@@ -300,7 +300,7 @@ func apiGetReportNodeWParam(context *gin.Context) {
 		}
 	}
 
-	aParam.Code = "1"
+	aParam.Code = "0"
 	aParam.Message = ""
 	sJson, _ := json.Marshal(aParam)
 	context.String(http.StatusOK, string(sJson))
@@ -360,9 +360,8 @@ func apiDeleteReportNodeWParam(context *gin.Context) {
 		}
 	}
 
-	aParam.Code = "1"
+	aParam.Code = "0"
 	aParam.Message = "node is not exist"
-	aParam.Data = ""
 	sJson, _ := json.Marshal(aParam)
 
 	context.String(http.StatusOK, string(sJson))
