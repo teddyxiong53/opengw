@@ -15,31 +15,98 @@ import (
 	"strings"
 )
 
+type NetworkNameListTemplate struct {
+	Name []string `json:"Name"`
+}
+
 type NetworkParamTemplate struct{
-	ID   string         `json:ID`
 	Name string         `json:"Name"`
 	DHCP string         `json:"DHCP"`
 	IP string           `json:"IP"`
 	Netmask string      `json:"Netmask"`
 	Broadcast string    `json:"Broadcast"`
 	MAC string          `json:"MAC"`
+	LinkStatus uint32   `json:"-"`
 }
 
 type NetworkParamListTemplate struct{
-	NetworkParam []NetworkParamTemplate
+	NetworkParam []*NetworkParamTemplate
 }
 
-type NetworkLinkStateTemplate struct{
-	State [2]uint32
+// NetInformation 网络信息
+type NetInformation struct {
+	InterName    string // 网卡名
+	HardwareAddr net.HardwareAddr
+	Mac          string
+	IP           string
+	Mask         string
+	GatewayIP    string
 }
 
-var NetworkParamList NetworkParamListTemplate
-var NetworkLinkState NetworkLinkStateTemplate
+var NetworkNameList  = NetworkNameListTemplate{}
+var NetworkParamList = &NetworkParamListTemplate{
+	NetworkParam: make([]*NetworkParamTemplate,0),
+}
+
+func init(){
 
 
-func cmdSetDHCP(id int){
+}
 
-	cmd := exec.Command("udhcpc","-i",NetworkParamList.NetworkParam[id].Name,"5")
+func (n *NetworkParamListTemplate)CreatNetworkPara(name string){
+
+	networkParam := &NetworkParamTemplate{
+		Name:name,
+		DHCP:"1",
+	}
+
+	n.NetworkParam = append(n.NetworkParam,networkParam)
+}
+
+//获取当前网络参数
+func (n *NetworkParamListTemplate)GetNetworkParam(){
+
+	for _,v := range n.NetworkParam{
+
+		ethInfo,err := GetNetInformation(v.Name)
+
+		if err == nil{
+			v.IP = ethInfo.IP
+			v.Netmask = ethInfo.Mask
+			v.Broadcast = ethInfo.GatewayIP
+			v.MAC = strings.ToUpper(ethInfo.Mac)
+		}
+		v.GetNetworkStatus()
+	}
+}
+
+//设置网络参数
+func (n *NetworkParamListTemplate)SetNetworkParam(param NetworkParamTemplate) {
+
+	for _,v := range n.NetworkParam{
+		if v.Name == param.Name{
+			v.DHCP = param.DHCP
+			v.IP = param.IP
+			v.Netmask = param.Netmask
+			v.Broadcast = param.Broadcast
+		}
+	}
+
+	NetworkParaWrite()
+}
+
+func (n *NetworkParamTemplate)GetNetworkStatus(){
+
+	ethHandle, _ := ethtool.NewEthtool()
+	defer ethHandle.Close()
+
+	n.LinkStatus, _ = ethHandle.LinkState(n.Name)
+}
+
+func (n *NetworkParamTemplate)CmdSetDHCP(){
+
+	//cmd := exec.Command("udhcpc","-i",n.Name,"5")
+	cmd := exec.Command("udhcpc","-i",n.Name)
 
 	var out bytes.Buffer
 	cmd.Stdout = &out
@@ -50,104 +117,21 @@ func cmdSetDHCP(id int){
 	log.Println(str)
 }
 
-func cmdSetStaticIP(id int){
+func (n *NetworkParamTemplate)CmdSetStaticIP(){
 
-	strNetMask   := "netmask " + NetworkParamList.NetworkParam[id].Netmask
+	strNetMask   := "netmask " + n.Netmask
 	cmd := exec.Command("ifconfig",
-		NetworkParamList.NetworkParam[id].Name,
-		NetworkParamList.NetworkParam[id].IP,
+		n.Name,
+		n.IP,
 		strNetMask)
 
 	var out bytes.Buffer
 	cmd.Stdout = &out
 	cmd.Start()	//执行到此,直接往后执行
 
-	cmd2 := exec.Command("/sbin/route","add","default","gw",NetworkParamList.NetworkParam[id].Broadcast)
+	cmd2 := exec.Command("/sbin/route","add","default","gw",n.Broadcast)
 	cmd2.Stdout = &out
 	cmd2.Start()	//执行到此,直接往后执行
-}
-
-func GetNetworkStatus(){
-
-	for _,v := range NetworkParamList.NetworkParam{
-		GetLinkState(v.ID)
-	}
-}
-
-func GetLinkState(id string){
-
-	ethHandle, _ := ethtool.NewEthtool()
-	defer ethHandle.Close()
-
-	var state uint32
-
-	if id == "1"{
-		state, _ = ethHandle.LinkState(NetworkParamList.NetworkParam[0].Name)
-		NetworkLinkState.State[0] = state
-	}else if id == "2"{
-		state, _ = ethHandle.LinkState(NetworkParamList.NetworkParam[1].Name)
-		NetworkLinkState.State[1] = state
-	}
-}
-
-
-//获取当前网络参数
-func GetNetworkParam() NetworkParamListTemplate{
-
-	for k,v := range NetworkParamList.NetworkParam{
-
-		GetLinkState(v.ID)
-		ethInfo,err := GetNetInformation(v.Name)
-		//log.Printf("ethInfo %+v\n",ethInfo)
-		if err == nil{
-			NetworkParamList.NetworkParam[k].IP = ethInfo.IP
-			NetworkParamList.NetworkParam[k].Netmask = ethInfo.Mask
-			NetworkParamList.NetworkParam[k].Broadcast = ethInfo.GatewayIP
-			NetworkParamList.NetworkParam[k].MAC = strings.ToUpper(ethInfo.Mac)
-		}
-	}
-
-	return NetworkParamList
-}
-
-//设置网络参数
-func SetNetworkParam(id string,param NetworkParamTemplate) bool{
-
-	GetLinkState(id)
-
-	if id == "1"{
-		if NetworkLinkState.State[0] == 0{
-			//log.Printf("setNetworkParam %s err\n",id)
-			return false
-		}
-
-		NetworkParamList.NetworkParam[0] = param
-
-		if NetworkParamList.NetworkParam[0].DHCP == "1"{
-			//开启动态IP
-			cmdSetDHCP(0)
-		}else if NetworkParamList.NetworkParam[0].DHCP == "0"{
-			//开启静态IP
-			cmdSetStaticIP(0)
-		}
-	}else if id == "2"{
-		if NetworkLinkState.State[1] == 0{
-			//log.Printf("setNetworkParam %s err\n",id)
-			return false
-		}
-
-		NetworkParamList.NetworkParam[1] = param
-
-		if NetworkParamList.NetworkParam[1].DHCP == "1"{
-			//开启动态IP
-			cmdSetDHCP(1)
-		}else if NetworkParamList.NetworkParam[1].DHCP == "0"{
-			//开启静态IP
-			cmdSetStaticIP(1)
-		}
-	}
-
-	return true
 }
 
 func findNetCard(name string) (string, error) {
@@ -177,16 +161,6 @@ func HardwareAddr(name string) (net.HardwareAddr, error) {
 		return net.HardwareAddr{}, err
 	}
 	return inter.HardwareAddr, err
-}
-
-// NetInformation 网络信息
-type NetInformation struct {
-	InterName    string // 网卡名
-	HardwareAddr net.HardwareAddr
-	Mac          string
-	IP           string
-	Mask         string
-	GatewayIP    string
 }
 
 // 通过网卡获得 MAC IP IPMask GatewayIP
@@ -259,6 +233,15 @@ func NetworkParaRead() bool {
 
 			return false
 		}
+
+		for _,v := range NetworkParamList.NetworkParam{
+			if v.DHCP == "1"{
+				v.CmdSetDHCP()
+			}else if v.DHCP == "0"{
+				v.CmdSetStaticIP()
+			}
+		}
+
 		return true
 	} else {
 		fmt.Println("networkpara.json is not exist")
@@ -271,21 +254,11 @@ func NetworkParaRead() bool {
 		}
 		defer fp.Close()
 
-		NetworkParamList.NetworkParam = append(NetworkParamList.NetworkParam, NetworkParamTemplate{
-			ID:        "1",
-			Name:      "eth0",
-			DHCP:      "1",
-			IP:        "192.168.4.156",
-			Netmask:   "255.255.255.0",
-			Broadcast: "192.168.4.255"})
-		NetworkParamList.NetworkParam = append(NetworkParamList.NetworkParam, NetworkParamTemplate{
-			ID:        "2",
-			Name:      "eth1",
-			DHCP:      "1",
-			IP:        "192.168.4.156",
-			Netmask:   "255.255.255.0",
-			Broadcast: "192.168.4.255"})
-		NetworkParaWrite()
+		log.Printf("networkName %v\n",NetworkNameList)
+		for _,v := range NetworkNameList.Name{
+			NetworkParamList.CreatNetworkPara(v)
+			NetworkParaWrite()
+		}
 
 		return true
 	}
@@ -310,5 +283,6 @@ func NetworkParaWrite() {
 	if err != nil {
 		fmt.Println("write networkpara.json err", err)
 	}
+	fmt.Println("write networkpara.json ok")
 	fp.Sync()
 }

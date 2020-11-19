@@ -21,6 +21,7 @@ type ReportServiceNodeParamAliyunTemplate struct {
 	Name              string
 	Addr              string
 	CommStatus        string
+	ReportErrCnt      int `json:"-"`
 	ReportStatus      string
 	Protocol          string
 	Param             struct {
@@ -50,13 +51,19 @@ type ReportServiceGWParamAliyunTemplate struct {
 }
 
 type ReportServiceParamAliyunTemplate struct {
-	CommStatus string
-	GWParam    ReportServiceGWParamAliyunTemplate
-	NodeList   []ReportServiceNodeParamAliyunTemplate
+	CommStatus  string
+	GWParam     ReportServiceGWParamAliyunTemplate
+	NodeList    []ReportServiceNodeParamAliyunTemplate
+	MessageChan chan ReportServiceMessageAliyunTemplate `json:"-"`
 }
 
 type ReportServiceParamListAliyunTemplate struct {
 	ServiceList []*ReportServiceParamAliyunTemplate
+}
+
+type ReportServiceMessageAliyunTemplate struct {
+	Topic   string
+	Payload []byte
 }
 
 var ReportServiceParamListAliyun = &ReportServiceParamListAliyunTemplate{
@@ -67,9 +74,11 @@ func init() {
 
 	ReportServiceParamListAliyun.ReadParamFromJson()
 
+	//初始化chan
 	for _, v := range ReportServiceParamListAliyun.ServiceList {
+		v.MessageChan = make(chan ReportServiceMessageAliyunTemplate, 10)
 
-		go ReportServiceAliyunPoll(v)
+		//go ReportServiceAliyunPoll(v)
 	}
 }
 
@@ -94,6 +103,7 @@ func (s *ReportServiceParamListAliyunTemplate) ReadParamFromJson() bool {
 			return false
 		}
 		log.Println("read reportServiceParamListAliyun.json success")
+
 		return true
 	} else {
 		log.Println("reportServiceParamListAliyun.json is not exist")
@@ -192,17 +202,9 @@ func (r *ReportServiceParamAliyunTemplate) DeleteReportNode(addr string) {
 }
 
 func GWPublishHandler(client MQTT.Client, msg MQTT.Message) {
-	//log.Printf("TOPIC: %s\n", msg.Topic())
-	//log.Printf("MSG: %s\n", msg.Payload())
 
 	for _, v := range ReportServiceParamListAliyun.ServiceList {
-		//log.Printf("GW %v\n", v.GWParam)
 		if v.GWParam.MQTTClient == client {
-			//message := ReportServiceAliyunMessageTemplate{
-			//	Topic:   msg.Topic(),
-			//	Payload: msg.Payload(),
-			//}
-			//v.GWParam.MessageChan <- message
 			go ReportServiceAliyunProcessMessage(v, msg.Topic(), msg.Payload())
 		}
 	}
@@ -249,6 +251,17 @@ func (r *ReportServiceParamAliyunTemplate) NodeLogin(addr []string) bool {
 	}
 	mqttClient.MQTTAliyunNodeLoginIn(r.GWParam.MQTTClient, mqttAliyunRegister, nodeList)
 
+	select {
+	case ackMessage := <-r.MessageChan:
+		if strings.Contains(ackMessage.Topic, "/combine/batch_login_reply") {
+			log.Printf("Node combine/login ok")
+		} else {
+			log.Printf("Node combine/login err")
+		}
+	default:
+		log.Printf("Node combine/login err")
+
+	}
 	return true
 }
 
@@ -278,6 +291,17 @@ func (r *ReportServiceParamAliyunTemplate) NodeLogOut(addr []string) bool {
 		DeviceSecret: r.GWParam.Param.DeviceSecret,
 	}
 	mqttClient.MQTTAliyunNodeLoginOut(r.GWParam.MQTTClient, mqttAliyunRegister, nodeList)
+
+	select {
+	case ackMessage := <-r.MessageChan:
+		if strings.Contains(ackMessage.Topic, "/combine/batch_logout_reply") {
+			log.Printf("Node combine/logout ok")
+		} else {
+			log.Printf("Node combine/logout err")
+		}
+	default:
+		log.Printf("Node combine/logout err")
+	}
 
 	return true
 }
@@ -345,6 +369,18 @@ func (r *ReportServiceParamAliyunTemplate) GWPropertyPost() {
 	}
 
 	mqttClient.MQTTAliyunGWPropertyPost(r.GWParam.MQTTClient, mqttAliyunRegister, valueMap)
+
+	select {
+	case ackMessage := <-r.MessageChan:
+		if strings.Contains(ackMessage.Topic, "/thing/event/property/pack/post_reply") {
+			log.Printf("gw property post ok")
+		} else {
+			log.Printf("gw property post err")
+		}
+	default:
+		log.Printf("gw property post err")
+	}
+
 }
 
 func (r *ReportServiceParamAliyunTemplate) AllNodePropertyPost() {
@@ -377,7 +413,6 @@ func (r *ReportServiceParamAliyunTemplate) AllNodePropertyPost() {
 		}
 	}
 
-	//if len(valueMap) > 0 {
 	mqttAliyunRegister := mqttClient.MQTTAliyunRegisterTemplate{
 		RemoteIP:     r.GWParam.IP,
 		RemotePort:   r.GWParam.Port,
@@ -387,7 +422,28 @@ func (r *ReportServiceParamAliyunTemplate) AllNodePropertyPost() {
 	}
 
 	mqttClient.MQTTAliyunNodePropertyPost(r.GWParam.MQTTClient, mqttAliyunRegister, NodeValueMap)
-	//}
+
+	select {
+	case ackMessage := <-r.MessageChan:
+		if strings.Contains(ackMessage.Topic, "/thing/event/property/pack/post_reply") {
+			log.Printf("node property post ok")
+			for k, _ := range r.NodeList {
+				r.NodeList[k].ReportErrCnt = 0
+				r.NodeList[k].ReportStatus = "onLine"
+			}
+		} else {
+			log.Printf("node property post err")
+			for k, _ := range r.NodeList {
+				r.NodeList[k].ReportErrCnt++
+				if r.NodeList[k].ReportErrCnt >= 3 {
+					r.NodeList[k].ReportErrCnt = 0
+					r.NodeList[k].ReportStatus = "offLine"
+				}
+			}
+		}
+	default:
+		log.Printf("node property post err")
+	}
 }
 
 //指定设备上传属性
@@ -437,7 +493,36 @@ func (r *ReportServiceParamAliyunTemplate) NodePropertyPost(addr []string) {
 	}
 
 	mqttClient.MQTTAliyunNodePropertyPost(r.GWParam.MQTTClient, mqttAliyunRegister, NodeValueMap)
-	//}
+
+	select {
+	case ackMessage := <-r.MessageChan:
+		if strings.Contains(ackMessage.Topic, "/thing/event/property/pack/post_reply") {
+			log.Printf("node property post ok")
+			for _, a := range addr {
+				for k, n := range r.NodeList {
+					if a == n.Addr {
+						r.NodeList[k].ReportErrCnt = 0
+						r.NodeList[k].ReportStatus = "onLine"
+					}
+				}
+			}
+		} else {
+			log.Printf("node property post err")
+			for _, a := range addr {
+				for k, n := range r.NodeList {
+					if a == n.Addr {
+						r.NodeList[k].ReportErrCnt++
+						if r.NodeList[k].ReportErrCnt >= 3 {
+							r.NodeList[k].ReportErrCnt = 0
+							r.NodeList[k].ReportStatus = "offLine"
+						}
+					}
+				}
+			}
+		}
+	default:
+		log.Printf("node property post err")
+	}
 }
 
 func ReportServiceAliyunPoll(r *ReportServiceParamAliyunTemplate) {
@@ -448,7 +533,7 @@ func ReportServiceAliyunPoll(r *ReportServiceParamAliyunTemplate) {
 	str := fmt.Sprintf("@every %dm%ds", r.GWParam.ReportTime/60, r.GWParam.ReportTime%60)
 	setting.Logger.Infof("reportServiceAliyun %+v", str)
 
-	//cronProcess.AddFunc(str, r.GWPropertyPost)
+	cronProcess.AddFunc(str, r.GWPropertyPost)
 	//cronProcess.AddFunc(str, r.AllNodePropertyPost)
 
 	cronProcess.Start()
@@ -457,7 +542,6 @@ func ReportServiceAliyunPoll(r *ReportServiceParamAliyunTemplate) {
 	addr := make([]string, 0)
 
 	r.GWLogin()
-	//r.NodeLogin()
 
 	for {
 
@@ -501,6 +585,40 @@ func ReportServiceAliyunPoll(r *ReportServiceParamAliyunTemplate) {
 	}
 }
 
+func ReportServiceAliyunProcessRemoteCmd(r *ReportServiceParamAliyunTemplate, message mqttClient.MQTTAliyunMessageTemplate,
+	gw mqttClient.MQTTAliyunRegisterTemplate, cmdName string) {
+
+	addrArray := strings.Split(message.Params["Addr"].(string), ",")
+	for _, v := range addrArray {
+		cmd := device.CommunicationCmdTemplate{}
+		cmd.CollInterfaceName = "coll1"
+		cmd.DeviceAddr = v
+		cmd.FunName = cmdName
+		paramStr, _ := json.Marshal(message.Params)
+		cmd.FunPara = string(paramStr)
+
+		if len(device.CommunicationManage) > 0 {
+			if device.CommunicationManage[0].CommunicationManageAddEmergency(cmd) == true {
+				payload := mqttClient.MQTTAliyunThingServiceAckTemplate{
+					Identifier: cmdName,
+					ID:         message.ID,
+					Code:       200,
+					Data:       make(map[string]interface{}),
+				}
+				mqttClient.MQTTAliyunThingServiceAck(r.GWParam.MQTTClient, gw, payload)
+			} else {
+				payload := mqttClient.MQTTAliyunThingServiceAckTemplate{
+					Identifier: cmdName,
+					ID:         message.ID,
+					Code:       1000,
+					Data:       make(map[string]interface{}),
+				}
+				mqttClient.MQTTAliyunThingServiceAck(r.GWParam.MQTTClient, gw, payload)
+			}
+		}
+	}
+}
+
 func ReportServiceAliyunProcessGetSubDeviceProperty(r *ReportServiceParamAliyunTemplate, message mqttClient.MQTTAliyunMessageTemplate,
 	gw mqttClient.MQTTAliyunRegisterTemplate, cmdName string) {
 
@@ -537,16 +655,13 @@ func ReportServiceAliyunProcessGetSubDeviceProperty(r *ReportServiceParamAliyunT
 
 func ReportServiceAliyunProcessMessage(r *ReportServiceParamAliyunTemplate, topic string, payload []byte) {
 
-	log.Printf("TOPIC: %s\n", topic)
-	log.Printf("MSG: %s\n", payload)
+	log.Printf("Recv TOPIC: %s\n", topic)
+	log.Printf("Recv MSG: %s\n", payload)
 
-	property := mqttClient.MQTTAliyunMessageTemplate{}
-	err := json.Unmarshal(payload, &property)
-	if err != nil {
-		log.Printf("/thing/service/property/set json unmarshal err")
-		return
+	message := ReportServiceMessageAliyunTemplate{
+		Topic:   topic,
+		Payload: payload,
 	}
-	log.Printf("param %v\n", property.Params)
 
 	mqttAliyunRegister := mqttClient.MQTTAliyunRegisterTemplate{
 		RemoteIP:     r.GWParam.IP,
@@ -556,12 +671,105 @@ func ReportServiceAliyunProcessMessage(r *ReportServiceParamAliyunTemplate, topi
 		DeviceSecret: r.GWParam.Param.DeviceSecret,
 	}
 
-	if strings.Contains(topic, "/thing/event/property/pack/post_reply") { //属性上报回应
+	if strings.Contains(topic, "/thing/event/property/pack/post_reply") { //上报属性回应
 
-	} else if strings.Contains(topic, "/thing/service/property/set") { //属性设置
+		property := mqttClient.MQTTAliyunPropertyPostAckTemplate{}
+		err := json.Unmarshal(payload, &property)
+		if err != nil {
+			log.Printf("PropertyPostAck json unmarshal err")
+			return
+		}
+		log.Printf("code %v\n", property.Code)
 
+		r.MessageChan <- message
+	} else if strings.Contains(topic, "/combine/batch_login_reply") { //子设备上线回应
+
+		type MQTTAliyunLogInAckTemplate struct {
+			ID      string `json:"id"`
+			Code    int32  `json:"code"`
+			Message string `json:"message"`
+			data    string `json:"data"`
+		}
+
+		property := MQTTAliyunLogInAckTemplate{}
+		err := json.Unmarshal(payload, &property)
+		if err != nil {
+			log.Printf("LogInAck json unmarshal err")
+			return
+		}
+		log.Printf("code %v\n", property.Code)
+
+		r.MessageChan <- message
+	} else if strings.Contains(topic, "/combine/batch_logout_reply") { //子设备下线回应
+
+		type MQTTAliyunLogOutAckTemplate struct {
+			ID      string `json:"id"`
+			Code    int32  `json:"code"`
+			Message string `json:"message"`
+			data    string `json:"data"`
+		}
+
+		property := MQTTAliyunLogOutAckTemplate{}
+		err := json.Unmarshal(payload, &property)
+		if err != nil {
+			log.Printf("LogOutAck json unmarshal err")
+			return
+		}
+		log.Printf("code %v\n", property.Code)
+
+		r.MessageChan <- message
+	} else if strings.Contains(topic, "/thing/service/property/set") { //设置属性请求
+
+		cmd := device.CommunicationCmdTemplate{}
+		cmd.CollInterfaceName = "coll1"
+		//cmd.DeviceAddr = property["Addr"]
+		cmd.FunName = "SetRemoteCmdAdjust"
+		//cmd.FunPara = string(bodyBuf[:n])
+
+		if len(device.CommunicationManage) > 0 {
+			if device.CommunicationManage[0].CommunicationManageAddEmergency(cmd) == true {
+
+			}
+		}
+	} else if strings.Contains(topic, "/thing/service/SetRemoteCmdOpen") {
+
+		property := mqttClient.MQTTAliyunMessageTemplate{}
+		err := json.Unmarshal(payload, &property)
+		if err != nil {
+			log.Printf("processMessage json unmarshal err")
+			return
+		}
+		log.Printf("param %v\n", property.Params)
+		ReportServiceAliyunProcessRemoteCmd(r, property, mqttAliyunRegister, "SetRemoteCmdOpen")
+	} else if strings.Contains(topic, "/thing/service/SetRemoteCmdClose") {
+
+		property := mqttClient.MQTTAliyunMessageTemplate{}
+		err := json.Unmarshal(payload, &property)
+		if err != nil {
+			log.Printf("processMessage json unmarshal err")
+			return
+		}
+		log.Printf("param %v\n", property.Params)
+		ReportServiceAliyunProcessRemoteCmd(r, property, mqttAliyunRegister, "SetRemoteCmdClose")
+	} else if strings.Contains(topic, "/thing/service/SetRemoteCmdAdjust") {
+
+		property := mqttClient.MQTTAliyunMessageTemplate{}
+		err := json.Unmarshal(payload, &property)
+		if err != nil {
+			log.Printf("processMessage json unmarshal err")
+			return
+		}
+		log.Printf("param %v\n", property.Params)
+		ReportServiceAliyunProcessRemoteCmd(r, property, mqttAliyunRegister, "SetRemoteCmdAdjust")
 	} else if strings.Contains(topic, "/thing/service/GetSubDeviceProperty") { //读取子设备的属性
 
+		property := mqttClient.MQTTAliyunMessageTemplate{}
+		err := json.Unmarshal(payload, &property)
+		if err != nil {
+			log.Printf("processMessage json unmarshal err")
+			return
+		}
+		log.Printf("param %v\n", property.Params)
 		ReportServiceAliyunProcessGetSubDeviceProperty(r, property, mqttAliyunRegister, "GetDeviceRealVariables")
 	}
 }

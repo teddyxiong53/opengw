@@ -5,30 +5,31 @@ import (
 	"net/http"
 )
 
-func RouterWeb() http.Handler {
+func RouterWeb()  {
 
 	gin.SetMode(gin.ReleaseMode)
 	router := gin.Default()
 	//router := gin.New()
 
+	router.StaticFS("/static", http.Dir("/opt/ibox/webroot/static"))
+
+	router.GET("/", func(context *gin.Context) {
+		//log.Printf("ginContext %v\n",context.String)
+		context.File("/opt/ibox/webroot/index.html")
+	})
+
+	router.GET("/favicon.ico", func(context *gin.Context) {
+		context.File("/opt/ibox/webroot/favicon.ico")
+	})
+
+	router.GET("/serverConfig.json", func(context *gin.Context) {
+		context.File("/opt/ibox/webroot/serverConfig.json")
+	})
+
 	loginRouter := router.Group("/api/v1/system/")
 	{
 		loginRouter.POST("/login", apiLogin)
 	}
-
-	router.GET("/", func(context *gin.Context) {
-		context.File("webroot/index.html")
-	})
-
-	router.Static("/static", "webroot/static")
-
-	router.GET("/favicon.ico", func(context *gin.Context) {
-		context.File("webroot/favicon.ico")
-	})
-
-	router.GET("/serverConfig.json", func(context *gin.Context) {
-		context.File("webroot/serverConfig.json")
-	})
 
 	router.Use(JWTAuth())
 	{
@@ -167,5 +168,6 @@ func RouterWeb() http.Handler {
 		}
 	}
 
-	return router
+
+	router.Run(":80")
 }
