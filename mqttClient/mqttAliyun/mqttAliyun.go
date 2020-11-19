@@ -34,13 +34,11 @@ type MQTTAliyunNodeValueTemplate struct {
 	ValueMap   []MQTTAliyunValueTemplate
 }
 
-type MQTTAliyunPropertySetTemplate struct {
-	Method  string                 `json:"method"`
-	ID      string                 `json:"id"`
-	Params  map[string]interface{} `json:"params"`
-	Version string                 `json:"version"`
+type MQTTAliyunPropertyPostAckTemplate struct {
+	ID   string `json:"id"`
+	Code int32  `json:"code"`
+	data string `json:"data"`
 }
-
 
 type MQTTAliyunMessageTemplate struct {
 	Method  string                 `json:"method"`
@@ -100,9 +98,9 @@ func MQTTAliyunGWLogin(param MQTTAliyunRegisterTemplate, publishHandler MQTT.Mes
 	subTopic = "/sys/" + param.ProductKey + "/" + param.DeviceName + "/thing/service/property/set"
 	MQTTAliyunSubscribeTopic(mqttClient, subTopic)
 
-	//服务调用
-	subTopic = "/sys/" + param.ProductKey + "/" + param.DeviceName + "/thing/service/RemoteCmdOpen"
-	MQTTAliyunSubscribeTopic(mqttClient, subTopic)
+	//服务调用(服务不需要主动订阅，平台自动订阅)
+	//subTopic = "/sys/" + param.ProductKey + "/" + param.DeviceName + "/thing/service/RemoteCmdOpen"
+	//MQTTAliyunSubscribeTopic(mqttClient, subTopic)
 
 	//子设备注册
 	subTopic = "/sys/" + param.ProductKey + "/" + param.DeviceName + "/thing/sub/register_reply"
@@ -181,9 +179,12 @@ func MQTTAliyunNodeLoginIn(client MQTT.Client, gw MQTTAliyunRegisterTemplate, no
 	if len(NodeParamsList.DeviceList) > 0 {
 
 		log.Printf("node publish logInMsg: %s\n", sJson)
+		log.Printf("node publish topic: %s\n", loginInTopic)
 
-		token := client.Publish(loginInTopic, 0, false, sJson)
-		token.Wait()
+		if client != nil {
+			token := client.Publish(loginInTopic, 0, false, sJson)
+			token.Wait()
+		}
 	}
 }
 
@@ -219,6 +220,7 @@ func MQTTAliyunNodeLoginOut(client MQTT.Client, gw MQTTAliyunRegisterTemplate, n
 	sJson, _ := json.Marshal(mqttPayload)
 	if len(mqttPayload.Params) > 0 {
 		log.Printf("node publish logOutMsg: %s\n", sJson)
+		log.Printf("node publish topic: %s\n", loginOutTopic)
 
 		token := client.Publish(loginOutTopic, 0, false, sJson)
 		token.Wait()
@@ -265,8 +267,12 @@ func MQTTAliyunGWPropertyPost(client MQTT.Client, gw MQTTAliyunRegisterTemplate,
 
 	//propertyPostTopic := "/sys/" + MQTTAliyunGWParam.GWParam.ProductKey + "/" + MQTTAliyunGWParam.GWParam.DeviceName + "/thing/event/property/post"
 	propertyPostTopic := "/sys/" + gw.ProductKey + "/" + gw.DeviceName + "/thing/event/property/pack/post"
-	token := client.Publish(propertyPostTopic, 0, false, sJson)
-	token.Wait()
+
+	log.Printf("property post topic: %s\n", propertyPostTopic)
+	if client != nil {
+		token := client.Publish(propertyPostTopic, 0, false, sJson)
+		token.Wait()
+	}
 }
 
 func MQTTAliyunNodePropertyPost(client MQTT.Client, gw MQTTAliyunRegisterTemplate, nodeMap []MQTTAliyunNodeValueTemplate) {
@@ -329,8 +335,12 @@ func MQTTAliyunNodePropertyPost(client MQTT.Client, gw MQTTAliyunRegisterTemplat
 
 	//propertyPostTopic := "/sys/" + MQTTAliyunGWParam.GWParam.ProductKey + "/" + MQTTAliyunGWParam.GWParam.DeviceName + "/thing/event/property/post"
 	propertyPostTopic := "/sys/" + gw.ProductKey + "/" + gw.DeviceName + "/thing/event/property/pack/post"
-	token := client.Publish(propertyPostTopic, 0, false, sJson)
-	token.Wait()
+	log.Printf("property post topic: %s\n", propertyPostTopic)
+
+	if client != nil {
+		token := client.Publish(propertyPostTopic, 0, false, sJson)
+		token.Wait()
+	}
 }
 
 func MQTTAliyunThingServiceAck(client MQTT.Client, gw MQTTAliyunRegisterTemplate, ackMessage MQTTAliyunThingServiceAckTemplate) {

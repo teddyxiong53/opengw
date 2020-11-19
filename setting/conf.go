@@ -39,10 +39,18 @@ func LoadLog(file *ini.File){
 	LogFileMaxCnt = uint(file.Section("log").Key("FileMaxCnt").MustInt(10))
 }
 
+func LoadNetwork(file *ini.File) {
+
+	err := file.Section("network").MapTo(&NetworkNameList)
+	if err != nil {
+		log.Println(err)
+	}
+}
+
 /**************获取配置信息************************/
 func GetConf() {
 	exeCurDir, _ := filepath.Abs(filepath.Dir(os.Args[0]))
-	log.Println(exeCurDir)
+	//log.Println(exeCurDir)
 
 	path := exeCurDir + "/config/config.ini"
 	iniFile, err := ini.Load(path)
@@ -58,12 +66,15 @@ func GetConf() {
 
 		cfg.Section("serial").Key("serialPort").SetValue("/dev/ttyS0")
 
+		cfg.Section("network").Key("name").SetValue("eth0")
+
 		cfg.SaveTo(path)
 		return
 	}
 
 	LoadServer(iniFile)
 	LoadSerial(iniFile)
+	LoadNetwork(iniFile)
 	LoadLog(iniFile)
 }
 
