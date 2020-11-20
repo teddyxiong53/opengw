@@ -2,7 +2,8 @@ package httpServer
 
 import (
 	"github.com/gin-gonic/gin"
-	"net/http"
+	"os"
+	"path/filepath"
 )
 
 func RouterWeb()  {
@@ -11,20 +12,12 @@ func RouterWeb()  {
 	router := gin.Default()
 	//router := gin.New()
 
-	router.StaticFS("/static", http.Dir("/opt/ibox/webroot/static"))
+	exeCurDir, _ := filepath.Abs(filepath.Dir(os.Args[0]))
+	router.Static("/static", exeCurDir + "/webroot/static")
 
-	router.GET("/", func(context *gin.Context) {
-		//log.Printf("ginContext %v\n",context.String)
-		context.File("/opt/ibox/webroot/index.html")
-	})
-
-	router.GET("/favicon.ico", func(context *gin.Context) {
-		context.File("/opt/ibox/webroot/favicon.ico")
-	})
-
-	router.GET("/serverConfig.json", func(context *gin.Context) {
-		context.File("/opt/ibox/webroot/serverConfig.json")
-	})
+	router.StaticFile("/",exeCurDir + "/webroot/index.html")
+	router.StaticFile("/favicon.ico",exeCurDir + "/webroot/favicon.ico")
+	router.StaticFile("/serverConfig.json",exeCurDir + "/webroot/serverConfig.json")
 
 	loginRouter := router.Group("/api/v1/system/")
 	{
