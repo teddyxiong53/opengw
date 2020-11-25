@@ -140,10 +140,10 @@ func RouterWeb()  {
 			toolRouter.POST("/commMessage", apiGetCommMessage)
 		}
 
-		//pluginRouter := router.Group("/api/v1/update")
-		//{
-		//	pluginRouter.POST("/plugin", apiUpdatePlugin)
-		//}
+		pluginRouter := router.Group("/api/v1/update")
+		{
+			pluginRouter.POST("/plugin", apiUpdatePlugin)
+		}
 
 		ReportRouter := router.Group("/api/v1/report")
 		{

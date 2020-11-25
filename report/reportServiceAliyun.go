@@ -534,7 +534,7 @@ func ReportServiceAliyunPoll(r *ReportServiceParamAliyunTemplate) {
 	setting.Logger.Infof("reportServiceAliyun %+v", str)
 
 	cronProcess.AddFunc(str, r.GWPropertyPost)
-	//cronProcess.AddFunc(str, r.AllNodePropertyPost)
+	cronProcess.AddFunc(str, r.AllNodePropertyPost)
 
 	cronProcess.Start()
 	defer cronProcess.Stop()
