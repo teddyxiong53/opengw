@@ -3,16 +3,10 @@ package main
 import (
 	"fmt"
 	"github.com/robfig/cron"
-	"goAdapter/report"
-	"golang.org/x/sync/errgroup"
-
 	"goAdapter/device"
 	"goAdapter/httpServer"
+	"goAdapter/report"
 	"goAdapter/setting"
-)
-
-var (
-	g errgroup.Group
 )
 
 
@@ -47,7 +41,7 @@ func main() {
 	// 定义一个cron运行器
 	cronProcess := cron.New()
 	// 定时5秒，每5秒执行print5
-	cronProcess.AddFunc("*/5 * * * * *", setting.NetworkParamList.GetNetworkParam)
+	_ = cronProcess.AddFunc("*/5 * * * * *", setting.NetworkParamList.GetNetworkParam)
 
 	// 定时
 	for k, v := range device.CollectInterfaceMap {
@@ -56,16 +50,16 @@ func main() {
 		str := fmt.Sprintf("@every %dm%ds", v.PollPeriod/60, v.PollPeriod%60)
 		setting.Logger.Infof("str %+v", str)
 
-		cronProcess.AddFunc(str, device.CommunicationManage[k].CommunicationManagePoll)
+		_ = cronProcess.AddFunc(str, device.CommunicationManage[k].CommunicationManagePoll)
 
 		go device.CommunicationManage[k].CommunicationManageDel()
 	}
 
 	// 定时60秒,定时获取系统信息
-	cronProcess.AddFunc("*/60 * * * * *", setting.CollectSystemParam)
+	_ = cronProcess.AddFunc("*/60 * * * * *", setting.CollectSystemParam)
 
 	// 每天0点,定时获取NTP服务器的时间，并校时
-	cronProcess.AddFunc("0 0 0 * * ?", func(){
+	_ = cronProcess.AddFunc("0 0 0 * * ?", func(){
 		setting.NTPGetTime()
 	})
 
@@ -79,23 +73,6 @@ func main() {
 	//time.Sleep(time.Second * 10)
 
 	report.ReportServiceInit()
-
-	/**************httpserver初始化****************/
-	// 默认启动方式，包含 Logger、Recovery 中间件
-	//serverWeb := &http.Server{
-	//	Addr:         ":8080",
-	//	Handler:      httpServer.RouterWeb(),
-	//	ReadTimeout:  5 * time.Second,
-	//	WriteTimeout: 10 * time.Second,
-	//}
-	//
-	//g.Go(func() error {
-	//	return serverWeb.ListenAndServe()
-	//})
-	//
-	//if err := g.Wait(); err != nil {
-	//	setting.Logger.Fatal(err)
-	//}
 
 	httpServer.RouterWeb()
 }

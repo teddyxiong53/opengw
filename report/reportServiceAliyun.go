@@ -220,9 +220,10 @@ func (r *ReportServiceParamAliyunTemplate) GWLogin() bool {
 		DeviceSecret: r.GWParam.Param.DeviceSecret,
 	}
 
-	_, r.GWParam.MQTTClient = mqttClient.MQTTAliyunGWLogin(mqttAliyunRegister, GWPublishHandler)
+	status := false
+	status, r.GWParam.MQTTClient = mqttClient.MQTTAliyunGWLogin(mqttAliyunRegister, GWPublishHandler)
 
-	return true
+	return status
 }
 
 func (r *ReportServiceParamAliyunTemplate) NodeLogin(addr []string) bool {
@@ -251,6 +252,7 @@ func (r *ReportServiceParamAliyunTemplate) NodeLogin(addr []string) bool {
 	}
 	mqttClient.MQTTAliyunNodeLoginIn(r.GWParam.MQTTClient, mqttAliyunRegister, nodeList)
 
+	timerOut := time.NewTimer(500 * time.Millisecond)
 	select {
 	case ackMessage := <-r.MessageChan:
 		if strings.Contains(ackMessage.Topic, "/combine/batch_login_reply") {
@@ -258,7 +260,8 @@ func (r *ReportServiceParamAliyunTemplate) NodeLogin(addr []string) bool {
 		} else {
 			log.Printf("Node combine/login err")
 		}
-	default:
+	case <-timerOut.C:
+		timerOut.Stop()
 		log.Printf("Node combine/login err")
 
 	}
@@ -292,6 +295,7 @@ func (r *ReportServiceParamAliyunTemplate) NodeLogOut(addr []string) bool {
 	}
 	mqttClient.MQTTAliyunNodeLoginOut(r.GWParam.MQTTClient, mqttAliyunRegister, nodeList)
 
+	timerOut := time.NewTimer(500 * time.Millisecond)
 	select {
 	case ackMessage := <-r.MessageChan:
 		if strings.Contains(ackMessage.Topic, "/combine/batch_logout_reply") {
@@ -299,7 +303,8 @@ func (r *ReportServiceParamAliyunTemplate) NodeLogOut(addr []string) bool {
 		} else {
 			log.Printf("Node combine/logout err")
 		}
-	default:
+	case <-timerOut.C:
+		timerOut.Stop()
 		log.Printf("Node combine/logout err")
 	}
 
@@ -370,6 +375,7 @@ func (r *ReportServiceParamAliyunTemplate) GWPropertyPost() {
 
 	mqttClient.MQTTAliyunGWPropertyPost(r.GWParam.MQTTClient, mqttAliyunRegister, valueMap)
 
+	timerOut := time.NewTimer(500 * time.Millisecond)
 	select {
 	case ackMessage := <-r.MessageChan:
 		if strings.Contains(ackMessage.Topic, "/thing/event/property/pack/post_reply") {
@@ -377,7 +383,8 @@ func (r *ReportServiceParamAliyunTemplate) GWPropertyPost() {
 		} else {
 			log.Printf("gw property post err")
 		}
-	default:
+	case <-timerOut.C:
+		timerOut.Stop()
 		log.Printf("gw property post err")
 	}
 
@@ -423,6 +430,7 @@ func (r *ReportServiceParamAliyunTemplate) AllNodePropertyPost() {
 
 	mqttClient.MQTTAliyunNodePropertyPost(r.GWParam.MQTTClient, mqttAliyunRegister, NodeValueMap)
 
+	timerOut := time.NewTimer(500 * time.Millisecond)
 	select {
 	case ackMessage := <-r.MessageChan:
 		if strings.Contains(ackMessage.Topic, "/thing/event/property/pack/post_reply") {
@@ -441,7 +449,8 @@ func (r *ReportServiceParamAliyunTemplate) AllNodePropertyPost() {
 				}
 			}
 		}
-	default:
+	case <-timerOut.C:
+		timerOut.Stop()
 		log.Printf("node property post err")
 	}
 }
@@ -494,6 +503,7 @@ func (r *ReportServiceParamAliyunTemplate) NodePropertyPost(addr []string) {
 
 	mqttClient.MQTTAliyunNodePropertyPost(r.GWParam.MQTTClient, mqttAliyunRegister, NodeValueMap)
 
+	timerOut := time.NewTimer(500 * time.Millisecond)
 	select {
 	case ackMessage := <-r.MessageChan:
 		if strings.Contains(ackMessage.Topic, "/thing/event/property/pack/post_reply") {
@@ -520,12 +530,15 @@ func (r *ReportServiceParamAliyunTemplate) NodePropertyPost(addr []string) {
 				}
 			}
 		}
-	default:
+	case <-timerOut.C:
+		timerOut.Stop()
 		log.Printf("node property post err")
 	}
 }
 
 func ReportServiceAliyunPoll(r *ReportServiceParamAliyunTemplate) {
+
+	reportState := 0
 
 	// 定义一个cron运行器
 	cronProcess := cron.New()
@@ -533,52 +546,62 @@ func ReportServiceAliyunPoll(r *ReportServiceParamAliyunTemplate) {
 	str := fmt.Sprintf("@every %dm%ds", r.GWParam.ReportTime/60, r.GWParam.ReportTime%60)
 	setting.Logger.Infof("reportServiceAliyun %+v", str)
 
-	cronProcess.AddFunc(str, r.GWPropertyPost)
-	cronProcess.AddFunc(str, r.AllNodePropertyPost)
-
 	cronProcess.Start()
 	defer cronProcess.Stop()
 
 	addr := make([]string, 0)
 
-	r.GWLogin()
-
 	for {
+		switch reportState {
+		case 0:
+			{
+				if r.GWLogin() == true {
+					reportState = 1
 
-		//节点发生了上线
-		for _, c := range device.CollectInterfaceMap {
-			for i := 0; i < len(c.OnlineReportChan); i++ {
-				addr = append(addr, <-c.OnlineReportChan)
+					cronProcess.AddFunc(str, r.GWPropertyPost)
+					cronProcess.AddFunc(str, r.AllNodePropertyPost)
+				} else {
+					time.Sleep(5 * time.Second)
+				}
 			}
-		}
-		if len(addr) > 0 {
-			log.Printf("DeviceOnline %v\n", addr)
-			r.NodeLogin(addr)
-			addr = addr[0:0]
-		}
+		case 1:
+			{
+				//节点发生了上线
+				for _, c := range device.CollectInterfaceMap {
+					for i := 0; i < len(c.OnlineReportChan); i++ {
+						addr = append(addr, <-c.OnlineReportChan)
+					}
+				}
+				if len(addr) > 0 {
+					log.Printf("DeviceOnline %v\n", addr)
+					r.NodeLogin(addr)
+					addr = addr[0:0]
+				}
 
-		//节点发生了离线
-		for _, c := range device.CollectInterfaceMap {
-			for i := 0; i < len(c.OfflineReportChan); i++ {
-				addr = append(addr, <-c.OfflineReportChan)
-			}
-		}
-		if len(addr) > 0 {
-			log.Printf("DeviceOffline %v\n", addr)
-			r.NodeLogOut(addr)
-			addr = addr[0:0]
-		}
+				//节点发生了离线
+				for _, c := range device.CollectInterfaceMap {
+					for i := 0; i < len(c.OfflineReportChan); i++ {
+						addr = append(addr, <-c.OfflineReportChan)
+					}
+				}
+				if len(addr) > 0 {
+					log.Printf("DeviceOffline %v\n", addr)
+					r.NodeLogOut(addr)
+					addr = addr[0:0]
+				}
 
-		//节点有属性变化
-		for _, c := range device.CollectInterfaceMap {
-			for i := 0; i < len(c.PropertyReportChan); i++ {
-				addr = append(addr, <-c.PropertyReportChan)
+				//节点有属性变化
+				for _, c := range device.CollectInterfaceMap {
+					for i := 0; i < len(c.PropertyReportChan); i++ {
+						addr = append(addr, <-c.PropertyReportChan)
+					}
+				}
+				if len(addr) > 0 {
+					log.Printf("DevicePropertyChanged %v\n", addr)
+					r.NodePropertyPost(addr)
+					addr = addr[0:0]
+				}
 			}
-		}
-		if len(addr) > 0 {
-			log.Printf("DevicePropertyChanged %v\n", addr)
-			r.NodePropertyPost(addr)
-			addr = addr[0:0]
 		}
 
 		time.Sleep(100 * time.Millisecond)
