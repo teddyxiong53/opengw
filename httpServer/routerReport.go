@@ -232,6 +232,7 @@ func apiSetReportNodeWParam(context *gin.Context) {
 				v.AddReportNode(ReportServiceNodeParamAliyun)
 			}
 		}
+		log.Printf("ParamListAliyun %v\n",report.ReportServiceParamListAliyun.ServiceList)
 	case "Emqx.MQTT":
 
 	case "Huawei":
@@ -290,18 +291,17 @@ func apiGetReportNodeWParam(context *gin.Context) {
 				ReportServiceNode.ReportStatus = d.ReportStatus
 				ReportServiceNode.Param = d.Param
 				aParam.Data = append(aParam.Data, ReportServiceNode)
-
-				aParam.Code = "0"
-				aParam.Message = ""
-				sJson, _ := json.Marshal(aParam)
-				context.String(http.StatusOK, string(sJson))
-				return
 			}
+			aParam.Code = "0"
+			aParam.Message = ""
+			sJson, _ := json.Marshal(aParam)
+			context.String(http.StatusOK, string(sJson))
+			return
 		}
 	}
 
-	aParam.Code = "0"
-	aParam.Message = ""
+	aParam.Code = "1"
+	aParam.Message = "ServiceName is not correct"
 	sJson, _ := json.Marshal(aParam)
 	context.String(http.StatusOK, string(sJson))
 }

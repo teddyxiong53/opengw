@@ -176,6 +176,7 @@ func (r *ReportServiceParamAliyunTemplate) AddReportNode(param ReportServiceNode
 		//节点已经存在
 		if v.Addr == param.Addr {
 			r.NodeList[k] = param
+			log.Printf("node is exist\n")
 			ReportServiceParamListAliyun.WriteParamToJson()
 			return
 		}
@@ -184,8 +185,6 @@ func (r *ReportServiceParamAliyunTemplate) AddReportNode(param ReportServiceNode
 	//节点不存在则新建
 	r.NodeList = append(r.NodeList, param)
 	ReportServiceParamListAliyun.WriteParamToJson()
-
-	log.Printf("param %v\n", ReportServiceParamListAliyun)
 }
 
 func (r *ReportServiceParamAliyunTemplate) DeleteReportNode(addr string) {

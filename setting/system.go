@@ -5,7 +5,9 @@ import (
 	"fmt"
 	"github.com/shirou/gopsutil/disk"
 	"github.com/shirou/gopsutil/mem"
+	"os"
 	"os/exec"
+	"path/filepath"
 	"time"
 )
 
@@ -76,6 +78,11 @@ func SystemSetRTC(rtc string){
 	var out bytes.Buffer
 	cmd.Stdout = &out
 	cmd.Start()
+
+	//将时间写入硬件RTC中
+	cmd = exec.Command("hwclock", "-w")
+	cmd.Stdout = &out
+	cmd.Start()
 }
 
 func GetMemState(){
@@ -92,7 +99,8 @@ func GetMemState(){
 
 func GetDiskState(){
 
-	v, _ := disk.Usage("/opt")
+	exeCurDir, _ := filepath.Abs(filepath.Dir(os.Args[0]))
+	v, _ := disk.Usage(exeCurDir)
 
 	// almost every return value is a struct
 	//log.Printf("Disk Total: %v, Free:%v, UsedPercent:%f%%\n",
