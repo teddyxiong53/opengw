@@ -3,7 +3,6 @@ package device
 import (
 	"encoding/json"
 	lua "github.com/yuin/gopher-lua"
-	"goAdapter/setting"
 	"io/ioutil"
 	"log"
 	"os"
@@ -31,7 +30,11 @@ var DeviceNodeTypeMap = DeviceNodeTypeMapStruct{
 }
 
 //var DeviceTypePluginMap = make(map[int]*plugin.Plugin)
-var DeviceTypePluginMap = make(map[int]*lua.LState)
+//var DeviceTypePluginMap = make(map[int]*lua.LState)
+
+func init(){
+
+}
 
 func WriteDeviceNodeTypeMapToJson() {
 
@@ -53,6 +56,33 @@ func WriteDeviceNodeTypeMapToJson() {
 		log.Println("write DeviceNodeType.json err", err)
 	}
 	log.Println("write DeviceNodeType.json sucess")
+}
+
+func updataDeviceType(path string,fileName []string) ([]string,error){
+
+	rd,err := ioutil.ReadDir(path)
+	if err != nil{
+		log.Println("readDir err,",err)
+		return fileName,err
+	}
+
+	for _,fi := range rd{
+		if fi.IsDir(){
+			fullDir := path + "/" + fi.Name()
+			fileName,_ = updataDeviceType(fullDir,fileName)
+		}else{
+			fullName := path + "/" + fi.Name()
+			if strings.Contains(fi.Name(),".json"){
+				//log.Println("fullName ",fullName)
+				fileName = append(fileName,fullName)
+			}else if strings.Contains(fi.Name(),".lua"){
+				//log.Println("fullName ",fullName)
+				fileName = append(fileName,fullName)
+			}
+		}
+	}
+
+	return fileName,nil
 }
 
 func ReadDeviceNodeTypeMapFromJson() bool {
@@ -97,65 +127,39 @@ func ReadDeviceNodeTypeMapFromJson() bool {
 		}
 	}
 	//打开lua文件
-	for k,v := range DeviceNodeTypeMap.DeviceNodeType{
-		for _,fileName := range fileNameMap{
-			if strings.Contains(fileName,".lua") {
-				if strings.Contains(fileName, v.TemplateType) {
-					template, err := setting.LuaOpenFile(fileName)
-					if err != nil {
-						log.Printf("openPlug %s err,%s\n",fileName,err)
-					}else{
-						log.Printf("openPlug  %s ok\n", fileName)
-					}
-					DeviceTypePluginMap[k] = template
-				}
-			}
-		}
-	}
-
 	//for k,v := range DeviceNodeTypeMap.DeviceNodeType{
 	//	for _,fileName := range fileNameMap{
-	//		if strings.Contains(fileName,".so") {
+	//		if strings.Contains(fileName,".lua") {
 	//			if strings.Contains(fileName, v.TemplateType) {
-	//				template, err := plugin.Open(fileName)
+	//				template, err := setting.LuaOpenFile(fileName)
 	//				if err != nil {
-	//					log.Printf("openPlug  err,%s\n", err)
+	//					log.Printf("openPlug %s err,%s\n",fileName,err)
 	//				}else{
 	//					log.Printf("openPlug  %s ok\n", fileName)
 	//				}
+	//
 	//				DeviceTypePluginMap[k] = template
 	//			}
 	//		}
 	//	}
 	//}
 
-	return true
-}
-
-func updataDeviceType(path string,fileName []string) ([]string,error){
-
-	rd,err := ioutil.ReadDir(path)
-	if err != nil{
-		log.Println("readDir err,",err)
-		return fileName,err
-	}
-
-	for _,fi := range rd{
-		if fi.IsDir(){
-			fullDir := path + "/" + fi.Name()
-			fileName,_ = updataDeviceType(fullDir,fileName)
-		}else{
-			fullName := path + "/" + fi.Name()
-			if strings.Contains(fi.Name(),".json"){
-				//log.Println("fullName ",fullName)
-				fileName = append(fileName,fullName)
-			}else if strings.Contains(fi.Name(),".lua"){
-				//log.Println("fullName ",fullName)
-				fileName = append(fileName,fullName)
+	for _,c := range CollectInterfaceMap{
+		for _,fileName := range fileNameMap{
+			if strings.Contains(fileName,".lua") {
+				c.LuaState = lua.NewState()
+				err := c.LuaState.DoFile(fileName)
+				if err != nil {
+					log.Printf("openLua %s err,%s\n",fileName,err)
+				}else{
+					log.Printf("openLua  %s ok\n", fileName)
+				}
 			}
 		}
 	}
 
-	return fileName,nil
+	return true
 }
+
+
 
