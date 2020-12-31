@@ -3,7 +3,6 @@ package setting
 import (
 	"github.com/yuin/gluamapper"
 	lua "github.com/yuin/gopher-lua"
-	"log"
 	"os"
 	"path/filepath"
 	"sync"
@@ -161,7 +160,7 @@ func GetCRCModbus(L *lua.LState) int {
 		}
 	}
 
-	log.Printf("crcBytes %x\n", nBytes)
+	//log.Printf("crcBytes %x\n", nBytes)
 	//lenCRC := len(nBytes)
 	crc := crc16(nBytes)
 	//log.Printf("crcValue %v\n", crc)

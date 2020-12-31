@@ -9,23 +9,22 @@ import (
 	"goAdapter/setting"
 )
 
-
 func main() {
 
 	/**************获取配置文件***********************/
 	setting.GetConf()
 
-	setting.LogerInit(setting.LogLevel,setting.LogSaveToFile,setting.LogFileMaxCnt)
+	setting.LogerInit(setting.LogLevel, setting.LogSaveToFile, setting.LogFileMaxCnt)
 
 	//记录起始时间
 	setting.GetTimeStart()
 
 	setting.Logger.Info("goteway V0.0.1")
 
-	setting.MemoryDataStream 			= setting.NewDataStreamTemplate("内存使用率")
-	setting.DiskDataStream 				= setting.NewDataStreamTemplate("硬盘使用率")
-	setting.DeviceOnlineDataStream 		= setting.NewDataStreamTemplate("设备在线率")
-	setting.DevicePacketLossDataStream 	= setting.NewDataStreamTemplate("通信丢包率")
+	setting.MemoryDataStream = setting.NewDataStreamTemplate("内存使用率")
+	setting.DiskDataStream = setting.NewDataStreamTemplate("硬盘使用率")
+	setting.DeviceOnlineDataStream = setting.NewDataStreamTemplate("设备在线率")
+	setting.DevicePacketLossDataStream = setting.NewDataStreamTemplate("通信丢包率")
 
 	/**************网口初始化***********************/
 	setting.NetworkParaRead()
@@ -59,7 +58,7 @@ func main() {
 	_ = cronProcess.AddFunc("*/60 * * * * *", setting.CollectSystemParam)
 
 	// 每天0点,定时获取NTP服务器的时间，并校时
-	_ = cronProcess.AddFunc("0 0 0 * * ?", func(){
+	_ = cronProcess.AddFunc("0 0 0 * * ?", func() {
 		setting.NTPGetTime()
 	})
 
@@ -69,10 +68,11 @@ func main() {
 	cronProcess.Start()
 	defer cronProcess.Stop()
 
-	//setting.Logger.Info("wait 10s")
-	//time.Sleep(time.Second * 10)
-
 	report.ReportServiceInit()
+
+	for _, v := range device.CommunicationManage {
+		v.CommunicationManagePoll()
+	}
 
 	httpServer.RouterWeb()
 }

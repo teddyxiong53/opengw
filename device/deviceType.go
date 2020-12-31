@@ -3,6 +3,7 @@ package device
 import (
 	"encoding/json"
 	lua "github.com/yuin/gopher-lua"
+	"goAdapter/setting"
 	"io/ioutil"
 	"log"
 	"os"
@@ -25,12 +26,21 @@ type DeviceNodeTypeMapStruct struct {
 	DeviceNodeType    []DeviceNodeTypeTemplate
 }
 
+type DeviceNodeTypeLuaState struct{
+	LuaState *lua.LState
+	TypeName string
+	CollName string
+}
+
 var DeviceNodeTypeMap = DeviceNodeTypeMapStruct{
 	DeviceNodeType : make([]DeviceNodeTypeTemplate,0),
 }
 
 //var DeviceTypePluginMap = make(map[int]*plugin.Plugin)
-//var DeviceTypePluginMap = make(map[int]*lua.LState)
+var DeviceTypePluginMap = make(map[int]*lua.LState)
+
+//var DeviceTypePluginMap = make([]DeviceNodeTypeLuaState,0)
+
 
 func init(){
 
@@ -85,7 +95,7 @@ func updataDeviceType(path string,fileName []string) ([]string,error){
 	return fileName,nil
 }
 
-func ReadDeviceNodeTypeMapFromJson() bool {
+func ReadDeviceNodeTypeMap() bool {
 
 	deviceTypeTemplate := struct {
 		TemplateName    string `json:"TemplateName"`    //模板名称
@@ -126,33 +136,19 @@ func ReadDeviceNodeTypeMapFromJson() bool {
 			DeviceNodeTypeMap.DeviceNodeType = append(DeviceNodeTypeMap.DeviceNodeType,nodeType)
 		}
 	}
-	//打开lua文件
-	//for k,v := range DeviceNodeTypeMap.DeviceNodeType{
-	//	for _,fileName := range fileNameMap{
-	//		if strings.Contains(fileName,".lua") {
-	//			if strings.Contains(fileName, v.TemplateType) {
-	//				template, err := setting.LuaOpenFile(fileName)
-	//				if err != nil {
-	//					log.Printf("openPlug %s err,%s\n",fileName,err)
-	//				}else{
-	//					log.Printf("openPlug  %s ok\n", fileName)
-	//				}
-	//
-	//				DeviceTypePluginMap[k] = template
-	//			}
-	//		}
-	//	}
-	//}
 
-	for _,c := range CollectInterfaceMap{
-		for _,fileName := range fileNameMap{
-			if strings.Contains(fileName,".lua") {
-				c.LuaState = lua.NewState()
-				err := c.LuaState.DoFile(fileName)
-				if err != nil {
-					log.Printf("openLua %s err,%s\n",fileName,err)
-				}else{
-					log.Printf("openLua  %s ok\n", fileName)
+	//打开lua文件
+	for k, v := range DeviceNodeTypeMap.DeviceNodeType {
+		for _, fileName := range fileNameMap {
+			if strings.Contains(fileName, ".lua") {
+				if strings.Contains(fileName, v.TemplateType) {
+					template, err := setting.LuaOpenFile(fileName)
+					if err != nil {
+						log.Printf("openPlug %s err,%s\n", fileName, err)
+					} else {
+						log.Printf("openPlug  %s ok\n", fileName)
+					}
+					DeviceTypePluginMap[k] = template
 				}
 			}
 		}
@@ -160,6 +156,39 @@ func ReadDeviceNodeTypeMapFromJson() bool {
 
 	return true
 }
+
+//func UpdateDeviceNodeType(collName string) {
+//
+//	exeCurDir, _ := filepath.Abs(filepath.Dir(os.Args[0]))
+//
+//	//遍历json和so文件
+//	pluginPath := exeCurDir + "/plugin"
+//	fileNameMap := make([]string,0)
+//	fileNameMap,_ = updataDeviceType(pluginPath,fileNameMap)
+//
+//	var filenameWithSuffix string
+//	var fileSuffix string
+//	for _,fileName := range fileNameMap{
+//		if strings.Contains(fileName,".lua") {
+//			typeLuaState := DeviceNodeTypeLuaState{}
+//			typeLuaState.CollName = collName
+//			filenameWithSuffix = path.Base(fileName)
+//			fileSuffix = path.Ext(filenameWithSuffix)
+//			typeLuaState.TypeName = strings.TrimSuffix(filenameWithSuffix, fileSuffix)
+//			typeLuaState.LuaState = lua.NewState()
+//
+//			typeLuaState.LuaState.SetGlobal("GetCRCModbus", typeLuaState.LuaState.NewFunction(setting.GetCRCModbus))
+//			typeLuaState.LuaState.SetGlobal("CheckCRCModbus", typeLuaState.LuaState.NewFunction(setting.CheckCRCModbus))
+//			err := typeLuaState.LuaState.DoFile(fileName)
+//			if err != nil {
+//				log.Printf("openLua %s err,%s\n",fileName,err)
+//			}else{
+//				log.Printf("openLua  %s ok\n", fileName)
+//				DeviceTypePluginMap = append(DeviceTypePluginMap,typeLuaState)
+//			}
+//		}
+//	}
+//}
 
 
 

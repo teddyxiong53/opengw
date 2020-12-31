@@ -3,15 +3,15 @@ package device
 import (
 	"fmt"
 	"github.com/sirupsen/logrus"
+	"goAdapter/setting"
 	"log"
 	"strconv"
 	"time"
-	"goAdapter/setting"
 )
 
 type CommunicationCmdTemplate struct {
 	CollInterfaceName string //采集接口名称
-	DeviceAddr        string //采集接口下设备地址
+	DeviceName        string //采集接口下设备名称
 	FunName           string
 	FunPara           string
 }
@@ -71,7 +71,7 @@ func (c *CommunicationManageTemplate) AnalysisRx() {
 		//阻塞读
 		rxBufCnt = serialPort.ReadData(rxBuf)
 		if rxBufCnt > 0 {
-			//log.Printf("curRxBufCnt %v\n",rxBufCnt)
+			//log.Printf("curRxBufCnt %v,", rxBufCnt)
 			//log.Printf("CurRxBuf %X\n", rxBuf[:rxBufCnt])
 
 			//rxTotalBufCnt += rxBufCnt
@@ -92,8 +92,8 @@ func (c *CommunicationManageTemplate) CommunicationStateMachine(cmd Communicatio
 
 	startT := time.Now() //计算当前时间
 	for _, v := range c.CollInterface.DeviceNodeMap {
-		if v.Addr == cmd.DeviceAddr {
-			log.Printf("%v:addr %v\n", c.CollInterface.CollInterfaceName, v.Addr)
+		if v.Name == cmd.DeviceName {
+			log.Printf("%v:name %v\n", c.CollInterface.CollInterfaceName, v.Name)
 			step := 0
 			for {
 				//--------------组包---------------------------
@@ -103,7 +103,7 @@ func (c *CommunicationManageTemplate) CommunicationStateMachine(cmd Communicatio
 				if cmd.FunName == "GetDeviceRealVariables" {
 					txBuf, ok, con = v.GenerateGetRealVariables(v.Addr, step)
 				} else {
-					txBuf, ok, con = v.DeviceCustomCmd(cmd.DeviceAddr, cmd.FunName, cmd.FunPara, step)
+					txBuf, ok, con = v.DeviceCustomCmd(cmd.DeviceName, cmd.FunName, cmd.FunPara, step)
 					if ok == false {
 						log.Printf("DeviceCustomCmd false\n")
 						goto LoopCommon
@@ -279,7 +279,7 @@ func (c *CommunicationManageTemplate) CommunicationManageDel() {
 
 				setting.Logger.WithFields(logrus.Fields{
 					"collName":   c.CollInterface.CollInterfaceName,
-					"deviceAddr": cmd.DeviceAddr,
+					"deviceName": cmd.DeviceName,
 					"funName":    cmd.FunName,
 				}).Info("emergency chan")
 				status := false
@@ -357,7 +357,7 @@ func (c *CommunicationManageTemplate) CommunicationManagePoll() {
 			//对采集接口下设备进行遍历
 			for _, v := range coll.DeviceNodeMap {
 				cmd.CollInterfaceName = coll.CollInterfaceName
-				cmd.DeviceAddr = v.Addr
+				cmd.DeviceName = v.Name
 				cmd.FunName = "GetDeviceRealVariables"
 				c.CommunicationManageAddCommon(cmd)
 			}

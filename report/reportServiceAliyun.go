@@ -399,6 +399,8 @@ func (r *ReportServiceParamAliyunTemplate) AllNodePropertyPost() {
 			if c.CollInterfaceName == n.CollInterfaceName {
 				for _, d := range c.DeviceNodeMap {
 					if d.Addr == n.Addr {
+						//log.Printf("nodeAddr %v\n",n.Addr)
+						//log.Printf("valueMap %v\n",d.VariableMap)
 						for _, v := range d.VariableMap {
 							if len(v.Value) > 1 {
 								index := len(v.Value) - 1
@@ -614,7 +616,7 @@ func ReportServiceAliyunProcessRemoteCmd(r *ReportServiceParamAliyunTemplate, me
 	for _, v := range addrArray {
 		cmd := device.CommunicationCmdTemplate{}
 		cmd.CollInterfaceName = "coll1"
-		cmd.DeviceAddr = v
+		cmd.DeviceName = v
 		cmd.FunName = cmdName
 		paramStr, _ := json.Marshal(message.Params)
 		cmd.FunPara = string(paramStr)
@@ -648,7 +650,7 @@ func ReportServiceAliyunProcessGetSubDeviceProperty(r *ReportServiceParamAliyunT
 	for _, v := range addrArray {
 		cmd := device.CommunicationCmdTemplate{}
 		cmd.CollInterfaceName = "coll1"
-		cmd.DeviceAddr = v
+		cmd.DeviceName = v
 		cmd.FunName = cmdName
 		paramStr, _ := json.Marshal(message.Params)
 		cmd.FunPara = string(paramStr)

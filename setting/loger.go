@@ -4,6 +4,7 @@ import (
 	"fmt"
 	rotatelogs "github.com/lestrrat-go/file-rotatelogs"
 	"github.com/sirupsen/logrus"
+	"log"
 	"os"
 	"path/filepath"
 	"time"
@@ -18,7 +19,7 @@ func init() {
 func LogerInit(level string, save bool, cnt uint) {
 
 	//log输出行号和ms
-	//log.SetFlags(log.Lshortfile | log.Ldate | log.Lmicroseconds)
+	log.SetFlags(log.Lshortfile | log.Ldate | log.Lmicroseconds)
 
 	// 设置日志格式为json格式　自带的只有两种样式logrus.JSONFormatter{}和logrus.TextFormatter{}
 	Logger.Formatter = &logrus.JSONFormatter{}

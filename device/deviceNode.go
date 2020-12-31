@@ -1,14 +1,19 @@
 package device
 
 import (
+	"bytes"
 	"github.com/yuin/gluamapper"
 	lua "github.com/yuin/gopher-lua"
-	"layeh.com/gopher-luar"
-	"time"
 	"goAdapter/setting"
+	"layeh.com/gopher-luar"
+	"runtime"
+	"strconv"
+	"sync"
+	"time"
 )
 
 var MaxDeviceNodeCnt int = 50
+var lock sync.Mutex
 
 type ValueTemplate struct {
 	Value     interface{} //变量值，不可以是字符串
@@ -52,45 +57,48 @@ func (d *DeviceNodeTemplate) NewVariables() []VariableTemplate {
 		Variable []*LuaVariableTemplate
 	}
 
-	for _,c := range CollectInterfaceMap{
-		for _,n := range c.DeviceNodeMap{
-			if n.Name == d.Name{
-				//调用NewVariables
-				err := c.LuaState.CallByParam(lua.P{
-					Fn:      c.LuaState.GetGlobal("NewVariables"),
-					NRet:    1,
-					Protect: true,
-				})
-				if err != nil {
-					setting.Logger.Warning("NewVariables err,", err)
-				}
-
-				//获取返回结果
-				ret := c.LuaState.Get(-1)
-				c.LuaState.Pop(1)
-
-				LuaVariableMap := LuaVariableMapTemplate{}
-
-				if err := gluamapper.Map(ret.(*lua.LTable), &LuaVariableMap); err != nil {
-					setting.Logger.Warning("NewVariables gluamapper.Map err,", err)
-				}
-
-				variables := make([]VariableTemplate, 0)
-
-				for _, v := range LuaVariableMap.Variable {
-					variable := VariableTemplate{}
-					variable.Index = v.Index
-					variable.Name = v.Name
-					variable.Label = v.Label
-					variable.Type = v.Type
-
-					variable.Value = make([]ValueTemplate, 0)
-					variables = append(variables, variable)
-				}
-				return variables
+	lock.Lock()
+	//log.Printf("DeviceTypePluginMap %v\n",DeviceTypePluginMap)
+	for k, v := range DeviceNodeTypeMap.DeviceNodeType {
+		if d.Type == v.TemplateType {
+			//调用NewVariables
+			err := DeviceTypePluginMap[k].CallByParam(lua.P{
+				Fn:      DeviceTypePluginMap[k].GetGlobal("NewVariables"),
+				NRet:    1,
+				Protect: true,
+			})
+			if err != nil {
+				setting.Logger.Warning("NewVariables err,", err)
 			}
+
+			//获取返回结果
+			ret := DeviceTypePluginMap[k].Get(-1)
+			DeviceTypePluginMap[k].Pop(1)
+
+			LuaVariableMap := LuaVariableMapTemplate{}
+
+			if err := gluamapper.Map(ret.(*lua.LTable), &LuaVariableMap); err != nil {
+				setting.Logger.Warning("NewVariables gluamapper.Map err,", err)
+			}
+
+			variables := make([]VariableTemplate, 0)
+
+			for _, v := range LuaVariableMap.Variable {
+				variable := VariableTemplate{}
+				variable.Index = v.Index
+				variable.Name = v.Name
+				variable.Label = v.Label
+				variable.Type = v.Type
+
+				variable.Value = make([]ValueTemplate, 0)
+				variables = append(variables, variable)
+			}
+			lock.Unlock()
+			//log.Printf("variables %v\n",variables)
+			return variables
 		}
 	}
+	lock.Unlock()
 	return nil
 }
 
@@ -101,49 +109,49 @@ func (d *DeviceNodeTemplate) GenerateGetRealVariables(sAddr string, step int) ([
 		Variable []*byte
 	}
 
-	for _,c := range CollectInterfaceMap{
-		for _,n := range c.DeviceNodeMap {
-			if n.Name == d.Name {
-				//调用NewVariables
-				err := c.LuaState.CallByParam(lua.P{
-					Fn:      c.LuaState.GetGlobal("GenerateGetRealVariables"),
-					NRet:    1,
-					Protect: true,
-				}, lua.LString(sAddr), lua.LNumber(step))
-				if err != nil {
-					setting.Logger.Warning("GenerateGetRealVariables err,", err)
-				}
-
-				//获取返回结果
-				ret := c.LuaState.Get(-1)
-				c.LuaState.Pop(1)
-
-				LuaVariableMap := LuaVariableMapTemplate{}
-				if err := gluamapper.Map(ret.(*lua.LTable), &LuaVariableMap); err != nil {
-					setting.Logger.Warning("GenerateGetRealVariables gluamapper.Map err,", err)
-				}
-
-				ok := false
-				con := false //后续是否有报文
-				if LuaVariableMap.Status == "0" {
-					con = false
-				} else {
-					con = true
-				}
-				nBytes := make([]byte, 0)
-				if len(LuaVariableMap.Variable) > 0 {
-					ok = true
-					for _, v := range LuaVariableMap.Variable {
-						nBytes = append(nBytes, *v)
-					}
-				} else {
-					ok = false
-				}
-
-				return nBytes, ok, con
+	lock.Lock()
+	for k, v := range DeviceNodeTypeMap.DeviceNodeType {
+		if d.Type == v.TemplateType {
+			//调用NewVariables
+			err := DeviceTypePluginMap[k].CallByParam(lua.P{
+				Fn:      DeviceTypePluginMap[k].GetGlobal("GenerateGetRealVariables"),
+				NRet:    1,
+				Protect: true,
+			}, lua.LString(sAddr), lua.LNumber(step))
+			if err != nil {
+				setting.Logger.Warning("GenerateGetRealVariables err,", err)
 			}
+
+			//获取返回结果
+			ret := DeviceTypePluginMap[k].Get(-1)
+			DeviceTypePluginMap[k].Pop(1)
+
+			LuaVariableMap := LuaVariableMapTemplate{}
+			if err := gluamapper.Map(ret.(*lua.LTable), &LuaVariableMap); err != nil {
+				setting.Logger.Warning("GenerateGetRealVariables gluamapper.Map err,", err)
+			}
+
+			ok := false
+			con := false //后续是否有报文
+			if LuaVariableMap.Status == "0" {
+				con = false
+			} else {
+				con = true
+			}
+			nBytes := make([]byte, 0)
+			if len(LuaVariableMap.Variable) > 0 {
+				ok = true
+				for _, v := range LuaVariableMap.Variable {
+					nBytes = append(nBytes, *v)
+				}
+			} else {
+				ok = false
+			}
+			lock.Unlock()
+			return nBytes, ok, con
 		}
 	}
+	lock.Unlock()
 	return nil, false, false
 }
 
@@ -154,60 +162,70 @@ func (d *DeviceNodeTemplate) DeviceCustomCmd(sAddr string, cmdName string, cmdPa
 		Variable []*byte `json:"Variable"`
 	}
 
+	lock.Lock()
 	//log.Printf("cmdParam %+v\n", cmdParam)
-	for _,c := range CollectInterfaceMap{
-		for _,n := range c.DeviceNodeMap {
-			if n.Name == d.Name {
-				var err error
-				var ret lua.LValue
+	for k, v := range DeviceNodeTypeMap.DeviceNodeType {
+		if d.Type == v.TemplateType {
+			var err error
+			var ret lua.LValue
 
-				//调用DeviceCustomCmd
-				err = c.LuaState.CallByParam(lua.P{
-					Fn:      c.LuaState.GetGlobal("DeviceCustomCmd"),
-					NRet:    1,
-					Protect: true,
-				}, lua.LString(sAddr),
-					lua.LString(cmdName),
-					lua.LString(cmdParam),
-					lua.LNumber(step))
-				if err != nil {
-					setting.Logger.Warning("DeviceCustomCmd err,", err)
-					return nil, false, false
-				}
-
-				//获取返回结果
-				ret = c.LuaState.Get(-1)
-				c.LuaState.Pop(1)
-
-				LuaVariableMap := LuaVariableMapTemplate{}
-				if err := gluamapper.Map(ret.(*lua.LTable), &LuaVariableMap); err != nil {
-					setting.Logger.Warning("DeviceCustomCmd gluamapper.Map err,", err)
-					return nil, false, false
-				}
-
-				ok := false
-				con := false //后续是否有报文
-				if LuaVariableMap.Status == "0" {
-					con = false
-				} else {
-					con = true
-				}
-				nBytes := make([]byte, 0)
-				if len(LuaVariableMap.Variable) > 0 {
-					ok = true
-					for _, v := range LuaVariableMap.Variable {
-						nBytes = append(nBytes, *v)
-					}
-				} else {
-					ok = false
-				}
-
-				return nBytes, ok, con
+			//调用DeviceCustomCmd
+			err = DeviceTypePluginMap[k].CallByParam(lua.P{
+				Fn:      DeviceTypePluginMap[k].GetGlobal("DeviceCustomCmd"),
+				NRet:    1,
+				Protect: true,
+			}, lua.LString(sAddr),
+				lua.LString(cmdName),
+				lua.LString(cmdParam),
+				lua.LNumber(step))
+			if err != nil {
+				setting.Logger.Warning("DeviceCustomCmd err,", err)
+				lock.Unlock()
+				return nil, false, false
 			}
+
+			//获取返回结果
+			ret = DeviceTypePluginMap[k].Get(-1)
+			DeviceTypePluginMap[k].Pop(1)
+
+			LuaVariableMap := LuaVariableMapTemplate{}
+			if err := gluamapper.Map(ret.(*lua.LTable), &LuaVariableMap); err != nil {
+				setting.Logger.Warning("DeviceCustomCmd gluamapper.Map err,", err)
+				lock.Unlock()
+				return nil, false, false
+			}
+
+			ok := false
+			con := false //后续是否有报文
+			if LuaVariableMap.Status == "0" {
+				con = false
+			} else {
+				con = true
+			}
+			nBytes := make([]byte, 0)
+			if len(LuaVariableMap.Variable) > 0 {
+				ok = true
+				for _, v := range LuaVariableMap.Variable {
+					nBytes = append(nBytes, *v)
+				}
+			} else {
+				ok = false
+			}
+			lock.Unlock()
+			return nBytes, ok, con
 		}
 	}
-
+	lock.Unlock()
 	return nil, false, false
+}
+
+func getGoroutineID() uint64 {
+	b := make([]byte, 64)
+	runtime.Stack(b, false)
+	b = bytes.TrimPrefix(b, []byte("goroutine "))
+	b = b[:bytes.IndexByte(b, ' ')]
+	n, _ := strconv.ParseUint(string(b), 10, 64)
+	return n
 }
 
 func (d *DeviceNodeTemplate) AnalysisRx(sAddr string, variables []VariableTemplate, rxBuf []byte, rxBufCnt int) chan bool {
@@ -228,67 +246,66 @@ func (d *DeviceNodeTemplate) AnalysisRx(sAddr string, variables []VariableTempla
 		Variable []*LuaVariableTemplate
 	}
 
-	for _,c := range CollectInterfaceMap{
-		for _,n := range c.DeviceNodeMap {
-			if n.Name == d.Name {
-				tbl := lua.LTable{}
-				for _, v := range rxBuf {
-					tbl.Append(lua.LNumber(v))
-				}
+	lock.Lock()
+	for k, v := range DeviceNodeTypeMap.DeviceNodeType {
+		if d.Type == v.TemplateType {
+			tbl := lua.LTable{}
+			for _, v := range rxBuf {
+				tbl.Append(lua.LNumber(v))
+			}
+			DeviceTypePluginMap[k].SetGlobal("rxBuf", luar.New(DeviceTypePluginMap[k], &tbl))
 
-				c.LuaState.SetGlobal("rxBuf", luar.New(c.LuaState, &tbl))
+			//AnalysisRx
+			err := DeviceTypePluginMap[k].CallByParam(lua.P{
+				Fn:      DeviceTypePluginMap[k].GetGlobal("AnalysisRx"),
+				NRet:    1,
+				Protect: true,
+			}, lua.LString(sAddr), lua.LNumber(rxBufCnt))
+			if err != nil {
+				setting.Logger.Warning("AnalysisRx err,", err)
+			}
 
-				//AnalysisRx
-				err := c.LuaState.CallByParam(lua.P{
-					Fn:      c.LuaState.GetGlobal("AnalysisRx"),
-					NRet:    1,
-					Protect: true,
-				}, lua.LString(sAddr), lua.LNumber(rxBufCnt))
-				if err != nil {
-					setting.Logger.Warning("AnalysisRx err,", err)
-				}
+			//获取返回结果
+			ret := DeviceTypePluginMap[k].Get(-1)
+			DeviceTypePluginMap[k].Pop(1)
 
-				//获取返回结果
-				ret := c.LuaState.Get(-1)
-				c.LuaState.Pop(1)
+			LuaVariableMap := LuaVariableMapTemplate{}
 
-				LuaVariableMap := LuaVariableMapTemplate{}
+			if err := gluamapper.Map(ret.(*lua.LTable), &LuaVariableMap); err != nil {
+				setting.Logger.Warning("AnalysisRx gluamapper.Map err,", err)
+			}
 
-				if err := gluamapper.Map(ret.(*lua.LTable), &LuaVariableMap); err != nil {
-					setting.Logger.Warning("AnalysisRx gluamapper.Map err,", err)
-				}
+			timeNowStr := time.Now().Format("2006-01-02 15:04:05")
+			value := ValueTemplate{}
+			if LuaVariableMap.Status == "0" {
+				if len(LuaVariableMap.Variable) > 0 {
+					for _, lv := range LuaVariableMap.Variable {
+						for k, v := range variables {
+							if lv.Index == v.Index {
+								variables[k].Index = lv.Index
+								variables[k].Name = lv.Name
+								variables[k].Label = lv.Label
+								variables[k].Type = lv.Type
 
-				timeNowStr := time.Now().Format("2006-01-02 15:04:05")
-				value := ValueTemplate{}
-				//log.Printf("LuaVariableMap %+v\n", LuaVariableMap)
-				if LuaVariableMap.Status == "0" {
-					if len(LuaVariableMap.Variable) > 0 {
-						for _, lv := range LuaVariableMap.Variable {
-							for k, v := range variables {
-								if lv.Index == v.Index {
-									variables[k].Index = lv.Index
-									variables[k].Name = lv.Name
-									variables[k].Label = lv.Label
-									variables[k].Type = lv.Type
+								value.Value = lv.Value
+								value.Explain = lv.Explain
+								value.TimeStamp = timeNowStr
 
-									value.Value = lv.Value
-									value.Explain = lv.Explain
-									value.TimeStamp = timeNowStr
-
-									if len(variables[k].Value) < 100 {
-										variables[k].Value = append(variables[k].Value, value)
-									} else {
-										variables[k].Value = variables[k].Value[1:]
-										variables[k].Value = append(variables[k].Value, value)
-									}
+								if len(variables[k].Value) < 100 {
+									variables[k].Value = append(variables[k].Value, value)
+								} else {
+									variables[k].Value = variables[k].Value[1:]
+									variables[k].Value = append(variables[k].Value, value)
 								}
+								//log.Printf("LuaVariables %+v\n", variables[k])
 							}
 						}
 					}
-					status <- true
 				}
+				status <- true
 			}
 		}
 	}
+	lock.Unlock()
 	return status
 }

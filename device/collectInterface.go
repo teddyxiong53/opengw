@@ -2,7 +2,6 @@ package device
 
 import (
 	"encoding/json"
-	lua "github.com/yuin/gopher-lua"
 	"log"
 	"os"
 	"path/filepath"
@@ -22,29 +21,28 @@ const (
 )
 
 type CommunicationMessageTemplate struct {
-	CollName       string       `json:"CollInterfaceName"`  		//接口名称
-	TimeStamp      string       `json:"TimeStamp"` 					//时间戳
-	Direction      string      	`json:"DataDirection"`   			//数据方向
-	Content        string      	`json:"DataContent"`     			//数据内容
+	CollName  string `json:"CollInterfaceName"` //接口名称
+	TimeStamp string `json:"TimeStamp"`         //时间戳
+	Direction string `json:"DataDirection"`     //数据方向
+	Content   string `json:"DataContent"`       //数据内容
 }
 
 //采集接口模板
 type CollectInterfaceTemplate struct {
-	CollInterfaceName   string          				`json:"CollInterfaceName"`   	//采集接口
-	CommInterfaceName   string							`json:"CommInterfaceName"`   	//通信接口
-	CommMessage         []CommunicationMessageTemplate	`json:"-"`
-	PollPeriod          int                   			`json:"PollPeriod"`    			//采集周期
-	OfflinePeriod       int                   			`json:"OfflinePeriod"` 			//离线超时周期
-	DeviceNodeCnt       int                   			`json:"DeviceNodeCnt"` 			//设备数量
-	DeviceNodeOnlineCnt int             				`json:"DeviceNodeOnlineCnt"`	//设备在线数量
-	DeviceNodeMap       []*DeviceNodeTemplate 			`json:"DeviceNodeMap"` 			//节点表
-	OnlineReportChan    chan string                     `json:"-"`
-	OfflineReportChan   chan string                     `json:"-"`
-	PropertyReportChan  chan string                     `json:"-"`
-	LuaState            *lua.LState                     `json:"-"`
+	CollInterfaceName   string                         `json:"CollInterfaceName"` //采集接口
+	CommInterfaceName   string                         `json:"CommInterfaceName"` //通信接口
+	CommMessage         []CommunicationMessageTemplate `json:"-"`
+	PollPeriod          int                            `json:"PollPeriod"`          //采集周期
+	OfflinePeriod       int                            `json:"OfflinePeriod"`       //离线超时周期
+	DeviceNodeCnt       int                            `json:"DeviceNodeCnt"`       //设备数量
+	DeviceNodeOnlineCnt int                            `json:"DeviceNodeOnlineCnt"` //设备在线数量
+	DeviceNodeMap       []*DeviceNodeTemplate          `json:"DeviceNodeMap"`       //节点表
+	OnlineReportChan    chan string                    `json:"-"`
+	OfflineReportChan   chan string                    `json:"-"`
+	PropertyReportChan  chan string                    `json:"-"`
 }
 
-var CollectInterfaceMap = make([]*CollectInterfaceTemplate,0)
+var CollectInterfaceMap = make([]*CollectInterfaceTemplate, 0)
 
 func WriteCollectInterfaceManageToJson() {
 
@@ -61,36 +59,36 @@ func WriteCollectInterfaceManageToJson() {
 
 	//采集接口配置参数
 	type CollectInterfaceParamTemplate struct {
-		CollInterfaceName   string          `json:"CollInterfaceName"`   	//采集接口
-		CommInterfaceName   string			`json:"CommInterfaceName"`   	//通信接口
-		PollPeriod          int      		`json:"PollPeriod"`    			//采集周期
-		OfflinePeriod       int      		`json:"OfflinePeriod"` 			//离线超时周期
-		DeviceNodeCnt       int      		`json:"DeviceNodeCnt"` 			//设备数量
-		DeviceNodeNameMap   []string 		`json:"DeviceNodeNameMap"`      //节点名称
-		DeviceNodeAddrMap 	[]string		`json:"DeviceNodeAddrMap"`      //节点地址
-		DeviceNodeTypeMap 	[]string		`json:"DeviceNodeTypeMap"`      //节点类型
+		CollInterfaceName string   `json:"CollInterfaceName"` //采集接口
+		CommInterfaceName string   `json:"CommInterfaceName"` //通信接口
+		PollPeriod        int      `json:"PollPeriod"`        //采集周期
+		OfflinePeriod     int      `json:"OfflinePeriod"`     //离线超时周期
+		DeviceNodeCnt     int      `json:"DeviceNodeCnt"`     //设备数量
+		DeviceNodeNameMap []string `json:"DeviceNodeNameMap"` //节点名称
+		DeviceNodeAddrMap []string `json:"DeviceNodeAddrMap"` //节点地址
+		DeviceNodeTypeMap []string `json:"DeviceNodeTypeMap"` //节点类型
 
 	}
 
 	//定义采集接口参数结构体
 	CollectInterfaceParamMap := struct {
-		CollectInterfaceParam 	[]CollectInterfaceParamTemplate
+		CollectInterfaceParam []CollectInterfaceParamTemplate
 	}{
 		CollectInterfaceParam: make([]CollectInterfaceParamTemplate, 0),
 	}
 
 	for _, v := range CollectInterfaceMap {
 		ParamTemplate := CollectInterfaceParamTemplate{
-			CollInterfaceName : v.CollInterfaceName,
-			CommInterfaceName : v.CommInterfaceName,
-			PollPeriod : v.PollPeriod,
-			OfflinePeriod : v.OfflinePeriod,
-			DeviceNodeCnt : v.DeviceNodeCnt,
+			CollInterfaceName: v.CollInterfaceName,
+			CommInterfaceName: v.CommInterfaceName,
+			PollPeriod:        v.PollPeriod,
+			OfflinePeriod:     v.OfflinePeriod,
+			DeviceNodeCnt:     v.DeviceNodeCnt,
 		}
 
-		ParamTemplate.DeviceNodeNameMap = make([]string,0)
-		ParamTemplate.DeviceNodeAddrMap = make([]string,0)
-		ParamTemplate.DeviceNodeTypeMap = make([]string,0)
+		ParamTemplate.DeviceNodeNameMap = make([]string, 0)
+		ParamTemplate.DeviceNodeAddrMap = make([]string, 0)
+		ParamTemplate.DeviceNodeTypeMap = make([]string, 0)
 
 		for i := 0; i < v.DeviceNodeCnt; i++ {
 			ParamTemplate.DeviceNodeNameMap = append(ParamTemplate.DeviceNodeNameMap, v.DeviceNodeMap[i].Name)
@@ -133,14 +131,14 @@ func ReadCollectInterfaceManageFromJson() bool {
 
 		//采集接口配置参数
 		type CollectInterfaceParamTemplate struct {
-			CollInterfaceName   string          `json:"CollInterfaceName"`   	//采集接口
-			CommInterfaceName string			`json:"CommInterfaceName"`   	//通信接口
-			PollPeriod        int      			`json:"PollPeriod"`    			//采集周期
-			OfflinePeriod     int      			`json:"OfflinePeriod"` 			//离线超时周期
-			DeviceNodeCnt     int      			`json:"DeviceNodeCnt"` 			//设备数量
-			DeviceNodeNameMap   []string 		`json:"DeviceNodeNameMap"`      //节点名称
-			DeviceNodeAddrMap 	[]string		`json:"DeviceNodeAddrMap"`      //节点地址
-			DeviceNodeTypeMap 	[]string		`json:"DeviceNodeTypeMap"`      //节点类型
+			CollInterfaceName string   `json:"CollInterfaceName"` //采集接口
+			CommInterfaceName string   `json:"CommInterfaceName"` //通信接口
+			PollPeriod        int      `json:"PollPeriod"`        //采集周期
+			OfflinePeriod     int      `json:"OfflinePeriod"`     //离线超时周期
+			DeviceNodeCnt     int      `json:"DeviceNodeCnt"`     //设备数量
+			DeviceNodeNameMap []string `json:"DeviceNodeNameMap"` //节点名称
+			DeviceNodeAddrMap []string `json:"DeviceNodeAddrMap"` //节点地址
+			DeviceNodeTypeMap []string `json:"DeviceNodeTypeMap"` //节点类型
 		}
 
 		//定义采集接口参数结构体
@@ -157,11 +155,11 @@ func ReadCollectInterfaceManageFromJson() bool {
 			return false
 		}
 
-		log.Printf("CollectInterfaceParamMap %+v\n",CollectInterfaceParamMap)
+		log.Printf("CollectInterfaceParamMap %+v\n", CollectInterfaceParamMap)
 		for k, v := range CollectInterfaceParamMap.CollectInterfaceParam {
 
 			//创建接口实例
-			CollectInterfaceMap = append(CollectInterfaceMap,NewCollectInterface(v.CollInterfaceName,
+			CollectInterfaceMap = append(CollectInterfaceMap, NewCollectInterface(v.CollInterfaceName,
 				v.CommInterfaceName,
 				v.PollPeriod,
 				v.OfflinePeriod,
@@ -185,6 +183,9 @@ func ReadCollectInterfaceManageFromJson() bool {
 }
 
 func DeviceNodeManageInit() {
+
+	//设备模版
+	ReadDeviceNodeTypeMap()
 	//通信接口
 	CommInterfaceInit()
 	//采集接口
@@ -193,16 +194,7 @@ func DeviceNodeManageInit() {
 		//log.Printf("collectMInterfaceMap %+v\n",CollectInterfaceMap)
 	} else {
 
-		//for i := 0; i < MaxCollectInterfaceManage; i++ {
-		//	//创建接口实例
-		//	CollectInterfaceMap[i] = NewCollectInterface(i,
-		//		60,
-		//		180,
-		//		0)
-		//}
 	}
-	//设备模版
-	ReadDeviceNodeTypeMapFromJson()
 }
 
 /********************************************************
@@ -216,23 +208,20 @@ func DeviceNodeManageInit() {
 日期    ：
 ********************************************************/
 func NewCollectInterface(collInterfaceName, commInterfaceName string,
-						pollPeriod, offlinePeriod int, deviceNodeCnt int) *CollectInterfaceTemplate {
+	pollPeriod, offlinePeriod int, deviceNodeCnt int) *CollectInterfaceTemplate {
 
 	nodeManage := &CollectInterfaceTemplate{
-		CollInterfaceName: collInterfaceName,
-		CommInterfaceName: commInterfaceName,
-		CommMessage: make([]CommunicationMessageTemplate,0),
-		PollPeriod:    pollPeriod,
-		OfflinePeriod: offlinePeriod,
-		DeviceNodeCnt: deviceNodeCnt,
-		DeviceNodeMap: make([]*DeviceNodeTemplate, 0),
+		CollInterfaceName:  collInterfaceName,
+		CommInterfaceName:  commInterfaceName,
+		CommMessage:        make([]CommunicationMessageTemplate, 0),
+		PollPeriod:         pollPeriod,
+		OfflinePeriod:      offlinePeriod,
+		DeviceNodeCnt:      deviceNodeCnt,
+		DeviceNodeMap:      make([]*DeviceNodeTemplate, 0),
 		OfflineReportChan:  make(chan string, 100),
 		OnlineReportChan:   make(chan string, 100),
 		PropertyReportChan: make(chan string, 100),
 	}
-
-	//打开串口
-	//setting.SerialOpen(nodeManage.InterfaceID)
 
 	return nodeManage
 }
@@ -263,7 +252,7 @@ func (d *CollectInterfaceTemplate) ModifyCollectInterface(pollPeriod, offlinePer
 注意事项：
 日期    ：
 ********************************************************/
-func (d *CollectInterfaceTemplate) NewDeviceNode(dName string,dType string, dAddr string) {
+func (d *CollectInterfaceTemplate) NewDeviceNode(dName string, dType string, dAddr string) {
 
 	node := &DeviceNodeTemplate{}
 	node.Index = len(d.DeviceNodeMap)
@@ -282,7 +271,7 @@ func (d *CollectInterfaceTemplate) NewDeviceNode(dName string,dType string, dAdd
 	d.DeviceNodeMap = append(d.DeviceNodeMap, node)
 }
 
-func (d *CollectInterfaceTemplate) AddDeviceNode(dName string,dType string, dAddr string) (bool, string) {
+func (d *CollectInterfaceTemplate) AddDeviceNode(dName string, dType string, dAddr string) (bool, string) {
 
 	node := &DeviceNodeTemplate{}
 	node.Index = len(d.DeviceNodeMap)
