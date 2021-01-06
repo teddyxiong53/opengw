@@ -220,7 +220,7 @@ func (c *CommunicationManageTemplate) CommunicationStateMachine(cmd Communicatio
 								c.CollInterface.OnlineReportChan <- v.Addr
 							}
 
-							//c.CollInterface.PropertyReportChan <- v.Addr
+							c.CollInterface.PropertyReportChan <- v.Addr
 							//log.Printf("reportChan %v\n", len(c.CollInterface.PropertyReportChan))
 
 							v.CommSuccessCnt++

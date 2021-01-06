@@ -5,14 +5,14 @@ import (
 	"fmt"
 	MQTT "github.com/eclipse/paho.mqtt.golang"
 	"github.com/robfig/cron"
+	"goAdapter/device"
+	mqttClient "goAdapter/mqttClient/mqttAliyun"
+	"goAdapter/setting"
 	"log"
 	"os"
 	"path/filepath"
 	"strings"
 	"time"
-	"goAdapter/device"
-	mqttClient "goAdapter/mqttClient/mqttAliyun"
-	"goAdapter/setting"
 )
 
 type ReportServiceNodeParamAliyunTemplate struct {
@@ -21,7 +21,7 @@ type ReportServiceNodeParamAliyunTemplate struct {
 	Name              string
 	Addr              string
 	CommStatus        string
-	ReportErrCnt      int `json:"-"`
+	ReportErrCnt      int
 	ReportStatus      string
 	Protocol          string
 	Param             struct {
@@ -37,12 +37,14 @@ type ReportServiceAliyunMessageTemplate struct {
 }
 
 type ReportServiceGWParamAliyunTemplate struct {
-	ServiceName string
-	IP          string
-	Port        string
-	ReportTime  int
-	Protocol    string
-	Param       struct {
+	ServiceName  string
+	IP           string
+	Port         string
+	CommStatus   string
+	ReportTime   int
+	ReportErrCnt int
+	Protocol     string
+	Param        struct {
 		ProductKey   string
 		DeviceName   string
 		DeviceSecret string
@@ -51,7 +53,6 @@ type ReportServiceGWParamAliyunTemplate struct {
 }
 
 type ReportServiceParamAliyunTemplate struct {
-	CommStatus  string
 	GWParam     ReportServiceGWParamAliyunTemplate
 	NodeList    []ReportServiceNodeParamAliyunTemplate
 	MessageChan chan ReportServiceMessageAliyunTemplate `json:"-"`
@@ -77,8 +78,6 @@ func init() {
 	//初始化chan
 	for _, v := range ReportServiceParamListAliyun.ServiceList {
 		v.MessageChan = make(chan ReportServiceMessageAliyunTemplate, 10)
-
-		//go ReportServiceAliyunPoll(v)
 	}
 }
 
@@ -138,16 +137,15 @@ func (s *ReportServiceParamListAliyunTemplate) AddReportService(param ReportServ
 	for k, v := range s.ServiceList {
 		//存在相同的，表示修改;不存在表示增加
 		if v.GWParam.ServiceName == param.ServiceName {
-
 			s.ServiceList[k].GWParam = param
+			s.ServiceList[k].GWParam.CommStatus = "offLine"
 			s.WriteParamToJson()
 			return
 		}
 	}
 
 	ReportServiceParam := &ReportServiceParamAliyunTemplate{
-		GWParam:    param,
-		CommStatus: "offLine",
+		GWParam: param,
 	}
 	s.ServiceList = append(s.ServiceList, ReportServiceParam)
 
@@ -170,6 +168,7 @@ func (r *ReportServiceParamAliyunTemplate) AddReportNode(param ReportServiceNode
 
 	param.CommStatus = "offLine"
 	param.ReportStatus = "offLine"
+	param.ReportErrCnt = 0
 
 	//节点存在则进行修改
 	for k, v := range r.NodeList {
@@ -221,6 +220,9 @@ func (r *ReportServiceParamAliyunTemplate) GWLogin() bool {
 
 	status := false
 	status, r.GWParam.MQTTClient = mqttClient.MQTTAliyunGWLogin(mqttAliyunRegister, GWPublishHandler)
+	if status == true {
+		r.GWParam.CommStatus = "onLine"
+	}
 
 	return status
 }
@@ -381,12 +383,29 @@ func (r *ReportServiceParamAliyunTemplate) GWPropertyPost() {
 			log.Printf("gw property post ok")
 		} else {
 			log.Printf("gw property post err")
+			r.GWParam.ReportErrCnt++
+			if r.GWParam.ReportErrCnt >= 3 {
+				r.GWParam.ReportErrCnt = 0
+				r.GWParam.CommStatus = "offLine"
+				//网关离线时把设备节点也置成离线
+				for _, v := range r.NodeList {
+					v.ReportStatus = "offLine"
+				}
+			}
 		}
 	case <-timerOut.C:
 		timerOut.Stop()
 		log.Printf("gw property post err")
+		r.GWParam.ReportErrCnt++
+		if r.GWParam.ReportErrCnt >= 3 {
+			r.GWParam.ReportErrCnt = 0
+			r.GWParam.CommStatus = "offLine"
+			//网关离线时把设备节点也置成离线
+			for _, v := range r.NodeList {
+				v.ReportStatus = "offLine"
+			}
+		}
 	}
-
 }
 
 func (r *ReportServiceParamAliyunTemplate) AllNodePropertyPost() {
@@ -453,6 +472,13 @@ func (r *ReportServiceParamAliyunTemplate) AllNodePropertyPost() {
 	case <-timerOut.C:
 		timerOut.Stop()
 		log.Printf("node property post err")
+		for k, _ := range r.NodeList {
+			r.NodeList[k].ReportErrCnt++
+			if r.NodeList[k].ReportErrCnt >= 3 {
+				r.NodeList[k].ReportErrCnt = 0
+				r.NodeList[k].ReportStatus = "offLine"
+			}
+		}
 	}
 }
 
@@ -559,14 +585,19 @@ func ReportServiceAliyunPoll(r *ReportServiceParamAliyunTemplate) {
 				if r.GWLogin() == true {
 					reportState = 1
 
-					cronProcess.AddFunc(str, r.GWPropertyPost)
-					cronProcess.AddFunc(str, r.AllNodePropertyPost)
+					_ = cronProcess.AddFunc(str, r.GWPropertyPost)
+					_ = cronProcess.AddFunc(str, r.AllNodePropertyPost)
 				} else {
 					time.Sleep(5 * time.Second)
 				}
 			}
 		case 1:
 			{
+				//
+				if r.GWParam.CommStatus == "offLine" {
+					reportState = 0
+				}
+
 				//节点发生了上线
 				for _, c := range device.CollectInterfaceMap {
 					for i := 0; i < len(c.OnlineReportChan); i++ {
@@ -594,13 +625,17 @@ func ReportServiceAliyunPoll(r *ReportServiceParamAliyunTemplate) {
 				//节点有属性变化
 				for _, c := range device.CollectInterfaceMap {
 					for i := 0; i < len(c.PropertyReportChan); i++ {
-						addr = append(addr, <-c.PropertyReportChan)
+						nodeAddr := <-c.PropertyReportChan
+						for _, v := range r.NodeList {
+							if v.Addr == nodeAddr {
+								if v.ReportStatus == "offLine" { //当设备上报状态是离线时立马发送设备上线
+									addr = append(addr, nodeAddr)
+									r.NodeLogin(addr)
+									addr = addr[0:0]
+								}
+							}
+						}
 					}
-				}
-				if len(addr) > 0 {
-					log.Printf("DevicePropertyChanged %v\n", addr)
-					r.NodePropertyPost(addr)
-					addr = addr[0:0]
 				}
 			}
 		}

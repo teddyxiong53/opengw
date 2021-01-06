@@ -4,9 +4,9 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/gin-gonic/gin"
+	"goAdapter/report"
 	"log"
 	"net/http"
-	"goAdapter/report"
 )
 
 func apiSetReportGWParam(context *gin.Context) {
@@ -112,7 +112,7 @@ func apiGetReportGWParam(context *gin.Context) {
 		ReportService.ReportTime = v.GWParam.ReportTime
 		ReportService.Protocol = v.GWParam.Protocol
 		ReportService.Param = v.GWParam.Param
-		ReportService.CommStatus = v.CommStatus
+		ReportService.CommStatus = v.GWParam.CommStatus
 
 		aParam.Data = append(aParam.Data, ReportService)
 	}
@@ -232,7 +232,7 @@ func apiSetReportNodeWParam(context *gin.Context) {
 				v.AddReportNode(ReportServiceNodeParamAliyun)
 			}
 		}
-		log.Printf("ParamListAliyun %v\n",report.ReportServiceParamListAliyun.ServiceList)
+		log.Printf("ParamListAliyun %v\n", report.ReportServiceParamListAliyun.ServiceList)
 	case "Emqx.MQTT":
 
 	case "Huawei":
@@ -273,7 +273,7 @@ func apiGetReportNodeWParam(context *gin.Context) {
 		Message string                      `json:"Message"`
 		Data    []ReportServiceNodeTemplate `json:"Data"`
 	}{
-		Data:make([]ReportServiceNodeTemplate,0),
+		Data: make([]ReportServiceNodeTemplate, 0),
 	}
 
 	ServiceName := context.Query("ServiceName")
