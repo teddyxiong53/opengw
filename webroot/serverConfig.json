@@ -4,5 +4,8 @@
     "QRCODE_ADDR": "http://139.196.207.46:443/",
     "IMG_URL":"http://47.103.45.84:120/uploadImages/applogo/",
     "SURVEY_ADDR": "http://47.103.45.84:9004/diaowen/survey!answerSurveryMobile.action?surveyId=",    
-    "REPORT_ADDR": "http://139.196.207.46:443/"
+    "REPORT_ADDR": "http://139.196.207.46:443/",
+    "BASE_TITLE": "开源版",
+    "HOME_TITLE": "通用采集器系统登录(QQ:1028704210)",
+    "OPEN_SOURCE": false
 }
