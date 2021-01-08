@@ -5,8 +5,11 @@ import (
 	"fmt"
 	"github.com/gin-gonic/gin"
 	"goAdapter/report"
+	"goAdapter/setting"
 	"log"
 	"net/http"
+	"os"
+	"path/filepath"
 )
 
 func apiSetReportGWParam(context *gin.Context) {
@@ -252,6 +255,76 @@ func apiSetReportNodeWParam(context *gin.Context) {
 	aParam.Data = ""
 	sJson, _ := json.Marshal(aParam)
 
+	context.String(http.StatusOK, string(sJson))
+}
+
+func apiBatchAddReportNodeParam(context *gin.Context) {
+
+	aParam := struct {
+		Code    string
+		Message string
+		Data    string
+	}{
+		Code:    "1",
+		Message: "",
+		Data:    "",
+	}
+
+	// 获取文件头
+	file, err := context.FormFile("file")
+	if err != nil {
+		sJson, _ := json.Marshal(aParam)
+		context.String(http.StatusOK, string(sJson))
+		return
+	}
+
+	exeCurDir, _ := filepath.Abs(filepath.Dir(os.Args[0]))
+	fileName := exeCurDir + "/config/" + file.Filename
+
+	//保存文件到服务器本地
+	if err := context.SaveUploadedFile(file, fileName); err != nil {
+		aParam.Code = "1"
+		aParam.Message = "save File Error"
+
+		sJson, _ := json.Marshal(aParam)
+		context.String(http.StatusOK, string(sJson))
+		return
+	}
+
+	result := setting.LoadCsvCfg(fileName, 1)
+	if result == nil {
+		return
+	}
+
+	for _, record := range result.Records {
+		protocol := record.GetString("Protocol")
+		log.Printf("protocal %v\n", protocol)
+		switch protocol {
+		case "Aliyun.MQTT":
+			{
+				ReportServiceNodeParamAliyun := report.ReportServiceNodeParamAliyunTemplate{}
+				ReportServiceNodeParamAliyun.ServiceName = record.GetString("ServiceName")
+				ReportServiceNodeParamAliyun.CollInterfaceName = record.GetString("CollInterfaceName")
+				ReportServiceNodeParamAliyun.Name = record.GetString("Name")
+				ReportServiceNodeParamAliyun.Addr = record.GetString("Addr")
+				ReportServiceNodeParamAliyun.Protocol = record.GetString("Protocol")
+				ReportServiceNodeParamAliyun.Param.ProductKey = record.GetString("ProductKey")
+				ReportServiceNodeParamAliyun.Param.DeviceName = record.GetString("DeviceName")
+				ReportServiceNodeParamAliyun.Param.DeviceSecret = record.GetString("DeviceSecret")
+
+				for _, v := range report.ReportServiceParamListAliyun.ServiceList {
+					if v.GWParam.ServiceName == ReportServiceNodeParamAliyun.ServiceName {
+						v.AddReportNode(ReportServiceNodeParamAliyun)
+					}
+				}
+			}
+		}
+	}
+
+	aParam.Code = "0"
+	aParam.Message = ""
+
+	sJson, _ := json.Marshal(aParam)
 	context.String(http.StatusOK, string(sJson))
 }
 

@@ -6,18 +6,18 @@ import (
 	"path/filepath"
 )
 
-func RouterWeb()  {
+func RouterWeb() {
 
 	gin.SetMode(gin.ReleaseMode)
 	router := gin.Default()
 	//router := gin.New()
 
 	exeCurDir, _ := filepath.Abs(filepath.Dir(os.Args[0]))
-	router.Static("/static", exeCurDir + "/webroot/static")
+	router.Static("/static", exeCurDir+"/webroot/static")
 
-	router.StaticFile("/",exeCurDir + "/webroot/index.html")
-	router.StaticFile("/favicon.ico",exeCurDir + "/webroot/favicon.ico")
-	router.StaticFile("/serverConfig.json",exeCurDir + "/webroot/serverConfig.json")
+	router.StaticFile("/", exeCurDir+"/webroot/index.html")
+	router.StaticFile("/favicon.ico", exeCurDir+"/webroot/favicon.ico")
+	router.StaticFile("/serverConfig.json", exeCurDir+"/webroot/serverConfig.json")
 
 	loginRouter := router.Group("/api/v1/system/")
 	{
@@ -155,12 +155,13 @@ func RouterWeb()  {
 
 			ReportRouter.POST("/node/param", apiSetReportNodeWParam)
 
+			ReportRouter.POST("/nodes/param", apiBatchAddReportNodeParam)
+
 			ReportRouter.GET("/node/param", apiGetReportNodeWParam)
 
 			ReportRouter.DELETE("/node/param", apiDeleteReportNodeWParam)
 		}
 	}
-
 
 	router.Run(":8080")
 }
