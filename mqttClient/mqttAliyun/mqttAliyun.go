@@ -78,6 +78,7 @@ func MQTTAliyunGWLogin(param MQTTAliyunRegisterTemplate, publishHandler MQTT.Mes
 	opts.SetUsername(auth.username)
 	opts.SetPassword(auth.password)
 	opts.SetKeepAlive(60 * 2 * time.Second)
+	opts.SetAutoReconnect(false)
 	opts.SetDefaultPublishHandler(publishHandler)
 
 	// create and start a client using the above ClientOptions
