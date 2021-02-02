@@ -4,14 +4,14 @@ import (
 	"encoding/binary"
 	"encoding/json"
 	"fmt"
-	"github.com/gin-gonic/gin"
-	"github.com/goburrow/serial"
-	modbus "github.com/thinkgos/gomodbus/v2"
-	"github.com/thinkgos/mb"
 	"net/http"
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/gin-gonic/gin"
+	"github.com/goburrow/serial"
+	modbus "github.com/thinkgos/gomodbus/v2"
 )
 
 type MbParam struct {
@@ -21,7 +21,7 @@ type MbParam struct {
 	Data    string `json:"Data"`
 }
 
-var client *mb.Client
+var client modbus.Client
 var mbParam MbParam
 
 func NewMbParam(addr byte, regAddr, regCnt uint16) *MbParam {
@@ -45,9 +45,9 @@ func mbParamOpenPort(port string) bool {
 		Timeout:  100 * time.Millisecond,
 	}))
 
-	client = mb.New(p)
+	client = modbus.NewClient(p)
 	client.LogMode(true)
-	err := client.Start()
+	err := client.Connect()
 	if err != nil {
 		fmt.Println("start err,", err)
 		return status

@@ -26,13 +26,10 @@ require (
 	github.com/stretchr/testify v1.5.1 // indirect
 	github.com/tarm/serial v0.0.0-20180830185346-98f6abe2eb07
 	github.com/tebeka/strftime v0.1.5 // indirect
-	github.com/thinkgos/gomodbus/v2 v2.2.1
-	github.com/thinkgos/mb v0.0.1
-	github.com/thinkgos/timing/v4 v4.1.1 // indirect
+	github.com/thinkgos/gomodbus/v2 v2.2.2
 	github.com/yuin/gluamapper v0.0.0-20150323120927-d836955830e7
 	github.com/yuin/gopher-lua v0.0.0-20200816102855-ee81675732da
 	golang.org/x/net v0.0.0-20200625001655-4c5254603344 // indirect
-	golang.org/x/sync v0.0.0-20200625203802-6e8e738ad208
 	golang.org/x/sys v0.0.0-20200420163511-1957bb5e6d1f // indirect
 	gopkg.in/ini.v1 v1.57.0
 	layeh.com/gopher-luar v1.0.8
