@@ -1,61 +1,42 @@
 package httpServer
 
 import (
-	"encoding/json"
 	"fmt"
-	"github.com/gin-gonic/gin"
-	"goAdapter/setting"
 	"net/http"
+
+	"goAdapter/setting"
+
+	"github.com/gin-gonic/gin"
 )
 
-func apiSystemReboot(context *gin.Context){
-
-	aParam := struct{
-		Code string			`json:"Code"`
-		Message string		`json:"Message"`
-		Data string			`json:"Data"`
-	}{
-		Code:"1",
-		Message:"",
-		Data:"",
-	}
-
-	aParam.Code = "0"
-
-	sJson,_ := json.Marshal(aParam)
-	context.String(http.StatusOK,string(sJson))
+func apiSystemReboot(context *gin.Context) {
+	context.JSON(http.StatusOK, Response{
+		Code:    "0",
+		Message: "",
+		Data:    "",
+	})
 
 	setting.SystemReboot()
 }
 
-func apiGetSystemStatus(context *gin.Context){
-
+func apiGetSystemStatus(context *gin.Context) {
 
 	setting.GetMemState()
 	setting.GetDiskState()
 	setting.GetRunTime()
-
-	aParam := struct{
-		Code string
-		Message string
-		Data setting.SystemStateTemplate
-	}{"0","",setting.SystemState}
-
-	sJson,_ := json.Marshal(aParam)
-	context.String(http.StatusOK,string(sJson))
+	context.JSON(http.StatusOK, ResponseData{
+		"0",
+		"",
+		setting.SystemState,
+	})
 }
 
-func apiSystemLoginParam(context *gin.Context){
-
-
-	aParam := struct{
-		Code string
-		Message string
-		Data LoginResult `json:"Data"`
-	}{"0","",loginResult}
-
-	sJson,_ := json.Marshal(aParam)
-	context.String(http.StatusOK,string(sJson))
+func apiSystemLoginParam(context *gin.Context) {
+	context.JSON(http.StatusOK, ResponseData{
+		"0",
+		"",
+		loginResult,
+	})
 }
 
 // 定义登陆逻辑
@@ -70,165 +51,107 @@ func apiLogin(c *gin.Context) {
 			generateToken(c, user)
 		} else {
 			c.JSON(http.StatusOK, gin.H{
-				"Code"		: "-1",
-				"Message"	: "验证失败" + err.Error(),
-				"Data"		: "",
+				"Code":    "-1",
+				"Message": "验证失败" + err.Error(),
+				"Data":    "",
 			})
 			return
 		}
 
-	}else {
+	} else {
 		c.JSON(http.StatusOK, gin.H{
-			"Code"		: "-1",
-			"Message"	: "用户数据解析失败",
-			"Data"		: "",
+			"Code":    "-1",
+			"Message": "用户数据解析失败",
+			"Data":    "",
 		})
 		return
 	}
 }
 
-func apiSystemMemoryUseList(context *gin.Context){
-
-	aParam := struct{
-		Code string
-		Message string
-		Data setting.DataStreamTemplate
-	}{"0","",*setting.MemoryDataStream}
-
-	sJson,_ := json.Marshal(aParam)
-	context.String(http.StatusOK,string(sJson))
+func apiSystemMemoryUseList(context *gin.Context) {
+	context.JSON(http.StatusOK, ResponseData{
+		"0",
+		"",
+		*setting.MemoryDataStream,
+	})
 }
 
-func apiSystemDiskUseList(context *gin.Context){
-
-	aParam := struct{
-		Code string
-		Message string
-		Data setting.DataStreamTemplate
-	}{"0","",*setting.DiskDataStream}
-
-	sJson,_ := json.Marshal(aParam)
-	context.String(http.StatusOK,string(sJson))
+func apiSystemDiskUseList(context *gin.Context) {
+	context.JSON(http.StatusOK, ResponseData{
+		"0",
+		"",
+		*setting.DiskDataStream,
+	})
 }
 
-func apiSystemDeviceOnlineList(context *gin.Context){
-
-	aParam := struct{
-		Code string
-		Message string
-		Data setting.DataStreamTemplate
-	}{"0","",*setting.DeviceOnlineDataStream}
-
-	sJson,_ := json.Marshal(aParam)
-	context.String(http.StatusOK,string(sJson))
+func apiSystemDeviceOnlineList(context *gin.Context) {
+	context.JSON(http.StatusOK, ResponseData{
+		"0",
+		"",
+		*setting.DeviceOnlineDataStream,
+	})
 }
 
-func apiSystemDevicePacketLossList(context *gin.Context){
-
-	aParam := struct{
-		Code string
-		Message string
-		Data setting.DataStreamTemplate
-	}{"0","",*setting.DevicePacketLossDataStream}
-
-	sJson,_ := json.Marshal(aParam)
-	context.String(http.StatusOK,string(sJson))
+func apiSystemDevicePacketLossList(context *gin.Context) {
+	context.JSON(http.StatusOK, ResponseData{
+		"0",
+		"",
+		*setting.DevicePacketLossDataStream,
+	})
 }
 
-func apiSystemSetSystemRTC(context *gin.Context){
-
-	aParam := struct{
-		Code string			`json:"Code"`
-		Message string		`json:"Message"`
-		Data string			`json:"Data"`
-	}{
-		Code:"1",
-		Message:"",
-		Data:"",
-	}
-
-	bodyBuf := make([]byte,1024)
-	n,_ := context.Request.Body.Read(bodyBuf)
-	//fmt.Println(string(bodyBuf[:n]))
-
-	rRTC := &struct{
-		systemRTC  string
+func apiSystemSetSystemRTC(context *gin.Context) {
+	rRTC := &struct {
+		systemRTC string
 	}{}
-	err := json.Unmarshal(bodyBuf[:n],rRTC)
+	err := context.ShouldBindJSON(rRTC)
 	if err != nil {
-		fmt.Println("rRTC json unMarshall err,",err)
-
-		aParam.Code = "1"
-		aParam.Message = "json unMarshall err"
-
-		sJson,_ := json.Marshal(aParam)
-		context.String(http.StatusOK,string(sJson))
+		fmt.Println("rRTC json unMarshall err,", err)
+		context.JSON(http.StatusOK, Response{
+			Code:    "1",
+			Message: "json unMarshall err",
+			Data:    "",
+		})
 		return
 	}
 
 	setting.SystemSetRTC(rRTC.systemRTC)
-
-	aParam.Code = "0"
-	aParam.Message = ""
-	aParam.Data = ""
-
-	sJson,_ := json.Marshal(aParam)
-	context.String(http.StatusOK,string(sJson))
+	context.JSON(http.StatusOK, Response{
+		Code:    "0",
+		Message: "",
+		Data:    "",
+	})
 }
 
 func apiSystemSetNTPHost(context *gin.Context) {
 
-	aParam := struct {
-		Code    string `json:"Code"`
-		Message string `json:"Message"`
-		Data    string `json:"Data"`
-	}{
-		Code:    "1",
-		Message: "",
-		Data:    "",
-	}
-
-	bodyBuf := make([]byte, 1024)
-	n, _ := context.Request.Body.Read(bodyBuf)
-	//fmt.Println(string(bodyBuf[:n]))
-
 	rNTPHostAddr := setting.NTPHostAddrTemplate{}
 
-	err := json.Unmarshal(bodyBuf[:n], &rNTPHostAddr)
+	err := context.ShouldBindJSON(&rNTPHostAddr)
 	if err != nil {
 		fmt.Println("rNTPHostAddr json unMarshall err,", err)
 
-		aParam.Code = "1"
-		aParam.Message = "json unMarshall err"
-
-		sJson, _ := json.Marshal(aParam)
-		context.String(http.StatusOK, string(sJson))
+		context.JSON(http.StatusOK, Response{
+			Code:    "1",
+			Message: "json unMarshall err",
+			Data:    "",
+		})
 		return
 	}
 
 	setting.NTPHostAddr = rNTPHostAddr
 	setting.WriteNTPHostAddrToJson()
-
-	aParam.Code = "0"
-	aParam.Data = ""
-	aParam.Message = ""
-
-	sJson, _ := json.Marshal(aParam)
-	context.String(http.StatusOK, string(sJson))
+	context.JSON(http.StatusOK, Response{
+		Code:    "0",
+		Message: "",
+		Data:    "",
+	})
 }
 
-func apiSystemGetNTPHost(context *gin.Context){
-
-	aParam := struct{
-		Code    string
-		Message string
-		Data    setting.NTPHostAddrTemplate
-	}{
-		Code:"0",
-		Message:"",
-		Data:setting.NTPHostAddr,
-	}
-
-	sJson,_ := json.Marshal(aParam)
-	context.String(http.StatusOK,string(sJson))
+func apiSystemGetNTPHost(context *gin.Context) {
+	context.JSON(http.StatusOK, ResponseData{
+		Code:    "0",
+		Message: "",
+		Data:    setting.NTPHostAddr,
+	})
 }

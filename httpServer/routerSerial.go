@@ -1,35 +1,29 @@
 package httpServer
 
 import (
-	"encoding/json"
-	"github.com/gin-gonic/gin"
-	"goAdapter/setting"
 	"net/http"
+
+	"goAdapter/setting"
+
+	"github.com/gin-gonic/gin"
 )
 
 func apiGetSerial(context *gin.Context) {
-
-	type SerialPortNameTemplate struct{
-		Name string			`json:"Name"`
+	type SerialPortNameTemplate struct {
+		Name string `json:"Name"`
 	}
 
-	aParam := struct {
-		Code    string   							`json:"Code"`
-		Message string   							`json:"Message"`
-		Data    []SerialPortNameTemplate 			`json:"Data"`
-	}{
-		Code:    "0",
-		Message: "",
-		Data:    make([]SerialPortNameTemplate,0),
-	}
+	data := make([]SerialPortNameTemplate, 0)
 
 	SerialPortName := SerialPortNameTemplate{}
-	for _,v := range setting.SerialPortNameTemplateMap.Name{
+	for _, v := range setting.SerialPortNameTemplateMap.Name {
 		SerialPortName.Name = v
-		aParam.Data = append(aParam.Data,SerialPortName)
+		data = append(data, SerialPortName)
 	}
 
-	sJson, _ := json.Marshal(aParam)
-
-	context.String(http.StatusOK, string(sJson))
+	context.JSON(http.StatusOK, ResponseData{
+		Code:    "0",
+		Message: "",
+		Data:    data,
+	})
 }

@@ -1,84 +1,46 @@
 package httpServer
 
 import (
-	"encoding/json"
 	"fmt"
-	"github.com/gin-gonic/gin"
-	"goAdapter/setting"
 	"net/http"
+
+	"goAdapter/setting"
+
+	"github.com/gin-gonic/gin"
 )
 
-func apiSetNetwork(context *gin.Context){
-
-	bodyBuf := make([]byte,1024)
-	n,_ := context.Request.Body.Read(bodyBuf)
-
-	fmt.Println(string(bodyBuf[:n]))
-
+func apiSetNetwork(context *gin.Context) {
 	networkParam := setting.NetworkParamTemplate{}
 
-	err := json.Unmarshal(bodyBuf[:n],&networkParam)
+	err := context.ShouldBindJSON(&networkParam)
 	if err != nil {
-		fmt.Println("rNetworkParam json unMarshall err,",err)
-
-		aParam := struct{
-			Code string			`json:"Code"`
-			Message string		`json:"Message"`
-			Data string			`json:"Data"`
-		}{
-			Code:"1",
-			Message:"",
-			Data:"",
-		}
-		sJson,_ := json.Marshal(aParam)
-
-		context.String(http.StatusOK,string(sJson))
+		fmt.Println("rNetworkParam json unMarshall err,", err)
+		context.JSON(http.StatusOK, Response{
+			Code:    "1",
+			Message: "",
+			Data:    "",
+		})
 		return
 	}
 
 	setting.NetworkParamList.SetNetworkParam(networkParam)
-
-	aParam := struct{
-		Code string			`json:"Code"`
-		Message string		`json:"Message"`
-		Data string			`json:"Data"`
-	}{
-		Code:"0",
-		Message:"",
-		Data:"",
-	}
-	sJson,_ := json.Marshal(aParam)
-
-	context.String(http.StatusOK,string(sJson))
-
+	context.JSON(http.StatusOK, Response{
+		Code:    "0",
+		Message: "",
+		Data:    "",
+	})
 }
 
-func apiGetNetwork(context *gin.Context){
-
-	aParam := &struct{
-		Code string
-		Message string
-		Data setting.NetworkParamListTemplate
-	}{}
-
-	aParam.Code = "0"
-	aParam.Data = *setting.NetworkParamList
-
-	sJson,_ := json.Marshal(aParam)
-
-	context.String(http.StatusOK,string(sJson))
+func apiGetNetwork(context *gin.Context) {
+	context.JSON(http.StatusOK, ResponseData{
+		Code: "0",
+		Data: *setting.NetworkParamList,
+	})
 }
 
-func apiGetNetworkLinkState(context *gin.Context){
-	//aParam := struct{
-	//	Code string
-	//	Message string
-	//	Data setting.NetworkLinkStateTemplate
-	//}{Code:"0"}
-	//
-	//aParam.Data = setting.NetworkLinkState
-	//
-	//sJson,_ := json.Marshal(aParam)
-	//
-	//context.String(http.StatusOK,string(sJson))
+func apiGetNetworkLinkState(context *gin.Context) {
+	// context.JSON(http.StatusOK, ResponseData{
+	// 	Code: "0",
+	// 	Data: setting.NetworkLinkState,
+	// })
 }

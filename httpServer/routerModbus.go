@@ -2,7 +2,6 @@ package httpServer
 
 import (
 	"encoding/binary"
-	"encoding/json"
 	"fmt"
 	"net/http"
 	"strconv"
@@ -33,8 +32,6 @@ func NewMbParam(addr byte, regAddr, regCnt uint16) *MbParam {
 }
 
 func mbParamOpenPort(port string) bool {
-	status := false
-
 	//调用RTUClientProvider的构造函数,返回结构体指针
 	p := modbus.NewRTUClientProvider(modbus.WithSerialConfig(serial.Config{
 		Address:  port,
@@ -50,11 +47,10 @@ func mbParamOpenPort(port string) bool {
 	err := client.Connect()
 	if err != nil {
 		fmt.Println("start err,", err)
-		return status
+		return false
 	}
 
-	status = true
-	return status
+	return true
 }
 
 func mbParamReadHoldReg(slaveAddr byte, regAddr uint16, regCnt uint16) []uint16 {
@@ -78,34 +74,16 @@ func mbParamWriteMutilReg(slaveAddr byte, regAddr uint16, regCnt uint16, data []
 }
 
 func apiReadHoldReg(context *gin.Context) {
-
-	aParam := struct {
-		Code    string `json:"Code"`
-		Message string `json:"Message"`
-		Data    string `json:"Data"`
-	}{
-		Code:    "1",
-		Message: "",
-		Data:    "",
-	}
-
-	bodyBuf := make([]byte, 1024)
-	n, _ := context.Request.Body.Read(bodyBuf)
-
-	fmt.Println(string(bodyBuf[:n]))
-
 	//获取读寄存器的参数
 	rMbParam := &MbParam{}
-	err := json.Unmarshal(bodyBuf[:n], rMbParam)
+	err := context.ShouldBindJSON(rMbParam)
 	if err != nil {
 		fmt.Println("rMbParam json unMarshall err,", err)
 
-		aParam.Code = "1"
-		aParam.Message = "json unMarshall err"
-
-		sJson, _ := json.Marshal(aParam)
-
-		context.String(http.StatusOK, string(sJson))
+		context.JSON(http.StatusOK, Response{
+			Code:    "1",
+			Message: "json unMarshall err",
+		})
 		return
 	}
 
@@ -124,43 +102,25 @@ func apiReadHoldReg(context *gin.Context) {
 	}
 	fmt.Println(sRegValue)
 
-	aParam.Code = "0"
-	aParam.Message = ""
-
-	aParam.Data = sRegValue
-	sJson, _ := json.Marshal(aParam)
-
-	context.String(http.StatusOK, string(sJson))
+	context.JSON(http.StatusOK, Response{
+		Code:    "0",
+		Message: "",
+		Data:    sRegValue,
+	})
 }
 
 func apiWriteMultiReg(context *gin.Context) {
-
-	aParam := struct {
-		Code    string `json:"Code"`
-		Message string `json:"Message"`
-		Data    string `json:"Data"`
-	}{
-		Code:    "1",
-		Message: "",
-		Data:    "",
-	}
-
-	bodyBuf := make([]byte, 1024)
-	n, _ := context.Request.Body.Read(bodyBuf)
-
-	fmt.Println(string(bodyBuf[:n]))
-
 	//获取写寄存器的参数
 	rMbParam := &MbParam{}
-	err := json.Unmarshal(bodyBuf[:n], rMbParam)
+	err := context.ShouldBindJSON(rMbParam)
 	if err != nil {
 		fmt.Println("rMbParam json unMarshall err,", err)
 
-		aParam.Code = "1"
-		aParam.Message = "json unMarshall err"
-		sJson, _ := json.Marshal(aParam)
-
-		context.String(http.StatusOK, string(sJson))
+		context.JSON(http.StatusOK, Response{
+			Code:    "1",
+			Message: "json unMarshall err",
+			Data:    "",
+		})
 		return
 	}
 
@@ -181,16 +141,16 @@ func apiWriteMultiReg(context *gin.Context) {
 	err = mbParamWriteMutilReg(rMbParam.Addr, rMbParam.RegAddr,
 		rMbParam.RegCnt, bData)
 	if err != nil {
-		aParam.Code = "1"
-		aParam.Message = "write reg timeout"
-		sJson, _ := json.Marshal(aParam)
-
-		context.String(http.StatusOK, string(sJson))
-
+		context.JSON(http.StatusOK, Response{
+			Code:    "1",
+			Message: "write reg timeout",
+		})
+		return
 	}
-	aParam.Code = "0"
-	aParam.Message = ""
-	sJson, _ := json.Marshal(aParam)
 
-	context.String(http.StatusOK, string(sJson))
+	context.JSON(http.StatusOK, Response{
+		Code:    "0",
+		Message: "",
+		Data:    "",
+	})
 }
