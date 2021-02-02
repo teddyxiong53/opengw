@@ -3,3 +3,5 @@ goAdapter
 plugin/
 config/
 selfpara/
+log/
+.DS_Store

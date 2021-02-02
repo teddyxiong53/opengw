@@ -205,8 +205,5 @@ func LuaOpenFile(filePath string) (*lua.LState, error) {
 	//加载Lua
 	err := lState.DoFile(filePath)
 
-	lState.SetGlobal("GetCRCModbus", lState.NewFunction(GetCRCModbus))
-	lState.SetGlobal("CheckCRCModbus", lState.NewFunction(CheckCRCModbus))
-
 	return lState, err
 }

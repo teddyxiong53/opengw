@@ -23,17 +23,17 @@ type DeviceNodeTypeTemplate struct {
 
 //配置参数
 type DeviceNodeTypeMapStruct struct {
-	DeviceNodeType    []DeviceNodeTypeTemplate
+	DeviceNodeType []DeviceNodeTypeTemplate
 }
 
-type DeviceNodeTypeLuaState struct{
+type DeviceNodeTypeLuaState struct {
 	LuaState *lua.LState
 	TypeName string
 	CollName string
 }
 
 var DeviceNodeTypeMap = DeviceNodeTypeMapStruct{
-	DeviceNodeType : make([]DeviceNodeTypeTemplate,0),
+	DeviceNodeType: make([]DeviceNodeTypeTemplate, 0),
 }
 
 //var DeviceTypePluginMap = make(map[int]*plugin.Plugin)
@@ -41,8 +41,7 @@ var DeviceTypePluginMap = make(map[int]*lua.LState)
 
 //var DeviceTypePluginMap = make([]DeviceNodeTypeLuaState,0)
 
-
-func init(){
+func init() {
 
 }
 
@@ -68,31 +67,31 @@ func WriteDeviceNodeTypeMapToJson() {
 	log.Println("write DeviceNodeType.json sucess")
 }
 
-func updataDeviceType(path string,fileName []string) ([]string,error){
+func updataDeviceType(path string, fileName []string) ([]string, error) {
 
-	rd,err := ioutil.ReadDir(path)
-	if err != nil{
-		log.Println("readDir err,",err)
-		return fileName,err
+	rd, err := ioutil.ReadDir(path)
+	if err != nil {
+		log.Println("readDir err,", err)
+		return fileName, err
 	}
 
-	for _,fi := range rd{
-		if fi.IsDir(){
+	for _, fi := range rd {
+		if fi.IsDir() {
 			fullDir := path + "/" + fi.Name()
-			fileName,_ = updataDeviceType(fullDir,fileName)
-		}else{
+			fileName, _ = updataDeviceType(fullDir, fileName)
+		} else {
 			fullName := path + "/" + fi.Name()
-			if strings.Contains(fi.Name(),".json"){
+			if strings.Contains(fi.Name(), ".json") {
 				//log.Println("fullName ",fullName)
-				fileName = append(fileName,fullName)
-			}else if strings.Contains(fi.Name(),".lua"){
+				fileName = append(fileName, fullName)
+			} else if strings.Contains(fi.Name(), ".lua") {
 				//log.Println("fullName ",fullName)
-				fileName = append(fileName,fullName)
+				fileName = append(fileName, fullName)
 			}
 		}
 	}
 
-	return fileName,nil
+	return fileName, nil
 }
 
 func ReadDeviceNodeTypeMap() bool {
@@ -107,10 +106,10 @@ func ReadDeviceNodeTypeMap() bool {
 
 	//遍历json和so文件
 	pluginPath := exeCurDir + "/plugin"
-	fileNameMap := make([]string,0)
-	fileNameMap,_ = updataDeviceType(pluginPath,fileNameMap)
-	for _,v := range fileNameMap{
-		if strings.Contains(v,".json"){
+	fileNameMap := make([]string, 0)
+	fileNameMap, _ = updataDeviceType(pluginPath, fileNameMap)
+	for _, v := range fileNameMap {
+		if strings.Contains(v, ".json") {
 			fp, err := os.OpenFile(v, os.O_RDONLY, 0777)
 			if err != nil {
 				log.Printf("open %s err", v)
@@ -133,7 +132,7 @@ func ReadDeviceNodeTypeMap() bool {
 			nodeType.TemplateName = deviceTypeTemplate.TemplateName
 			nodeType.TemplateMessage = deviceTypeTemplate.TemplateMessage
 
-			DeviceNodeTypeMap.DeviceNodeType = append(DeviceNodeTypeMap.DeviceNodeType,nodeType)
+			DeviceNodeTypeMap.DeviceNodeType = append(DeviceNodeTypeMap.DeviceNodeType, nodeType)
 		}
 	}
 
@@ -149,6 +148,8 @@ func ReadDeviceNodeTypeMap() bool {
 						log.Printf("openPlug  %s ok\n", fileName)
 					}
 					DeviceTypePluginMap[k] = template
+					DeviceTypePluginMap[k].SetGlobal("GetCRCModbus", DeviceTypePluginMap[k].NewFunction(setting.GetCRCModbus))
+					DeviceTypePluginMap[k].SetGlobal("CheckCRCModbus", DeviceTypePluginMap[k].NewFunction(setting.CheckCRCModbus))
 				}
 			}
 		}
@@ -189,6 +190,3 @@ func ReadDeviceNodeTypeMap() bool {
 //		}
 //	}
 //}
-
-
-
