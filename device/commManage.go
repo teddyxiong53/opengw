@@ -83,6 +83,7 @@ func (c *CommunicationManageTemplate) AnalysisRx() {
 			//清除本次接收数据
 			rxBufCnt = 0
 		}
+		time.Sleep(10 * time.Millisecond)
 	}
 }
 
