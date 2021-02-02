@@ -3,68 +3,48 @@ package httpServer
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/gin-gonic/gin"
-	"goAdapter/device"
 	"log"
 	"net/http"
+
+	"goAdapter/device"
+
+	"github.com/gin-gonic/gin"
 )
 
 func apiAddInterface(context *gin.Context) {
-
-	aParam := struct {
-		Code    string `json:"Code"`
-		Message string `json:"Message"`
-		Data    string `json:"Data"`
-	}{
-		Code:    "1",
-		Message: "",
-		Data:    "",
-	}
-
-	bodyBuf := make([]byte, 1024)
-	n, _ := context.Request.Body.Read(bodyBuf)
-	fmt.Println(string(bodyBuf[:n]))
-
 	interfaceInfo := &struct {
-		CollectInterfaceName 	string	`json:"CollInterfaceName"`	 //采集接口名字
-		CommInterfaceName 		string  `json:"CommInterfaceName"`   //通信接口名字
-		PollPeriod        		int     `json:"PollPeriod"`
-		OfflinePeriod     		int     `json:"OfflinePeriod"`
+		CollectInterfaceName string `json:"CollInterfaceName"` // 采集接口名字
+		CommInterfaceName    string `json:"CommInterfaceName"` // 通信接口名字
+		PollPeriod           int    `json:"PollPeriod"`
+		OfflinePeriod        int    `json:"OfflinePeriod"`
 	}{}
 
-	err := json.Unmarshal(bodyBuf[:n], interfaceInfo)
+	err := context.ShouldBindJSON(interfaceInfo)
 	if err != nil {
 		fmt.Println("interfaceInfo json unMarshall err,", err)
 
-		aParam.Code = "1"
-		aParam.Message = "json unMarshall err"
-
-		sJson, _ := json.Marshal(aParam)
-		context.String(http.StatusOK, string(sJson))
+		context.JSON(http.StatusOK, Response{
+			Code:    "1",
+			Message: "json unMarshall err",
+		})
 		return
 	}
 
-	device.CollectInterfaceMap = append(device.CollectInterfaceMap,device.NewCollectInterface(interfaceInfo.CollectInterfaceName,
+	device.CollectInterfaceMap = append(device.CollectInterfaceMap, device.NewCollectInterface(interfaceInfo.CollectInterfaceName,
 		interfaceInfo.CommInterfaceName,
 		interfaceInfo.PollPeriod,
-		interfaceInfo.OfflinePeriod,0))
+		interfaceInfo.OfflinePeriod, 0))
 
 	device.WriteCollectInterfaceManageToJson()
 
-	aParam.Code = "0"
-	aParam.Data = ""
-
-	sJson, _ := json.Marshal(aParam)
-	context.String(http.StatusOK, string(sJson))
+	context.JSON(http.StatusOK, Response{
+		Code: "0",
+	})
 }
 
 func apiModifyInterface(context *gin.Context) {
 
-	aParam := struct {
-		Code    string `json:"Code"`
-		Message string `json:"Message"`
-		Data    string `json:"Data"`
-	}{
+	aParam := Response{
 		Code:    "1",
 		Message: "",
 		Data:    "",
@@ -75,10 +55,10 @@ func apiModifyInterface(context *gin.Context) {
 	fmt.Println(string(bodyBuf[:n]))
 
 	interfaceInfo := &struct {
-		CollectInterfaceName 	string	`json:"CollInterfaceName"`	 	//采集接口名字
-		CommInterfaceName 		string  `json:"CommInterfaceName"`       //通信接口名字
-		PollPeriod    int
-		OfflinePeriod int
+		CollectInterfaceName string `json:"CollInterfaceName"` // 采集接口名字
+		CommInterfaceName    string `json:"CommInterfaceName"` // 通信接口名字
+		PollPeriod           int
+		OfflinePeriod        int
 	}{}
 
 	err := json.Unmarshal(bodyBuf[:n], interfaceInfo)
@@ -88,13 +68,12 @@ func apiModifyInterface(context *gin.Context) {
 		aParam.Code = "1"
 		aParam.Message = "json unMarshall err"
 
-		sJson, _ := json.Marshal(aParam)
-		context.String(http.StatusOK, string(sJson))
+		context.JSON(http.StatusOK, aParam)
 		return
 	}
 
-	for _,v := range device.CollectInterfaceMap{
-		if v.CollInterfaceName == interfaceInfo.CollectInterfaceName{
+	for _, v := range device.CollectInterfaceMap {
+		if v.CollInterfaceName == interfaceInfo.CollectInterfaceName {
 			v.CommInterfaceName = interfaceInfo.CommInterfaceName
 			v.PollPeriod = interfaceInfo.PollPeriod
 			v.OfflinePeriod = interfaceInfo.OfflinePeriod
@@ -103,9 +82,7 @@ func apiModifyInterface(context *gin.Context) {
 
 			aParam.Code = "0"
 			aParam.Data = ""
-
-			sJson, _ := json.Marshal(aParam)
-			context.String(http.StatusOK, string(sJson))
+			context.JSON(http.StatusOK, aParam)
 			return
 		}
 	}
@@ -113,18 +90,12 @@ func apiModifyInterface(context *gin.Context) {
 	aParam.Code = "1"
 	aParam.Message = "collInterface is not exist"
 	aParam.Data = ""
-
-	sJson, _ := json.Marshal(aParam)
-	context.String(http.StatusOK, string(sJson))
+	context.JSON(http.StatusOK, aParam)
 }
 
 func apiDeleteInterface(context *gin.Context) {
 
-	aParam := struct {
-		Code    string `json:"Code"`
-		Message string `json:"Message"`
-		Data    string `json:"Data"`
-	}{
+	aParam := Response{
 		Code:    "1",
 		Message: "",
 		Data:    "",
@@ -135,7 +106,7 @@ func apiDeleteInterface(context *gin.Context) {
 	fmt.Println(string(bodyBuf[:n]))
 
 	interfaceInfo := &struct {
-		CollectInterfaceName 	string	`json:"CollInterfaceName"`	 //采集接口名字
+		CollectInterfaceName string `json:"CollInterfaceName"` // 采集接口名字
 	}{}
 
 	err := json.Unmarshal(bodyBuf[:n], interfaceInfo)
@@ -145,15 +116,14 @@ func apiDeleteInterface(context *gin.Context) {
 		aParam.Code = "1"
 		aParam.Message = "json unMarshall err"
 
-		sJson, _ := json.Marshal(aParam)
-		context.String(http.StatusOK, string(sJson))
+		context.JSON(http.StatusOK, aParam)
 		return
 	}
 
-	for k,v := range device.CollectInterfaceMap{
-		if v.CollInterfaceName == interfaceInfo.CollectInterfaceName{
+	for k, v := range device.CollectInterfaceMap {
+		if v.CollInterfaceName == interfaceInfo.CollectInterfaceName {
 
-			device.CollectInterfaceMap = append(device.CollectInterfaceMap[:k],device.CollectInterfaceMap[k+1:]...)
+			device.CollectInterfaceMap = append(device.CollectInterfaceMap[:k], device.CollectInterfaceMap[k+1:]...)
 
 			device.WriteCollectInterfaceManageToJson()
 
@@ -169,9 +139,7 @@ func apiDeleteInterface(context *gin.Context) {
 	aParam.Code = "1"
 	aParam.Message = "collInterface is not exist"
 	aParam.Data = ""
-
-	sJson, _ := json.Marshal(aParam)
-	context.String(http.StatusOK, string(sJson))
+	context.JSON(http.StatusOK, aParam)
 }
 
 func apiGetInterfaceInfo(context *gin.Context) {
@@ -184,16 +152,15 @@ func apiGetInterfaceInfo(context *gin.Context) {
 		Data    device.CollectInterfaceTemplate
 	}{}
 
-	for k,v := range device.CollectInterfaceMap{
-		if v.CollInterfaceName == sName{
+	for k, v := range device.CollectInterfaceMap {
+		if v.CollInterfaceName == sName {
 
 			aParam.Code = "0"
 			aParam.Message = ""
 
 			aParam.Data = *device.CollectInterfaceMap[k]
 
-			sJson, _ := json.Marshal(aParam)
-			context.String(http.StatusOK, string(sJson))
+			context.JSON(http.StatusOK, aParam)
 			return
 		}
 	}
@@ -201,19 +168,18 @@ func apiGetInterfaceInfo(context *gin.Context) {
 	aParam.Code = "1"
 	aParam.Message = "interface is not exist"
 
-	sJson, _ := json.Marshal(aParam)
-	context.String(http.StatusOK, string(sJson))
+	context.JSON(http.StatusOK, aParam)
 }
 
 func apiGetAllInterfaceInfo(context *gin.Context) {
 
-	type InterfaceParamTemplate struct{
-		CollInterfaceName   string          		`json:"CollInterfaceName"`   	//采集接口
-		CommInterfaceName   string					`json:"CommInterfaceName"`   	//通信接口
-		PollPeriod          int                   	`json:"PollPeriod"`    			//采集周期
-		OfflinePeriod       int                   	`json:"OfflinePeriod"` 			//离线超时周期
-		DeviceNodeCnt       int                   	`json:"DeviceNodeCnt"` 			//设备数量
-		DeviceNodeOnlineCnt int             		`json:"DeviceNodeOnlineCnt"`	//设备在线数量
+	type InterfaceParamTemplate struct {
+		CollInterfaceName   string `json:"CollInterfaceName"`   // 采集接口
+		CommInterfaceName   string `json:"CommInterfaceName"`   // 通信接口
+		PollPeriod          int    `json:"PollPeriod"`          // 采集周期
+		OfflinePeriod       int    `json:"OfflinePeriod"`       // 离线超时周期
+		DeviceNodeCnt       int    `json:"DeviceNodeCnt"`       // 设备数量
+		DeviceNodeOnlineCnt int    `json:"DeviceNodeOnlineCnt"` // 设备在线数量
 	}
 
 	aParam := &struct {
@@ -222,35 +188,29 @@ func apiGetAllInterfaceInfo(context *gin.Context) {
 		Data    []InterfaceParamTemplate
 	}{}
 
-	aParam.Data = make([]InterfaceParamTemplate,0)
+	aParam.Data = make([]InterfaceParamTemplate, 0)
 
 	aParam.Code = "0"
 	aParam.Message = ""
-	for _,v := range device.CollectInterfaceMap{
+	for _, v := range device.CollectInterfaceMap {
 
 		Param := InterfaceParamTemplate{
-			CollInterfaceName:v.CollInterfaceName,
-			CommInterfaceName:v.CommInterfaceName,
-			PollPeriod: v.PollPeriod,
-			OfflinePeriod: v.OfflinePeriod,
-			DeviceNodeCnt: v.DeviceNodeCnt,
+			CollInterfaceName:   v.CollInterfaceName,
+			CommInterfaceName:   v.CommInterfaceName,
+			PollPeriod:          v.PollPeriod,
+			OfflinePeriod:       v.OfflinePeriod,
+			DeviceNodeCnt:       v.DeviceNodeCnt,
 			DeviceNodeOnlineCnt: v.DeviceNodeOnlineCnt,
 		}
-		aParam.Data = append(aParam.Data,Param)
+		aParam.Data = append(aParam.Data, Param)
 	}
 
-	sJson, _ := json.Marshal(aParam)
-
-	context.String(http.StatusOK, string(sJson))
+	context.JSON(http.StatusOK, aParam)
 }
 
 func apiAddNode(context *gin.Context) {
 
-	aParam := struct {
-		Code    string `json:"Code"`
-		Message string `json:"Message"`
-		Data    string `json:"Data"`
-	}{
+	aParam := Response{
 		Code:    "1",
 		Message: "",
 		Data:    "",
@@ -274,16 +234,14 @@ func apiAddNode(context *gin.Context) {
 		aParam.Code = "1"
 		aParam.Message = "json unMarshall err"
 
-		sJson, _ := json.Marshal(aParam)
-		context.String(http.StatusOK, string(sJson))
+		context.JSON(http.StatusOK, aParam)
 		return
 	}
 
-
-	for _,v := range device.CollectInterfaceMap{
-		if v.CollInterfaceName == nodeInfo.InterfaceName{
-			for _,v := range v.DeviceNodeMap{
-				if v.Name == nodeInfo.DName{
+	for _, v := range device.CollectInterfaceMap {
+		if v.CollInterfaceName == nodeInfo.InterfaceName {
+			for _, v := range v.DeviceNodeMap {
+				if v.Name == nodeInfo.DName {
 					aParam.Code = "1"
 					aParam.Data = ""
 					aParam.Message = "name is exist"
@@ -293,14 +251,13 @@ func apiAddNode(context *gin.Context) {
 					return
 				}
 			}
-			_,aParam.Message = v.AddDeviceNode(nodeInfo.DName,nodeInfo.DType, nodeInfo.DAddr)
+			_, aParam.Message = v.AddDeviceNode(nodeInfo.DName, nodeInfo.DType, nodeInfo.DAddr)
 			device.WriteCollectInterfaceManageToJson()
 
 			aParam.Code = "0"
 			aParam.Data = ""
 
-			sJson, _ := json.Marshal(aParam)
-			context.String(http.StatusOK, string(sJson))
+			context.JSON(http.StatusOK, aParam)
 			return
 		}
 	}
@@ -308,26 +265,24 @@ func apiAddNode(context *gin.Context) {
 	aParam.Code = "1"
 	aParam.Data = ""
 	aParam.Message = "interfaceName is not exist"
-
-	sJson, _ := json.Marshal(aParam)
-	context.String(http.StatusOK, string(sJson))
+	context.JSON(http.StatusOK, aParam)
 }
 
 func apiModifyNode(context *gin.Context) {
 
-	type DeleteAck struct{
+	type DeleteAck struct {
 		Name   string
 		Status bool
 	}
 
 	aParam := struct {
-		Code    string `json:"Code"`
-		Message string `json:"Message"`
+		Code    string      `json:"Code"`
+		Message string      `json:"Message"`
 		Data    []DeleteAck `json:"Data"`
 	}{
 		Code:    "1",
 		Message: "",
-		Data:    make([]DeleteAck,0),
+		Data:    make([]DeleteAck, 0),
 	}
 
 	bodyBuf := make([]byte, 1024)
@@ -335,15 +290,15 @@ func apiModifyNode(context *gin.Context) {
 	log.Println(string(bodyBuf[:n]))
 
 	nodeInfo := &struct {
-		InterfaceName string    			`json:"CollInterfaceName"`
-		Name          string				`json:"Name"`
-		DType         string                `json:"Type"`
-		Addr          string                `json:"Addr"`
+		InterfaceName string `json:"CollInterfaceName"`
+		Name          string `json:"Name"`
+		DType         string `json:"Type"`
+		Addr          string `json:"Addr"`
 	}{
-		InterfaceName:"",
-		DType:"",
-		Name:"",
-		Addr:"",
+		InterfaceName: "",
+		DType:         "",
+		Name:          "",
+		Addr:          "",
 	}
 
 	err := json.Unmarshal(bodyBuf[:n], nodeInfo)
@@ -353,8 +308,7 @@ func apiModifyNode(context *gin.Context) {
 		aParam.Code = "1"
 		aParam.Message = "json unMarshall err"
 
-		sJson, _ := json.Marshal(aParam)
-		context.String(http.StatusOK, string(sJson))
+		context.JSON(http.StatusOK, aParam)
 		return
 	}
 
@@ -378,25 +332,24 @@ func apiModifyNode(context *gin.Context) {
 
 	aParam.Code = "1"
 	aParam.Message = "name is not exist"
-	sJson, _ := json.Marshal(aParam)
-	context.String(http.StatusOK, string(sJson))
+	context.JSON(http.StatusOK, aParam)
 }
 
 func apiModifyNodes(context *gin.Context) {
 
-	type DeleteAck struct{
+	type DeleteAck struct {
 		Name   string
 		Status bool
 	}
 
 	aParam := struct {
-		Code    string `json:"Code"`
-		Message string `json:"Message"`
+		Code    string      `json:"Code"`
+		Message string      `json:"Message"`
 		Data    []DeleteAck `json:"Data"`
 	}{
 		Code:    "1",
 		Message: "",
-		Data:    make([]DeleteAck,0),
+		Data:    make([]DeleteAck, 0),
 	}
 
 	bodyBuf := make([]byte, 1024)
@@ -404,13 +357,13 @@ func apiModifyNodes(context *gin.Context) {
 	log.Println(string(bodyBuf[:n]))
 
 	nodeInfo := &struct {
-		InterfaceName string    			`json:"CollInterfaceName"`
-		DType         string                `json:"Type"`
-		Name          []string				`json:"Name"`
+		InterfaceName string   `json:"CollInterfaceName"`
+		DType         string   `json:"Type"`
+		Name          []string `json:"Name"`
 	}{
-		InterfaceName:"",
-		DType:"",
-		Name:make([]string,0),
+		InterfaceName: "",
+		DType:         "",
+		Name:          make([]string, 0),
 	}
 
 	err := json.Unmarshal(bodyBuf[:n], nodeInfo)
@@ -425,15 +378,15 @@ func apiModifyNodes(context *gin.Context) {
 		return
 	}
 
-	for _,v := range nodeInfo.Name{
+	for _, v := range nodeInfo.Name {
 		ack := DeleteAck{
-			Name: v,
+			Name:   v,
 			Status: false,
 		}
-		aParam.Data = append(aParam.Data,ack)
+		aParam.Data = append(aParam.Data, ack)
 	}
 
-	for k,n := range nodeInfo.Name{
+	for k, n := range nodeInfo.Name {
 		for _, v := range device.CollectInterfaceMap {
 			if v.CollInterfaceName == nodeInfo.InterfaceName {
 				for _, v := range v.DeviceNodeMap {
@@ -487,7 +440,7 @@ func apiGetNode(context *gin.Context) {
 
 func apiDeleteNode(context *gin.Context) {
 
-	type DeleteAck struct{
+	type DeleteAck struct {
 		Name   string
 		Status bool
 	}
@@ -499,7 +452,7 @@ func apiDeleteNode(context *gin.Context) {
 	}{
 		Code:    "1",
 		Message: "",
-		Data:    make([]DeleteAck,0),
+		Data:    make([]DeleteAck, 0),
 	}
 
 	bodyBuf := make([]byte, 1024)
@@ -507,13 +460,12 @@ func apiDeleteNode(context *gin.Context) {
 	fmt.Println(string(bodyBuf[:n]))
 
 	nodeInfo := &struct {
-		InterfaceName string    `json:"CollInterfaceName"`
-		DName         []string  `json:"Name"`
+		InterfaceName string   `json:"CollInterfaceName"`
+		DName         []string `json:"Name"`
 	}{
-		InterfaceName:"",
-		DName :make([]string,0),
+		InterfaceName: "",
+		DName:         make([]string, 0),
 	}
-
 
 	err := json.Unmarshal(bodyBuf[:n], nodeInfo)
 	if err != nil {
@@ -527,16 +479,16 @@ func apiDeleteNode(context *gin.Context) {
 		return
 	}
 
-	for _,v := range nodeInfo.DName{
+	for _, v := range nodeInfo.DName {
 
 		ack := DeleteAck{
-			Name: v,
+			Name:   v,
 			Status: false,
 		}
-		aParam.Data = append(aParam.Data,ack)
+		aParam.Data = append(aParam.Data, ack)
 	}
 
-	for k,DName := range nodeInfo.DName {
+	for k, DName := range nodeInfo.DName {
 		for _, v := range device.CollectInterfaceMap {
 			if v.CollInterfaceName == nodeInfo.InterfaceName {
 				for _, n := range v.DeviceNodeMap {
@@ -566,14 +518,14 @@ func apiDeleteNode(context *gin.Context) {
 */
 func apiGetNodeVariableFromCache(context *gin.Context) {
 
-	type VariableTemplate struct{
-		Index   	int      										`json:"index"`			//变量偏移量
-		Name 		string											`json:"name"`			//变量名
-		Label 		string											`json:"lable"`			//变量标签
-		Value 		interface{}										`json:"value"`			//变量值
-		Explain     interface{}										`json:"explain"`
-		TimeStamp   string											`json:"timestamp"`		//变量时间戳
-		Type    	string                  						`json:"type"`			//变量类型
+	type VariableTemplate struct {
+		Index     int         `json:"index"` // 变量偏移量
+		Name      string      `json:"name"`  // 变量名
+		Label     string      `json:"lable"` // 变量标签
+		Value     interface{} `json:"value"` // 变量值
+		Explain   interface{} `json:"explain"`
+		TimeStamp string      `json:"timestamp"` // 变量时间戳
+		Type      string      `json:"type"`      // 变量类型
 	}
 
 	sName := context.Query("CollInterfaceName")
@@ -592,26 +544,26 @@ func apiGetNodeVariableFromCache(context *gin.Context) {
 
 					aParam.Code = "0"
 					aParam.Message = ""
-					aParam.Data = make([]VariableTemplate,0)
+					aParam.Data = make([]VariableTemplate, 0)
 					index := 0
 					variable := VariableTemplate{}
-					for _,v := range v.VariableMap{
+					for _, v := range v.VariableMap {
 						variable.Index = v.Index
 						variable.Name = v.Name
 						variable.Label = v.Label
-						//取出切片中最后一个值
-						if len(v.Value) > 0{
-							index = len(v.Value)-1
+						// 取出切片中最后一个值
+						if len(v.Value) > 0 {
+							index = len(v.Value) - 1
 							variable.Value = v.Value[index].Value
 							variable.Explain = v.Value[index].Explain
 							variable.TimeStamp = v.Value[index].TimeStamp
-						}else{
+						} else {
 							variable.Value = ""
 							variable.Explain = ""
 							variable.TimeStamp = ""
 						}
 						variable.Type = v.Type
-						aParam.Data = append(aParam.Data,variable)
+						aParam.Data = append(aParam.Data, variable)
 					}
 
 					sJson, _ := json.Marshal(aParam)
@@ -627,7 +579,6 @@ func apiGetNodeVariableFromCache(context *gin.Context) {
 	sJson, _ := json.Marshal(aParam)
 	context.String(http.StatusOK, string(sJson))
 }
-
 
 func apiGetNodeHistoryVariableFromCache(context *gin.Context) {
 
@@ -648,8 +599,8 @@ func apiGetNodeHistoryVariableFromCache(context *gin.Context) {
 
 					aParam.Code = "0"
 					aParam.Message = ""
-					for _,v := range v.VariableMap{
-						if v.Name == sVariable{
+					for _, v := range v.VariableMap {
+						if v.Name == sVariable {
 							aParam.Data = v.Value
 						}
 					}
@@ -673,21 +624,21 @@ func apiGetNodeHistoryVariableFromCache(context *gin.Context) {
 */
 func apiGetNodeVariableFromDevice(context *gin.Context) {
 
-	//sName := context.Query("interfaceName")
-	//sAddr := context.Query("addr")
+	// sName := context.Query("interfaceName")
+	// sAddr := context.Query("addr")
 	//
-	//aParam := &struct {
+	// aParam := &struct {
 	//	Code    string
 	//	Message string
 	//	Data    []api.VariableTemplate
-	//}{}
+	// }{}
 	//
 	//
-	//for _,v := range device.CollectInterfaceMap {
+	// for _,v := range device.CollectInterfaceMap {
 	//	if v.CollInterfaceName == nodeInfo.InterfaceName {
 	//
 	//	}
-	//}
+	// }
 	//
 	//		iID, _ := strconv.Atoi(sID)
 	//		for k, v := range device.CollectInterfaceMap[iID].DeviceNodeMap {
@@ -735,9 +686,9 @@ func apiAddTemplate(context *gin.Context) {
 	fmt.Println(string(bodyBuf[:n]))
 
 	typeInfo := &struct {
-		TemplateName    string `json:"TemplateName"`    //模板名称
-		TemplateType    string `json:"TemplateType"`    //模板型号
-		TemplateMessage string `json:"TemplateMessage"` //备注信息
+		TemplateName    string `json:"TemplateName"`    // 模板名称
+		TemplateType    string `json:"TemplateType"`    // 模板型号
+		TemplateMessage string `json:"TemplateMessage"` // 备注信息
 	}{}
 
 	err := json.Unmarshal(bodyBuf[:n], typeInfo)
@@ -779,7 +730,7 @@ func apiGetTemplate(context *gin.Context) {
 		Data    []device.DeviceNodeTypeTemplate
 	}{}
 
-	//device.ReadDeviceNodeTypeMapFromJson()
+	// device.ReadDeviceNodeTypeMapFromJson()
 
 	aParam.Code = "0"
 	aParam.Message = ""
@@ -804,11 +755,11 @@ func apiAddCommInterface(context *gin.Context) {
 
 	bodyBuf := make([]byte, 1024)
 	n, _ := context.Request.Body.Read(bodyBuf)
-	//fmt.Println(string(bodyBuf[:n]))
+	// fmt.Println(string(bodyBuf[:n]))
 
 	interfaceInfo := struct {
-		Name  string           `json:"Name"` //接口名称
-		Type  string           `json:"Type"` //接口类型,比如serial,tcp,udp,http
+		Name  string           `json:"Name"` // 接口名称
+		Type  string           `json:"Type"` // 接口类型,比如serial,tcp,udp,http
 		Param *json.RawMessage `json:"Param"`
 	}{}
 
@@ -823,19 +774,19 @@ func apiAddCommInterface(context *gin.Context) {
 		return
 	}
 
-	//log.Printf("info %+v\n",interfaceInfo)
-	//log.Printf("type %+v\n",reflect.TypeOf(interfaceInfo.Param))
-	//switch t:= interfaceInfo.Param.(type){
-	//case device.SerialInterfaceParam:
+	// log.Printf("info %+v\n",interfaceInfo)
+	// log.Printf("type %+v\n",reflect.TypeOf(interfaceInfo.Param))
+	// switch t:= interfaceInfo.Param.(type){
+	// case device.SerialInterfaceParam:
 	//	log.Printf("param %+v\n",t)
 	//	device.CommInterfaceList.AddCommInterface(t.Name,t.Type,t.Param)
-	//default:
+	// default:
 	//	aParam.Code = "1"
 	//	aParam.Message = "param is noexist"
 	//	aParam.Data = ""
 	//	sJson,_ := json.Marshal(aParam)
 	//	context.String(http.StatusOK,string(sJson))
-	//}
+	// }
 
 	var msg json.RawMessage
 	switch interfaceInfo.Type {
@@ -847,11 +798,11 @@ func apiAddCommInterface(context *gin.Context) {
 			break
 		}
 		log.Printf("type %+v\n", serial)
-		//device.CommInterfaceList.AddCommInterface(serial.Name,serial.Type,serial.Param)
+		// device.CommInterfaceList.AddCommInterface(serial.Name,serial.Type,serial.Param)
 	case "tcp":
 	}
 
-	//device.WriteCommInterfaceListToJson()
+	// device.WriteCommInterfaceListToJson()
 
 	aParam.Code = "0"
 	aParam.Message = ""
@@ -864,9 +815,9 @@ func apiAddCommInterface(context *gin.Context) {
 func apiGetCommInterface(context *gin.Context) {
 
 	type CommunicationInterfaceTemplate struct {
-		Name  string      `json:"Name"`  //接口名称
-		Type  string      `json:"Type"`  //接口类型,比如serial,tcp,udp,http
-		Param interface{} `json:"Param"` //接口参数
+		Name  string      `json:"Name"`  // 接口名称
+		Type  string      `json:"Type"`  // 接口类型,比如serial,tcp,udp,http
+		Param interface{} `json:"Param"` // 接口参数
 	}
 
 	type CommunicationInterfaceManageTemplate struct {
@@ -921,8 +872,8 @@ func apiAddCommSerialInterface(context *gin.Context) {
 	n, _ := context.Request.Body.Read(bodyBuf)
 
 	interfaceInfo := struct {
-		Name  string                      `json:"Name"` //接口名称
-		Type  string                      `json:"Type"` //接口类型,比如serial,tcp,udp,http
+		Name  string                      `json:"Name"` // 接口名称
+		Type  string                      `json:"Type"` // 接口类型,比如serial,tcp,udp,http
 		Param device.SerialInterfaceParam `json:"Param"`
 	}{}
 
@@ -938,8 +889,8 @@ func apiAddCommSerialInterface(context *gin.Context) {
 	}
 
 	for _, v := range device.CommunicationSerialMap {
-		//判断通信接口名称是否一致
-		if (v.Name==interfaceInfo.Name) || (v.Param.Name == interfaceInfo.Param.Name){
+		// 判断通信接口名称是否一致
+		if (v.Name == interfaceInfo.Name) || (v.Param.Name == interfaceInfo.Param.Name) {
 			aParam.Code = "1"
 			aParam.Message = "name is exist"
 			aParam.Data = ""
@@ -958,7 +909,7 @@ func apiAddCommSerialInterface(context *gin.Context) {
 		},
 	}
 
-	device.CommunicationSerialMap = append(device.CommunicationSerialMap,SerialInterface)
+	device.CommunicationSerialMap = append(device.CommunicationSerialMap, SerialInterface)
 	device.WriteCommSerialInterfaceListToJson()
 
 	aParam.Code = "0"
@@ -984,8 +935,8 @@ func apiModifyCommSerialInterface(context *gin.Context) {
 	n, _ := context.Request.Body.Read(bodyBuf)
 
 	interfaceInfo := struct {
-		Name  string                      `json:"Name"` //接口名称
-		Type  string                      `json:"Type"` //接口类型,比如serial,tcp,udp,http
+		Name  string                      `json:"Name"` // 接口名称
+		Type  string                      `json:"Type"` // 接口类型,比如serial,tcp,udp,http
 		Param device.SerialInterfaceParam `json:"Param"`
 	}{}
 
@@ -1001,7 +952,7 @@ func apiModifyCommSerialInterface(context *gin.Context) {
 	}
 
 	for k, v := range device.CommunicationSerialMap {
-		//判断名称是否一致
+		// 判断名称是否一致
 		if v.Name == interfaceInfo.Name {
 			device.CommunicationSerialMap[k].Type = interfaceInfo.Type
 			device.CommunicationSerialMap[k].Param = interfaceInfo.Param
@@ -1040,8 +991,8 @@ func apiDeleteCommSerialInterface(context *gin.Context) {
 	n, _ := context.Request.Body.Read(bodyBuf)
 
 	interfaceInfo := struct {
-		Name string `json:"Name"` //接口名称
-		Type string `json:"Type"` //接口类型,比如serial,tcp,udp,http
+		Name string `json:"Name"` // 接口名称
+		Type string `json:"Type"` // 接口类型,比如serial,tcp,udp,http
 	}{}
 
 	err := json.Unmarshal(bodyBuf[:n], &interfaceInfo)
@@ -1056,7 +1007,7 @@ func apiDeleteCommSerialInterface(context *gin.Context) {
 	}
 
 	for k, v := range device.CommunicationSerialMap {
-		//判断名称是否一致
+		// 判断名称是否一致
 		if v.Name == interfaceInfo.Name {
 
 			device.CommunicationSerialMap = append(device.CommunicationSerialMap[:k],

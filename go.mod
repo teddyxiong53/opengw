@@ -26,9 +26,7 @@ require (
 	github.com/stretchr/testify v1.5.1 // indirect
 	github.com/tarm/serial v0.0.0-20180830185346-98f6abe2eb07
 	github.com/tebeka/strftime v0.1.5 // indirect
-	github.com/thinkgos/gomodbus/v2 v2.2.1
-	github.com/thinkgos/mb v0.0.1
-	github.com/thinkgos/timing/v4 v4.1.1 // indirect
+	github.com/thinkgos/gomodbus/v2 v2.2.2
 	github.com/yuin/gluamapper v0.0.0-20150323120927-d836955830e7
 	github.com/yuin/gopher-lua v0.0.0-20200816102855-ee81675732da
 	golang.org/x/net v0.0.0-20200625001655-4c5254603344 // indirect
