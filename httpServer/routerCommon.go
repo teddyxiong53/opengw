@@ -18,21 +18,14 @@ func routerCommon() http.Handler {
 		systemRouter.GET("/loginParam", apiSystemLoginParam)
 	}
 
-	networkRouter := router.Group("/api/v1/network")
-	{
-		networkRouter.POST("/param", apiSetNetwork)
-
-		networkRouter.GET("/param", apiGetNetwork)
-
-		networkRouter.GET("/linkstate", apiGetNetworkLinkState)
-	}
-
-	networkDHCPRouter := router.Group("/api/v1/network/dhcp")
-	{
-		networkDHCPRouter.POST("", apiSetNetwork)
-
-		networkDHCPRouter.GET("", apiGetNetwork)
-	}
+	//networkRouter := router.Group("/api/v1/network")
+	//{
+	//	networkRouter.POST("/param", apiSetNetwork)
+	//
+	//	networkRouter.GET("/param", apiGetNetwork)
+	//
+	//	networkRouter.GET("/linkstate", apiGetNetworkLinkState)
+	//}
 
 	serialRouter := router.Group("/api/v1/serial/param")
 	{

@@ -2,6 +2,7 @@ package httpServer
 
 import (
 	"archive/zip"
+	"goAdapter/setting"
 	"io"
 	"log"
 	"net/http"
@@ -20,7 +21,7 @@ func unZip(zipFile string, destDir string) error {
 
 	zipReader, err := zip.OpenReader(zipFile)
 	if err != nil {
-		log.Printf("OpenReader err,", err)
+		setting.Logger.Errorf("OpenReader err,", err)
 		return err
 	}
 	defer zipReader.Close()
@@ -96,7 +97,7 @@ func apiUpdatePlugin(context *gin.Context) {
 	unZip(fileName, fileDir)
 	err = os.Remove(fileName)
 	if err != nil {
-		log.Printf("removeFile err,%s\n", fileName)
+		setting.Logger.Errorf("removeFile err,%s\n", fileName)
 	}
 
 	context.JSON(http.StatusOK, Response{

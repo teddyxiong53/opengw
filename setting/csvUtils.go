@@ -30,7 +30,7 @@ func (c *CsvRecord) GetString(field string) string {
 	if ok {
 		return data
 	} else {
-		log.Printf("Get fileld failed! fileld:", field)
+		Logger.Errorf("Get fileld failed! fileld:", field)
 		return ""
 	}
 }
@@ -45,7 +45,7 @@ func LoadCsvCfg(filename string, row int) *CsvTable {
 
 	reader := csv.NewReader(file)
 	if reader == nil {
-		log.Printf("NewReader return nil, file:", file)
+		Logger.Errorf("NewReader return nil, file:", file)
 		return nil
 	}
 	records, err := reader.ReadAll()

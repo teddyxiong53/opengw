@@ -112,7 +112,7 @@ func ReadDeviceNodeTypeMap() bool {
 		if strings.Contains(v, ".json") {
 			fp, err := os.OpenFile(v, os.O_RDONLY, 0777)
 			if err != nil {
-				log.Printf("open %s err", v)
+				setting.Logger.Errorf("open %s err", v)
 				return false
 			}
 			defer fp.Close()
@@ -143,9 +143,9 @@ func ReadDeviceNodeTypeMap() bool {
 				if strings.Contains(fileName, v.TemplateType) {
 					template, err := setting.LuaOpenFile(fileName)
 					if err != nil {
-						log.Printf("openPlug %s err,%s\n", fileName, err)
+						setting.Logger.Errorf("openPlug %s err,%s\n", fileName, err)
 					} else {
-						log.Printf("openPlug  %s ok\n", fileName)
+						setting.Logger.Debugf("openPlug  %s ok\n", fileName)
 					}
 					DeviceTypePluginMap[k] = template
 					DeviceTypePluginMap[k].SetGlobal("GetCRCModbus", DeviceTypePluginMap[k].NewFunction(setting.GetCRCModbus))

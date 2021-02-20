@@ -3,6 +3,7 @@ package httpServer
 import (
 	"encoding/json"
 	"fmt"
+	"goAdapter/setting"
 	"log"
 	"net/http"
 
@@ -794,10 +795,10 @@ func apiAddCommInterface(context *gin.Context) {
 		serial := &device.SerialInterfaceParam{}
 		err := json.Unmarshal(msg, serial)
 		if err != nil {
-			log.Println("CommunicationSerialInterface json unMarshall err,", err)
+			setting.Logger.Errorf("CommunicationSerialInterface json unMarshall err,", err)
 			break
 		}
-		log.Printf("type %+v\n", serial)
+		setting.Logger.Debugf("type %+v\n", serial)
 		// device.CommInterfaceList.AddCommInterface(serial.Name,serial.Type,serial.Param)
 	case "tcp":
 	}

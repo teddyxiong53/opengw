@@ -14,12 +14,12 @@ func main() {
 	/**************获取配置文件***********************/
 	setting.GetConf()
 
-	setting.LogerInit(setting.LogLevel, setting.LogSaveToFile, setting.LogFileMaxCnt)
+	setting.LogerInit()
 
 	//记录起始时间
 	setting.GetTimeStart()
 
-	setting.Logger.Info("goteway V0.0.1")
+	setting.Logger.Debugf("goteway V0.0.1")
 
 	setting.MemoryDataStream = setting.NewDataStreamTemplate("内存使用率")
 	setting.DiskDataStream = setting.NewDataStreamTemplate("硬盘使用率")

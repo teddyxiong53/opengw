@@ -1,6 +1,8 @@
 package device
 
-import "log"
+import (
+	"goAdapter/setting"
+)
 
 type CommunicationInterface interface {
 	Open() bool
@@ -24,7 +26,7 @@ func CommInterfaceInit() {
 	if ReadCommSerialInterfaceListFromJson() == false {
 
 	} else {
-		log.Println("read CommSerialInterfaceList.json ok")
+		setting.Logger.Debugf("read CommSerialInterfaceList.json ok")
 
 		//for _, v := range CommunicationSerialMap {
 		//
@@ -36,6 +38,5 @@ func CommInterfaceInit() {
 	for _, v := range CommunicationSerialMap {
 
 		v.Open()
-		//log.Printf("c %+v\n",v)
 	}
 }

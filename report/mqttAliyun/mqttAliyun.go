@@ -1,10 +1,10 @@
-package mqttClient
+package mqttAliyun
 
 import (
 	"bytes"
 	"encoding/json"
 	MQTT "github.com/eclipse/paho.mqtt.golang"
-	"log"
+	"goAdapter/setting"
 	"strconv"
 	"time"
 )
@@ -34,11 +34,11 @@ type MQTTAliyunNodeValueTemplate struct {
 	ValueMap   []MQTTAliyunValueTemplate
 }
 
-type MQTTAliyunPropertyPostAckTemplate struct {
-	ID   string `json:"id"`
-	Code int32  `json:"code"`
-	data string `json:"data"`
-}
+//type MQTTAliyunPropertyPostAckTemplate struct {
+//	ID   string `json:"id"`
+//	Code int32  `json:"code"`
+//	Data string `json:"data"`
+//}
 
 type MQTTAliyunMessageTemplate struct {
 	Method  string                 `json:"method"`
@@ -67,6 +67,8 @@ func MQTTAliyunGWLogin(param MQTTAliyunRegisterTemplate, publishHandler MQTT.Mes
 
 	var raw_broker bytes.Buffer
 
+	//MQTT.DEBUG = log.New(os.Stdout, "[DEBUG] ", 0)
+
 	raw_broker.WriteString(param.ProductKey)
 	raw_broker.WriteString(param.RemoteIP)
 	opts := MQTT.NewClientOptions().AddBroker(raw_broker.String())
@@ -78,17 +80,17 @@ func MQTTAliyunGWLogin(param MQTTAliyunRegisterTemplate, publishHandler MQTT.Mes
 	opts.SetUsername(auth.username)
 	opts.SetPassword(auth.password)
 	opts.SetKeepAlive(60 * 2 * time.Second)
-	opts.SetAutoReconnect(false)
 	opts.SetDefaultPublishHandler(publishHandler)
+	opts.SetAutoReconnect(false)
 
 	// create and start a client using the above ClientOptions
 	mqttClient := MQTT.NewClient(opts)
 	if token := mqttClient.Connect(); token.Wait() && token.Error() != nil {
-		log.Println(token.Error())
+		//log.Println(token.Error())
+		setting.Logger.Errorf("Connect aliyun IoT Cloud fail,%s", token.Error())
 		return false, nil
 	}
-
-	log.Printf("Connect aliyun IoT Cloud Sucess\n")
+	setting.Logger.Info("Connect aliyun IoT Cloud Sucess")
 
 	subTopic := ""
 	//属性上报回应
@@ -123,12 +125,12 @@ func MQTTAliyunGWLogin(param MQTTAliyunRegisterTemplate, publishHandler MQTT.Mes
 func MQTTAliyunSubscribeTopic(client MQTT.Client, topic string) {
 
 	if token := client.Subscribe(topic, 0, nil); token.Wait() && token.Error() != nil {
-		log.Println(token.Error())
+		setting.Logger.Warningf("Subscribe topic %s fail,%v", topic, token.Error())
 	}
-	log.Printf("Subscribe topic " + topic + " success\n")
+	setting.Logger.Info("Subscribe topic " + topic + " success")
 }
 
-func MQTTAliyunNodeLoginIn(client MQTT.Client, gw MQTTAliyunRegisterTemplate, node []MQTTAliyunNodeRegisterTemplate) {
+func MQTTAliyunNodeLoginIn(client MQTT.Client, gw MQTTAliyunRegisterTemplate, node []MQTTAliyunNodeRegisterTemplate) int {
 
 	type NodeParamsTemplate struct {
 		DeviceName   string `json:"deviceName"`
@@ -179,17 +181,19 @@ func MQTTAliyunNodeLoginIn(client MQTT.Client, gw MQTTAliyunRegisterTemplate, no
 	sJson, _ := json.Marshal(mqttPayload)
 	if len(NodeParamsList.DeviceList) > 0 {
 
-		log.Printf("node publish logInMsg: %s\n", sJson)
-		log.Printf("node publish topic: %s\n", loginInTopic)
+		setting.Logger.Debugf("node publish logInMsg: %s\n", sJson)
+		setting.Logger.Infof("node publish topic: %s\n", loginInTopic)
 
 		if client != nil {
 			token := client.Publish(loginInTopic, 0, false, sJson)
 			token.Wait()
 		}
 	}
+
+	return MsgID
 }
 
-func MQTTAliyunNodeLoginOut(client MQTT.Client, gw MQTTAliyunRegisterTemplate, node []MQTTAliyunNodeRegisterTemplate) {
+func MQTTAliyunNodeLoginOut(client MQTT.Client, gw MQTTAliyunRegisterTemplate, node []MQTTAliyunNodeRegisterTemplate) int {
 
 	type NodeParamsTemplate struct {
 		DeviceName string `json:"deviceName"`
@@ -220,15 +224,17 @@ func MQTTAliyunNodeLoginOut(client MQTT.Client, gw MQTTAliyunRegisterTemplate, n
 	}
 	sJson, _ := json.Marshal(mqttPayload)
 	if len(mqttPayload.Params) > 0 {
-		log.Printf("node publish logOutMsg: %s\n", sJson)
-		log.Printf("node publish topic: %s\n", loginOutTopic)
+		setting.Logger.Infof("node publish logOutMsg: %s\n", sJson)
+		setting.Logger.Debugf("node publish topic: %s\n", loginOutTopic)
 
 		token := client.Publish(loginOutTopic, 0, false, sJson)
 		token.Wait()
 	}
+
+	return MsgID
 }
 
-func MQTTAliyunGWPropertyPost(client MQTT.Client, gw MQTTAliyunRegisterTemplate, valueMap []MQTTAliyunValueTemplate) {
+func MQTTAliyunGWPropertyPost(client MQTT.Client, gw MQTTAliyunRegisterTemplate, valueMap []MQTTAliyunValueTemplate) int {
 
 	type MQTTPropertyValueTemplate struct {
 		Value interface{} `json:"value"`
@@ -264,19 +270,20 @@ func MQTTAliyunGWPropertyPost(client MQTT.Client, gw MQTTAliyunRegisterTemplate,
 	MsgID++
 
 	sJson, _ := json.Marshal(PropertyPayload)
-	log.Printf("property post msg: %s\n", sJson)
-
 	//propertyPostTopic := "/sys/" + MQTTAliyunGWParam.GWParam.ProductKey + "/" + MQTTAliyunGWParam.GWParam.DeviceName + "/thing/event/property/post"
 	propertyPostTopic := "/sys/" + gw.ProductKey + "/" + gw.DeviceName + "/thing/event/property/pack/post"
 
-	log.Printf("property post topic: %s\n", propertyPostTopic)
+	setting.Logger.Infof("gw property post topic: %s", propertyPostTopic)
+	setting.Logger.Debugf("gw property post msg: %s", sJson)
 	if client != nil {
 		token := client.Publish(propertyPostTopic, 0, false, sJson)
 		token.Wait()
 	}
+
+	return MsgID
 }
 
-func MQTTAliyunNodePropertyPost(client MQTT.Client, gw MQTTAliyunRegisterTemplate, nodeMap []MQTTAliyunNodeValueTemplate) {
+func MQTTAliyunNodePropertyPost(client MQTT.Client, gw MQTTAliyunRegisterTemplate, nodeMap []MQTTAliyunNodeValueTemplate) int {
 
 	type MQTTPropertyValueTemplate struct {
 		Value interface{} `json:"value"`
@@ -332,16 +339,17 @@ func MQTTAliyunNodePropertyPost(client MQTT.Client, gw MQTTAliyunRegisterTemplat
 	MsgID++
 
 	sJson, _ := json.Marshal(PropertyPayload)
-	log.Printf("property post msg: %s\n", sJson)
 
 	//propertyPostTopic := "/sys/" + MQTTAliyunGWParam.GWParam.ProductKey + "/" + MQTTAliyunGWParam.GWParam.DeviceName + "/thing/event/property/post"
 	propertyPostTopic := "/sys/" + gw.ProductKey + "/" + gw.DeviceName + "/thing/event/property/pack/post"
-	log.Printf("property post topic: %s\n", propertyPostTopic)
-
+	setting.Logger.Infof("node property post topic: %s\n", propertyPostTopic)
+	setting.Logger.Debugf("node property post msg: %s\n", sJson)
 	if client != nil {
 		token := client.Publish(propertyPostTopic, 0, false, sJson)
 		token.Wait()
 	}
+
+	return MsgID
 }
 
 func MQTTAliyunThingServiceAck(client MQTT.Client, gw MQTTAliyunRegisterTemplate, ackMessage MQTTAliyunThingServiceAckTemplate) {
@@ -359,11 +367,11 @@ func MQTTAliyunThingServiceAck(client MQTT.Client, gw MQTTAliyunRegisterTemplate
 	}
 
 	sJson, _ := json.Marshal(payload)
-	log.Printf("thingServiceAck post msg: %s\n", sJson)
+	setting.Logger.Debugf("thingServiceAck post msg: %s\n", sJson)
 
 	thingServiceTopic := "/sys/" + gw.ProductKey + "/" + gw.DeviceName +
 		"/thing/service/" + ackMessage.Identifier + "_reply"
-	log.Printf("thingServiceAck post topic: %s\n", thingServiceTopic)
+	setting.Logger.Infof("thingServiceAck post topic: %s\n", thingServiceTopic)
 
 	if client != nil {
 		token := client.Publish(thingServiceTopic, 0, false, sJson)

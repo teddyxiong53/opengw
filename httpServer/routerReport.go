@@ -4,9 +4,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/gin-gonic/gin"
-	"goAdapter/report"
+	"goAdapter/report/mqttAliyun"
 	"goAdapter/setting"
-	"log"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -56,16 +55,16 @@ func apiSetReportGWParam(context *gin.Context) {
 
 	switch param.Protocol {
 	case "Aliyun.MQTT":
-		ReportServiceGWParamAliyun := report.ReportServiceGWParamAliyunTemplate{}
+		ReportServiceGWParamAliyun := mqttAliyun.ReportServiceGWParamAliyunTemplate{}
 		if err := json.Unmarshal(bodyBuf[:n], &ReportServiceGWParamAliyun); err != nil {
 			fmt.Println("ReportServiceGWParamAliyun json unMarshall err,", err)
 		}
-		report.ReportServiceParamListAliyun.AddReportService(ReportServiceGWParamAliyun)
+		mqttAliyun.ReportServiceParamListAliyun.AddReportService(ReportServiceGWParamAliyun)
 	case "Emqx":
 
 	case "Huawei":
 	default:
-		log.Printf("unknown param.Protocol")
+		setting.Logger.Errorf("unknown param.Protocol")
 		aParam.Code = "1"
 		aParam.Message = "unknown param.Protocol"
 		aParam.Data = ""
@@ -106,7 +105,7 @@ func apiGetReportGWParam(context *gin.Context) {
 	aParam.Code = "0"
 	aParam.Message = ""
 
-	for _, v := range report.ReportServiceParamListAliyun.ServiceList {
+	for _, v := range mqttAliyun.ReportServiceParamListAliyun.ServiceList {
 
 		ReportService := ReportServiceTemplate{}
 		ReportService.ServiceName = v.GWParam.ServiceName
@@ -115,7 +114,7 @@ func apiGetReportGWParam(context *gin.Context) {
 		ReportService.ReportTime = v.GWParam.ReportTime
 		ReportService.Protocol = v.GWParam.Protocol
 		ReportService.Param = v.GWParam.Param
-		ReportService.CommStatus = v.GWParam.CommStatus
+		ReportService.CommStatus = v.GWParam.ReportStatus
 
 		aParam.Data = append(aParam.Data, ReportService)
 	}
@@ -158,9 +157,9 @@ func apiDeleteReportGWParam(context *gin.Context) {
 	}
 
 	//查看Aliyun
-	for _, v := range report.ReportServiceParamListAliyun.ServiceList {
+	for _, v := range mqttAliyun.ReportServiceParamListAliyun.ServiceList {
 		if v.GWParam.ServiceName == param.ServiceName {
-			report.ReportServiceParamListAliyun.DeleteReportService(param.ServiceName)
+			mqttAliyun.ReportServiceParamListAliyun.DeleteReportService(param.ServiceName)
 
 			aParam.Code = "0"
 			aParam.Message = ""
@@ -226,21 +225,21 @@ func apiSetReportNodeWParam(context *gin.Context) {
 
 	switch param.Protocol {
 	case "Aliyun.MQTT":
-		ReportServiceNodeParamAliyun := report.ReportServiceNodeParamAliyunTemplate{}
+		ReportServiceNodeParamAliyun := mqttAliyun.ReportServiceNodeParamAliyunTemplate{}
 		if err := json.Unmarshal(bodyBuf[:n], &ReportServiceNodeParamAliyun); err != nil {
 			fmt.Println("ReportServiceNodeParamAliyun json unMarshall err,", err)
 		}
-		for _, v := range report.ReportServiceParamListAliyun.ServiceList {
+		for _, v := range mqttAliyun.ReportServiceParamListAliyun.ServiceList {
 			if v.GWParam.ServiceName == param.ServiceName {
 				v.AddReportNode(ReportServiceNodeParamAliyun)
 			}
 		}
-		log.Printf("ParamListAliyun %v\n", report.ReportServiceParamListAliyun.ServiceList)
+		setting.Logger.Debugf("ParamListAliyun %v\n", mqttAliyun.ReportServiceParamListAliyun.ServiceList)
 	case "Emqx.MQTT":
 
 	case "Huawei":
 	default:
-		log.Printf("unknown param.Protocol")
+		setting.Logger.Errorf("unknown param.Protocol")
 		aParam.Code = "1"
 		aParam.Message = "unknown param.Protocol"
 		aParam.Data = ""
@@ -298,11 +297,11 @@ func apiBatchAddReportNodeParam(context *gin.Context) {
 
 	for _, record := range result.Records {
 		protocol := record.GetString("Protocol")
-		log.Printf("protocal %v\n", protocol)
+		setting.Logger.Debugf("protocal %v\n", protocol)
 		switch protocol {
 		case "Aliyun.MQTT":
 			{
-				ReportServiceNodeParamAliyun := report.ReportServiceNodeParamAliyunTemplate{}
+				ReportServiceNodeParamAliyun := mqttAliyun.ReportServiceNodeParamAliyunTemplate{}
 				ReportServiceNodeParamAliyun.ServiceName = record.GetString("ServiceName")
 				ReportServiceNodeParamAliyun.CollInterfaceName = record.GetString("CollInterfaceName")
 				ReportServiceNodeParamAliyun.Name = record.GetString("Name")
@@ -312,7 +311,7 @@ func apiBatchAddReportNodeParam(context *gin.Context) {
 				ReportServiceNodeParamAliyun.Param.DeviceName = record.GetString("DeviceName")
 				ReportServiceNodeParamAliyun.Param.DeviceSecret = record.GetString("DeviceSecret")
 
-				for _, v := range report.ReportServiceParamListAliyun.ServiceList {
+				for _, v := range mqttAliyun.ReportServiceParamListAliyun.ServiceList {
 					if v.GWParam.ServiceName == ReportServiceNodeParamAliyun.ServiceName {
 						v.AddReportNode(ReportServiceNodeParamAliyun)
 					}
@@ -351,7 +350,7 @@ func apiGetReportNodeWParam(context *gin.Context) {
 
 	ServiceName := context.Query("ServiceName")
 
-	for _, v := range report.ReportServiceParamListAliyun.ServiceList {
+	for _, v := range mqttAliyun.ReportServiceParamListAliyun.ServiceList {
 		if v.GWParam.ServiceName == ServiceName {
 			ReportServiceNode := ReportServiceNodeTemplate{}
 			for _, d := range v.NodeList {
@@ -414,7 +413,7 @@ func apiDeleteReportNodeWParam(context *gin.Context) {
 	}
 
 	//查看Aliyun
-	for _, v := range report.ReportServiceParamListAliyun.ServiceList {
+	for _, v := range mqttAliyun.ReportServiceParamListAliyun.ServiceList {
 		for _, n := range v.NodeList {
 			if (n.ServiceName == param.ServiceName) &&
 				(n.CollInterfaceName == param.CollInterfaceName) &&

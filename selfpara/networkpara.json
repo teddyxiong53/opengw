@@ -1,1 +1,1 @@
-{"NetworkParam":[{"Name":"eth0","DHCP":"","IP":"","Netmask":"","Broadcast":"","MAC":""}]}
+{"NetworkParam":[{"Name":"en0","DHCP":"1","IP":"","Netmask":"1","Broadcast":"","Gateway":"","MAC":""},{"Name":"en1","DHCP":"1","IP":"","Netmask":"1","Broadcast":"","Gateway":"","MAC":""}]}

@@ -6,29 +6,48 @@ import (
 	"github.com/sirupsen/logrus"
 	"log"
 	"os"
+	"path"
 	"path/filepath"
+	"runtime"
+	"strconv"
 	"time"
 )
 
 var Logger = logrus.New()
 
 func init() {
-	LogerInit(LogLevel, LogSaveToFile, LogFileMaxCnt)
+
 }
 
-func LogerInit(level string, save bool, cnt uint) {
+func LogerInit() {
 
 	//log输出行号和ms
 	log.SetFlags(log.Lshortfile | log.Ldate | log.Lmicroseconds)
 
-	// 设置日志格式为json格式　自带的只有两种样式logrus.JSONFormatter{}和logrus.TextFormatter{}
-	Logger.Formatter = &logrus.JSONFormatter{}
-	//fmt.Printf("level %v\n",level)
-	//fmt.Printf("save %v\n",save)
-	if save == true {
+	if AppMode == "release" {
+		// 设置日志格式为json格式　自带的只有两种样式logrus.JSONFormatter{}和logrus.TextFormatter{}
+		Logger.Formatter = &logrus.JSONFormatter{
+			TimestampFormat: "2006-01-02T15:04:05.999999999Z07:00",
+		}
+	} else if AppMode == "debug" {
+		// 设置日志格式为json格式　自带的只有两种样式logrus.JSONFormatter{}和logrus.TextFormatter{}
+		Logger.Formatter = &logrus.TextFormatter{
+			FullTimestamp: true,
+			//TimestampFormat: "2006-01-02T15:04:05.999999999",
+			TimestampFormat: "01-02T15:04:05.999999999",
+			CallerPrettyfier: func(run *runtime.Frame) (function string, file string) {
+				fileInfo := path.Base(run.File)
+				//fileInfo := run.File
+				lineInfo := strconv.Itoa(run.Line)
+				return "", fileInfo + ":" + lineInfo
+			},
+		}
+		// 设置输出文件名和行号
+		Logger.ReportCaller = true
+	}
 
+	if LogSaveToFile == true {
 		exeCurDir, _ := filepath.Abs(filepath.Dir(os.Args[0]))
-
 		path := exeCurDir + "/log/"
 		/* 日志轮转相关函数
 		`WithLinkName` 为最新的日志建立软连接
@@ -41,7 +60,7 @@ func LogerInit(level string, save bool, cnt uint) {
 		writer, err := rotatelogs.New(
 			path+"%Y%m%d%H%M.txt",
 			//rotatelogs.WithLinkName(path),
-			rotatelogs.WithRotationCount(cnt),
+			rotatelogs.WithRotationCount(LogFileMaxCnt),
 			rotatelogs.WithRotationTime(time.Hour),
 		)
 		if err != nil {
@@ -56,16 +75,28 @@ func LogerInit(level string, save bool, cnt uint) {
 		Logger.SetOutput(os.Stdout)
 	}
 
-	// 设置日志级别为warn以上
-	switch level {
-	case "DebugLevel":
+	//日志的级别
+	//- Fatal：挂了，或者极度不正常
+	//- Error：跟遇到的用户说对不起，可能有bug
+	//- Warn：记录一下，某事又发生了
+	//- Info：提示一切正常
+	//- debug：没问题，就看看堆栈
+
+	switch LogLevel {
+	case "TraceLevel": //用户级输出
+		//Loger.SetLevel(logrus.DebugLevel)
+		Logger.Level = logrus.TraceLevel
+	case "DebugLevel": //用户级调试
 		//Loger.SetLevel(logrus.DebugLevel)
 		Logger.Level = logrus.DebugLevel
-	case "InfoLevel":
+	case "InfoLevel": //用户级重要
 		//Loger.SetLevel(logrus.InfoLevel)
 		Logger.Level = logrus.InfoLevel
-	case "WarnLevel":
+	case "WarnLevel": //用户级警告
 		//Loger.SetLevel(logrus.WarnLevel)
 		Logger.Level = logrus.WarnLevel
+	case "ErrorLevel": //用户级错误
+		//Loger.SetLevel(logrus.WarnLevel)
+		Logger.Level = logrus.ErrorLevel
 	}
 }

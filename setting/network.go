@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/hex"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"github.com/safchain/ethtool"
 	"log"
@@ -25,6 +26,7 @@ type NetworkParamTemplate struct {
 	IP         string `json:"IP"`
 	Netmask    string `json:"Netmask"`
 	Broadcast  string `json:"Broadcast"`
+	Gateway    string `json:"Gateway"`
 	MAC        string `json:"MAC"`
 	LinkStatus uint32 `json:"-"`
 }
@@ -52,46 +54,63 @@ func init() {
 
 }
 
-func (n *NetworkParamListTemplate) CreatNetworkPara(name string) {
+func (n *NetworkParamListTemplate) AddNetworkParam(param NetworkParamTemplate) error {
 
-	networkParam := &NetworkParamTemplate{
-		Name: name,
-		DHCP: "1",
+	for _, v := range n.NetworkParam {
+		if v.Name == param.Name {
+			return errors.New("网络名已经存在")
+		}
 	}
-
-	n.NetworkParam = append(n.NetworkParam, networkParam)
+	n.NetworkParam = append(n.NetworkParam, &param)
+	NetworkParaWrite()
+	return nil
 }
 
 //获取当前网络参数
 func (n *NetworkParamListTemplate) GetNetworkParam() {
 
 	for _, v := range n.NetworkParam {
-
 		ethInfo, err := GetNetInformation(v.Name)
-
-		if err == nil {
-			v.IP = ethInfo.IP
-			v.Netmask = ethInfo.Mask
-			v.Broadcast = ethInfo.GatewayIP
-			v.MAC = strings.ToUpper(ethInfo.Mac)
+		if err != nil {
+			Logger.Errorf("getNetInfor err,%v\n", err)
+			break
 		}
+		v.IP = ethInfo.IP
+		v.Netmask = ethInfo.Mask
+		v.Broadcast = ethInfo.GatewayIP
+		v.MAC = strings.ToUpper(ethInfo.Mac)
 		v.GetNetworkStatus()
 	}
 }
 
 //设置网络参数
-func (n *NetworkParamListTemplate) SetNetworkParam(param NetworkParamTemplate) {
+func (n *NetworkParamListTemplate) ModifyNetworkParam(param NetworkParamTemplate) {
 
-	for _, v := range n.NetworkParam {
+	for k, v := range n.NetworkParam {
 		if v.Name == param.Name {
-			v.DHCP = param.DHCP
-			v.IP = param.IP
-			v.Netmask = param.Netmask
-			v.Broadcast = param.Broadcast
+			n.NetworkParam[k].DHCP = param.DHCP
+			n.NetworkParam[k].IP = param.IP
+			n.NetworkParam[k].Netmask = param.Netmask
+			n.NetworkParam[k].Gateway = param.Gateway
+
+			NetworkParaWrite()
 		}
 	}
 
-	NetworkParaWrite()
+}
+
+//删除网络参数
+func (n *NetworkParamListTemplate) DeleteNetworkParam(name string) (bool, string) {
+
+	for k, v := range n.NetworkParam {
+		if v.Name == name {
+			n.NetworkParam = append(n.NetworkParam[:k], n.NetworkParam[k+1:]...)
+			NetworkParaWrite()
+			return true, ""
+		}
+	}
+
+	return false, "name is not exist"
 }
 
 func (n *NetworkParamTemplate) GetNetworkStatus() {
@@ -113,7 +132,7 @@ func (n *NetworkParamTemplate) CmdSetDHCP() {
 
 	str := out.String()
 
-	log.Println(str)
+	Logger.Debugf(str)
 }
 
 func (n *NetworkParamTemplate) CmdSetStaticIP() {
@@ -176,7 +195,7 @@ func GetNetInformation(netName string) (NetInformation, error) {
 	if err != nil {
 		return info, err
 	}
-
+	log.Printf("inter %v\n", *inter)
 	info.HardwareAddr = inter.HardwareAddr
 	info.Mac = hex.EncodeToString(inter.HardwareAddr)
 
@@ -220,7 +239,7 @@ func NetworkParaRead() bool {
 			return false
 		}
 		defer fp.Close()
-
+		Logger.Infof("open networkpara.json ok")
 		data := make([]byte, 500)
 		dataCnt, err := fp.Read(data)
 
@@ -271,17 +290,17 @@ func NetworkParaWrite() {
 
 	fp, err := os.OpenFile(fileDir, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0777)
 	if err != nil {
-		fmt.Println("open networkpara.json err", err)
+		Logger.Warnf("open networkpara.json err", err)
 	}
 	defer fp.Close()
 
 	sJson, _ := json.Marshal(NetworkParamList)
-	fmt.Println(string(sJson))
+	Logger.Debugf(string(sJson))
 
 	_, err = fp.Write(sJson)
 	if err != nil {
-		fmt.Println("write networkpara.json err", err)
+		Logger.Warnf("write networkpara.json err", err)
 	}
-	fmt.Println("write networkpara.json ok")
+	Logger.Debugf("write networkpara.json ok")
 	fp.Sync()
 }

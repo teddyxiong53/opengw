@@ -3,6 +3,7 @@ package device
 import (
 	"encoding/json"
 	"github.com/tarm/serial"
+	"goAdapter/setting"
 	"log"
 	"os"
 	"path/filepath"
@@ -10,28 +11,28 @@ import (
 	"time"
 )
 
-type SerialInterfaceParam struct{
-	Name     string 		`json:"Name"`
-	BaudRate string 		`json:"BaudRate"`
-	DataBits string			`json:"DataBits"`		//数据位: 5, 6, 7 or 8 (default 8)
-	StopBits string			`json:"StopBits"`		//停止位: 1 or 2 (default 1)
-	Parity 	 string     	`json:"Parity"`			//校验: N - None, E - Even, O - Odd (default E),(The use of no parity requires 2 stop bits.)
-	Timeout  string     	`json:"Timeout"`		//通信超时
-	Interval string			`json:"Interval"`		//通信间隔
+type SerialInterfaceParam struct {
+	Name     string `json:"Name"`
+	BaudRate string `json:"BaudRate"`
+	DataBits string `json:"DataBits"` //数据位: 5, 6, 7 or 8 (default 8)
+	StopBits string `json:"StopBits"` //停止位: 1 or 2 (default 1)
+	Parity   string `json:"Parity"`   //校验: N - None, E - Even, O - Odd (default E),(The use of no parity requires 2 stop bits.)
+	Timeout  string `json:"Timeout"`  //通信超时
+	Interval string `json:"Interval"` //通信间隔
 }
 
-type CommunicationSerialTemplate struct{
+type CommunicationSerialTemplate struct {
 	CommunicationTemplate
-	Param   SerialInterfaceParam     					`json:"Param"`			//接口参数
-	Port    *serial.Port								`json:"-"`				//通信句柄
+	Param SerialInterfaceParam `json:"Param"` //接口参数
+	Port  *serial.Port         `json:"-"`     //通信句柄
 }
 
-var CommunicationSerialMap = make([]*CommunicationSerialTemplate,0)
+var CommunicationSerialMap = make([]*CommunicationSerialTemplate, 0)
 
-func (c *CommunicationSerialTemplate)Open() bool{
+func (c *CommunicationSerialTemplate) Open() bool {
 
 	serialParam := c.Param
-	serialBaud,_ := strconv.Atoi(serialParam.BaudRate)
+	serialBaud, _ := strconv.Atoi(serialParam.BaudRate)
 
 	var serialParity serial.Parity
 	switch serialParam.Parity {
@@ -54,67 +55,66 @@ func (c *CommunicationSerialTemplate)Open() bool{
 	}
 
 	serialConfig := &serial.Config{
-		Name: serialParam.Name,
-		Baud: serialBaud,
-		Parity:serialParity,
-		StopBits: serialStop,
-		ReadTimeout: time.Millisecond*1,
+		Name:        serialParam.Name,
+		Baud:        serialBaud,
+		Parity:      serialParity,
+		StopBits:    serialStop,
+		ReadTimeout: time.Millisecond * 1,
 	}
 
 	var err error
 	c.Port, err = serial.OpenPort(serialConfig)
 	if err != nil {
-		log.Printf("open serial err,%s",err)
+		setting.Logger.Errorf("open serial err,%s", err)
 		return false
-	}else{
-		log.Printf("open serial %s ok\n",c.Param.Name)
+	} else {
+		setting.Logger.Debugf("open serial %s ok\n", c.Param.Name)
 	}
 
+	return true
+}
+
+func (c *CommunicationSerialTemplate) Close() bool {
 
 	return true
 }
 
-func (c *CommunicationSerialTemplate)Close() bool{
-
-	return true
-}
-
-func (c *CommunicationSerialTemplate)WriteData(data []byte) int{
+func (c *CommunicationSerialTemplate) WriteData(data []byte) int {
 
 	//log.Printf("len is %d\n",len(data))
 	//log.Printf("c %+v\n",c)
 
-	if c.Port == nil{
-		log.Println("serial writeData err")
+	if c.Port == nil {
+		setting.Logger.Errorf("serial writeData err")
 		return 0
 	}
 
-	cnt,err := c.Port.Write(data)
-	if err != nil{
+	cnt, err := c.Port.Write(data)
+	if err != nil {
 		log.Println(err)
 	}
 
 	return cnt
 }
 
-func (c *CommunicationSerialTemplate)ReadData(data []byte) int{
+func (c *CommunicationSerialTemplate) ReadData(data []byte) int {
 
-	if c.Port == nil{
+	if c.Port == nil {
 		return 0
 	}
 
-	cnt,_ := c.Port.Read(data)
+	cnt, _ := c.Port.Read(data)
 
 	return cnt
 }
 
-func NewCommunicationSerialTemplate(commName,commType string,param SerialInterfaceParam) *CommunicationSerialTemplate{
+func NewCommunicationSerialTemplate(commName, commType string, param SerialInterfaceParam) *CommunicationSerialTemplate {
 
 	return &CommunicationSerialTemplate{
-		Param:param,
-		CommunicationTemplate:CommunicationTemplate{
-			Name:commName,
-			Type:commType,
+		Param: param,
+		CommunicationTemplate: CommunicationTemplate{
+			Name: commName,
+			Type: commType,
 		},
 	}
 }
@@ -169,4 +169,3 @@ func WriteCommSerialInterfaceListToJson() {
 	}
 	log.Println("write commSerialInterface.json sucess")
 }
-
