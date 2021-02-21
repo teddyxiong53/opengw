@@ -258,7 +258,9 @@ func (r *ReportServiceParamAliyunTemplate) NodeLogin(name []string) bool {
 
 	nodeList := make([]MQTTAliyunNodeRegisterTemplate, 0)
 	nodeParam := MQTTAliyunNodeRegisterTemplate{}
+	status := false
 
+	setting.Logger.Debugf("nodeLoginName %v", name)
 	for _, d := range name {
 		for k, v := range r.NodeList {
 			if d == v.Name {
@@ -282,8 +284,9 @@ func (r *ReportServiceParamAliyunTemplate) NodeLogin(name []string) bool {
 				}
 				sendMessage.DeviceName = append(sendMessage.DeviceName, v.Param.DeviceName)
 				r.SendMessageMap = append(r.SendMessageMap, sendMessage)
+				setting.Logger.Debugf("service:%s,sendMessageMapPre %v", r.GWParam.ServiceName, r.SendMessageMap)
 				//超时3s
-				time.AfterFunc(3*time.Second, func() {
+				time.AfterFunc(5*time.Second, func() {
 					for i, s := range r.SendMessageMap {
 						if s.ID == MsgIdStr {
 							r.SendMessageMap = append(r.SendMessageMap[:i], r.SendMessageMap[i+1:]...)
@@ -291,12 +294,12 @@ func (r *ReportServiceParamAliyunTemplate) NodeLogin(name []string) bool {
 					}
 				})
 
-				return true
+				status = true
 			}
 		}
 	}
 
-	return false
+	return status
 }
 
 func (r *ReportServiceParamAliyunTemplate) NodeLogOut(name []string) bool {
@@ -715,7 +718,7 @@ func ReportServiceAliyunProcessMessage(r *ReportServiceParamAliyunTemplate, topi
 				Code:  property.Code,
 				ID:    property.ID,
 			}
-			setting.Logger.Tracef("service:%s,sendMessageMapPre %v", r.GWParam.ServiceName, r.SendMessageMap)
+
 			for k, v := range r.SendMessageMap {
 				if v.ID == ackMessage.ID {
 					for _, name := range v.DeviceName {
@@ -766,7 +769,7 @@ func ReportServiceAliyunProcessMessage(r *ReportServiceParamAliyunTemplate, topi
 				Code:  property.Code,
 				ID:    property.ID,
 			}
-			setting.Logger.Tracef("service:%s,sendMessageMapPre %v", r.GWParam.ServiceName, r.SendMessageMap)
+			//setting.Logger.Debugf("service:%s,sendMessageMapPre %v", r.GWParam.ServiceName, r.SendMessageMap)
 			for k, v := range r.SendMessageMap {
 				if v.ID == ackMessage.ID {
 					for _, name := range v.DeviceName {
@@ -895,7 +898,7 @@ func ReportServiceAliyunPoll(r *ReportServiceParamAliyunTemplate) {
 				}
 				if len(name) > 0 {
 					setting.Logger.Infof("DeviceOnline %v\n", name)
-					go r.NodeLogin(name)
+					r.NodeLogin(name)
 					name = name[0:0]
 				}
 
@@ -907,7 +910,7 @@ func ReportServiceAliyunPoll(r *ReportServiceParamAliyunTemplate) {
 				}
 				if len(name) > 0 {
 					setting.Logger.Infof("DeviceOffline %v\n", name)
-					go r.NodeLogOut(name)
+					r.NodeLogOut(name)
 					name = name[0:0]
 				}
 
