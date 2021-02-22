@@ -33,7 +33,7 @@ func apiAddNetwork(context *gin.Context) {
 		Name:    networkParam.Name,
 		DHCP:    networkParam.DHCP,
 		IP:      networkParam.IP,
-		Netmask: networkParam.DHCP,
+		Netmask: networkParam.Netmask,
 		Gateway: networkParam.Gateway,
 	}
 

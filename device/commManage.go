@@ -257,7 +257,7 @@ func (c *CommunicationManageTemplate) CommunicationStateMachine(cmd Communicatio
 		}
 	}
 	tc := time.Since(startT) //计算耗时
-	setting.Logger.Debugf("time cost = %v\n", tc)
+	setting.Logger.Debugf("%v: ,time cost = %v\n", c.CollInterface.CollInterfaceName, tc)
 
 	//更新设备在线数量
 	c.CollInterface.DeviceNodeOnlineCnt = 0
@@ -297,7 +297,7 @@ func (c *CommunicationManageTemplate) CommunicationManageDel() {
 				select {
 				case cmd := <-c.CommonRequestChan:
 					{
-						setting.Logger.Debugf("commChanLen %v\n", len(c.CommonRequestChan))
+						setting.Logger.Debugf("%v:,commChanLen %v\n", c.CollInterface.CollInterfaceName, len(c.CommonRequestChan))
 						c.CommunicationStateMachine(cmd)
 
 						GetDeviceOnline()
