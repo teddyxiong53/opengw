@@ -2,6 +2,7 @@ package httpServer
 
 import (
 	"github.com/gin-gonic/gin"
+	"goAdapter/setting"
 	"os"
 	"path/filepath"
 )
@@ -161,5 +162,7 @@ func RouterWeb() {
 		}
 	}
 
-	router.Run(":8080")
+	if err := router.Run(":8080"); err != nil {
+		setting.Logger.Errorf("gin run err,%v", err)
+	}
 }
