@@ -86,7 +86,6 @@ func MQTTAliyunGWLogin(param MQTTAliyunRegisterTemplate, publishHandler MQTT.Mes
 	// create and start a client using the above ClientOptions
 	mqttClient := MQTT.NewClient(opts)
 	if token := mqttClient.Connect(); token.Wait() && token.Error() != nil {
-		//log.Println(token.Error())
 		setting.Logger.Errorf("Connect aliyun IoT Cloud fail,%s", token.Error())
 		return false, nil
 	}
@@ -114,12 +113,6 @@ func MQTTAliyunGWLogin(param MQTTAliyunRegisterTemplate, publishHandler MQTT.Mes
 	//MQTTClient_AddTopo()
 
 	//MQTTClient_Register()
-
-	//MQTTAliyunGWParam.NodeLoginIn()
-
-	//MQTTAliyunGWParam.GWPropertyPost()
-
-	//MQTTAliyunGWParam.NodePropertyPost()
 }
 
 func MQTTAliyunSubscribeTopic(client MQTT.Client, topic string) {

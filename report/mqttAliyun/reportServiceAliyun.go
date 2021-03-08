@@ -873,12 +873,25 @@ func ReportServiceAliyunProcessMessage(r *ReportServiceParamAliyunTemplate, topi
 		}
 		setting.Logger.Debugf("code %v\n", property.Code)
 		if property.Code == 200 {
-			//ackMessage := ReportServiceReceiveMessageAliyunTemplate{
-			//	Topic: message.Topic,
-			//	Code:  property.Code,
-			//	ID:    property.ID,
-			//}
-			//r.ReceiveMessageChan <- ackMessage
+			ackMessage := ReportServiceReceiveMessageAliyunTemplate{
+				Topic: message.Topic,
+				Code:  property.Code,
+				ID:    property.ID,
+			}
+			for k, v := range r.SendMessageMap {
+				if v.ID == ackMessage.ID {
+					for _, name := range v.DeviceName {
+						for i, n := range r.NodeList {
+							if name == n.Param.DeviceName {
+								r.NodeList[i].ReportStatus = "onLine"
+								r.NodeList[i].ReportErrCnt = 0
+							}
+						}
+					}
+					r.SendMessageMap = append(r.SendMessageMap[:k], r.SendMessageMap[k+1:]...)
+					setting.Logger.Debugf("service:%s,sendMessageMapNow %v", r.GWParam.ServiceName, r.SendMessageMap)
+				}
+			}
 		}
 	} else if strings.Contains(topic, "/thing/service/property/set") { //设置属性请求
 
