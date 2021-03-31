@@ -2,11 +2,12 @@ package main
 
 import (
 	"fmt"
-	"github.com/robfig/cron"
 	"goAdapter/device"
 	"goAdapter/httpServer"
 	"goAdapter/report"
 	"goAdapter/setting"
+
+	"github.com/robfig/cron"
 )
 
 func main() {

@@ -1,21 +1,12 @@
 package mqttAliyun
 
 import (
-	"bytes"
 	"encoding/json"
-	MQTT "github.com/eclipse/paho.mqtt.golang"
 	"goAdapter/setting"
 	"strconv"
-	"time"
-)
 
-type MQTTAliyunRegisterTemplate struct {
-	RemoteIP     string
-	RemotePort   string
-	ProductKey   string `json:"ProductKey"`
-	DeviceName   string `json:"DeviceName"`
-	DeviceSecret string `json:"DeviceSecret"`
-}
+	MQTT "github.com/eclipse/paho.mqtt.golang"
+)
 
 type MQTTAliyunNodeRegisterTemplate struct {
 	ProductKey   string `json:"ProductKey"`
@@ -61,66 +52,6 @@ var (
 
 func init() {
 
-}
-
-func MQTTAliyunGWLogin(param MQTTAliyunRegisterTemplate, publishHandler MQTT.MessageHandler) (bool, MQTT.Client) {
-
-	var raw_broker bytes.Buffer
-
-	//MQTT.DEBUG = log.New(os.Stdout, "[DEBUG] ", 0)
-
-	raw_broker.WriteString(param.ProductKey)
-	raw_broker.WriteString(param.RemoteIP)
-	opts := MQTT.NewClientOptions().AddBroker(raw_broker.String())
-
-	auth := MqttClient_CalculateSign(param.ProductKey,
-		param.DeviceName,
-		param.DeviceSecret, timeStamp)
-	opts.SetClientID(auth.mqttClientId)
-	opts.SetUsername(auth.username)
-	opts.SetPassword(auth.password)
-	opts.SetKeepAlive(60 * 2 * time.Second)
-	opts.SetDefaultPublishHandler(publishHandler)
-	opts.SetAutoReconnect(false)
-
-	// create and start a client using the above ClientOptions
-	mqttClient := MQTT.NewClient(opts)
-	if token := mqttClient.Connect(); token.Wait() && token.Error() != nil {
-		setting.Logger.Errorf("Connect aliyun IoT Cloud fail,%s", token.Error())
-		return false, nil
-	}
-	setting.Logger.Info("Connect aliyun IoT Cloud Sucess")
-
-	subTopic := ""
-	//属性上报回应
-	subTopic = "/sys/" + param.ProductKey + "/" + param.DeviceName + "/thing/event/property/pack/post_reply"
-	MQTTAliyunSubscribeTopic(mqttClient, subTopic)
-
-	//属性设置
-	subTopic = "/sys/" + param.ProductKey + "/" + param.DeviceName + "/thing/service/property/set"
-	MQTTAliyunSubscribeTopic(mqttClient, subTopic)
-
-	//服务调用(服务不需要主动订阅，平台自动订阅)
-	//subTopic = "/sys/" + param.ProductKey + "/" + param.DeviceName + "/thing/service/RemoteCmdOpen"
-	//MQTTAliyunSubscribeTopic(mqttClient, subTopic)
-
-	//子设备注册
-	subTopic = "/sys/" + param.ProductKey + "/" + param.DeviceName + "/thing/sub/register_reply"
-	MQTTAliyunSubscribeTopic(mqttClient, subTopic)
-
-	return true, mqttClient
-
-	//MQTTClient_AddTopo()
-
-	//MQTTClient_Register()
-}
-
-func MQTTAliyunSubscribeTopic(client MQTT.Client, topic string) {
-
-	if token := client.Subscribe(topic, 0, nil); token.Wait() && token.Error() != nil {
-		setting.Logger.Warningf("Subscribe topic %s fail,%v", topic, token.Error())
-	}
-	setting.Logger.Info("Subscribe topic " + topic + " success")
 }
 
 func MQTTAliyunNodeLoginIn(client MQTT.Client, gw MQTTAliyunRegisterTemplate, node []MQTTAliyunNodeRegisterTemplate) int {
