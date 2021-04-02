@@ -51,17 +51,15 @@ type ReportServiceGWParamAliyunTemplate struct {
 
 //阿里云上报服务参数，网关参数，节点参数
 type ReportServiceParamAliyunTemplate struct {
-	GWParam                               ReportServiceGWParamAliyunTemplate
-	NodeList                              []ReportServiceNodeParamAliyunTemplate
-	ReceiveFrameChan                      chan MQTTAliyunReceiveFrameTemplate      `json:"-"`
-	LogInRequestFrameChan                 chan []string                            `json:"-"` //上线
-	ReceiveLogInAckFrameChan              chan MQTTAliyunLogInAckTemplate          `json:"-"`
-	LogOutRequestFrameChan                chan []string                            `json:"-"`
-	ReceiveLogOutAckFrameChan             chan MQTTAliyunLogOutAckTemplate         `json:"-"`
-	ReportGWPropertyRequestFrameChan      chan bool                                `json:"-"`
-	ReceiveReportGWPropertyAckFrameChan   chan MQTTAliyunReportPropertyAckTemplate `json:"-"`
-	ReportNodePropertyRequestFrameChan    chan []string                            `json:"-"`
-	ReceiveReportNodePropertyAckFrameChan chan MQTTAliyunReportPropertyAckTemplate `json:"-"`
+	GWParam                           ReportServiceGWParamAliyunTemplate
+	NodeList                          []ReportServiceNodeParamAliyunTemplate
+	ReceiveFrameChan                  chan MQTTAliyunReceiveFrameTemplate      `json:"-"`
+	LogInRequestFrameChan             chan []string                            `json:"-"` //上线
+	ReceiveLogInAckFrameChan          chan MQTTAliyunLogInAckTemplate          `json:"-"`
+	LogOutRequestFrameChan            chan []string                            `json:"-"`
+	ReceiveLogOutAckFrameChan         chan MQTTAliyunLogOutAckTemplate         `json:"-"`
+	ReportPropertyRequestFrameChan    chan MQTTAliyunReportPropertyTemplate    `json:"-"`
+	ReceiveReportPropertyAckFrameChan chan MQTTAliyunReportPropertyAckTemplate `json:"-"`
 }
 
 type ReportServiceParamListAliyunTemplate struct {
@@ -84,10 +82,8 @@ func init() {
 		v.ReceiveLogInAckFrameChan = make(chan MQTTAliyunLogInAckTemplate, 5)
 		v.LogOutRequestFrameChan = make(chan []string, 0)
 		v.ReceiveLogOutAckFrameChan = make(chan MQTTAliyunLogOutAckTemplate, 5)
-		v.ReportGWPropertyRequestFrameChan = make(chan bool, 50)
-		v.ReceiveReportGWPropertyAckFrameChan = make(chan MQTTAliyunReportPropertyAckTemplate, 50)
-		v.ReportNodePropertyRequestFrameChan = make(chan []string, 50)
-		v.ReceiveReportNodePropertyAckFrameChan = make(chan MQTTAliyunReportPropertyAckTemplate, 50)
+		v.ReportPropertyRequestFrameChan = make(chan MQTTAliyunReportPropertyTemplate, 50)
+		v.ReceiveReportPropertyAckFrameChan = make(chan MQTTAliyunReportPropertyAckTemplate, 50)
 
 		go ReportServiceAliyunPoll(v)
 	}
@@ -229,9 +225,13 @@ func (r *ReportServiceParamAliyunTemplate) ProcessUpLinkFrame() {
 			{
 				r.LogOut(reqFrame)
 			}
-		case reqFrame := <-r.ReportNodePropertyRequestFrameChan:
+		case reqFrame := <-r.ReportPropertyRequestFrameChan:
 			{
-				r.NodePropertyPost(reqFrame)
+				if reqFrame.DeviceType == "gw" {
+					r.GWPropertyPost()
+				} else if reqFrame.DeviceType == "node" {
+					r.NodePropertyPost(reqFrame.DeviceName)
+				}
 			}
 		}
 	}
@@ -246,7 +246,7 @@ func (r *ReportServiceParamAliyunTemplate) ProcessDownLinkFrame() {
 				setting.Logger.Debugf("Recv TOPIC: %s\n", frame.Topic)
 				setting.Logger.Debugf("Recv MSG: %s\n", frame.Payload)
 
-				if strings.Contains(frame.Topic, "/thing/event/property/pack/post_reply") { //上报属性回应
+				if strings.Contains(frame.Topic, "/thing/event/property/pack/post_reply") { //网关、子设备上报属性回应
 
 					ackFrame := MQTTAliyunReportPropertyAckTemplate{}
 					err := json.Unmarshal(frame.Payload, &ackFrame)
@@ -254,7 +254,7 @@ func (r *ReportServiceParamAliyunTemplate) ProcessDownLinkFrame() {
 						setting.Logger.Errorf("ReportPropertyAck json unmarshal err")
 						return
 					}
-					r.ReceiveReportNodePropertyAckFrameChan <- ackFrame
+					r.ReceiveReportPropertyAckFrameChan <- ackFrame
 				} else if strings.Contains(frame.Topic, "/combine/batch_login_reply") { //子设备上线回应
 
 					ackFrame := MQTTAliyunLogInAckTemplate{}
@@ -315,14 +315,24 @@ func (r *ReportServiceParamAliyunTemplate) LogOut(nodeName []string) {
 func (r *ReportServiceParamAliyunTemplate) ReportTimeOut() {
 
 	//网关上报
-	r.ReportGWPropertyRequestFrameChan <- true
+	reportGWProperty := MQTTAliyunReportPropertyTemplate{
+		DeviceType: "gw",
+	}
+	r.ReportPropertyRequestFrameChan <- reportGWProperty
 
 	//全部末端设备上报
 	nodeName := make([]string, 0)
 	for _, v := range r.NodeList {
 		nodeName = append(nodeName, v.Name)
 	}
-	r.ReportNodePropertyRequestFrameChan <- nodeName
+	if len(nodeName) > 0 {
+		reportNodeProperty := MQTTAliyunReportPropertyTemplate{
+			DeviceType: "node",
+			DeviceName: nodeName,
+		}
+		r.ReportPropertyRequestFrameChan <- reportNodeProperty
+	}
+
 }
 
 //查看上报服务中设备是否离线
@@ -383,6 +393,7 @@ func ReportServiceAliyunPoll(r *ReportServiceParamAliyunTemplate) {
 				//网关
 				if r.GWParam.ReportStatus == "offLine" {
 					reportState = 0
+					r.GWParam.ReportErrCnt = 0
 				}
 
 				//节点发生了上线

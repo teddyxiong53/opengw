@@ -6,6 +6,11 @@ import (
 	"time"
 )
 
+type MQTTAliyunReportPropertyTemplate struct {
+	DeviceType string //设备类型，"gw" "node"
+	DeviceName []string
+}
+
 func (r *ReportServiceParamAliyunTemplate) GWPropertyPost() {
 
 	valueMap := make([]MQTTAliyunValueTemplate, 0)
@@ -74,10 +79,10 @@ func (r *ReportServiceParamAliyunTemplate) GWPropertyPost() {
 
 	MQTTAliyunGWPropertyPost(r.GWParam.MQTTClient, mqttAliyunRegister, valueMap)
 	select {
-	case frame := <-r.ReceiveReportNodePropertyAckFrameChan:
+	case frame := <-r.ReceiveReportPropertyAckFrameChan:
 		{
 			if frame.Code == 200 {
-
+				r.GWParam.ReportErrCnt--
 			}
 		}
 	case <-time.After(time.Millisecond * 2000):
@@ -143,7 +148,7 @@ func (r *ReportServiceParamAliyunTemplate) AllNodePropertyPost() {
 
 			MQTTAliyunNodePropertyPost(r.GWParam.MQTTClient, mqttAliyunRegister, NodeValueMap)
 			select {
-			case frame := <-r.ReceiveReportNodePropertyAckFrameChan:
+			case frame := <-r.ReceiveReportPropertyAckFrameChan:
 				{
 					if frame.Code == 200 {
 
@@ -194,7 +199,7 @@ func (r *ReportServiceParamAliyunTemplate) AllNodePropertyPost() {
 			//setting.Logger.Debugf("NodeValueMap %v", NodeValueMap)
 			MQTTAliyunNodePropertyPost(r.GWParam.MQTTClient, mqttAliyunRegister, NodeValueMap)
 			select {
-			case frame := <-r.ReceiveReportNodePropertyAckFrameChan:
+			case frame := <-r.ReceiveReportPropertyAckFrameChan:
 				{
 					if frame.Code == 200 {
 
@@ -271,7 +276,7 @@ func (r *ReportServiceParamAliyunTemplate) NodePropertyPost(name []string) {
 
 			MQTTAliyunNodePropertyPost(r.GWParam.MQTTClient, mqttAliyunRegister, NodeValueMap)
 			select {
-			case frame := <-r.ReceiveReportNodePropertyAckFrameChan:
+			case frame := <-r.ReceiveReportPropertyAckFrameChan:
 				{
 					if frame.Code == 200 {
 
@@ -322,7 +327,7 @@ func (r *ReportServiceParamAliyunTemplate) NodePropertyPost(name []string) {
 			//setting.Logger.Debugf("NodeValueMap %v", NodeValueMap)
 			MQTTAliyunNodePropertyPost(r.GWParam.MQTTClient, mqttAliyunRegister, NodeValueMap)
 			select {
-			case frame := <-r.ReceiveReportNodePropertyAckFrameChan:
+			case frame := <-r.ReceiveReportPropertyAckFrameChan:
 				{
 					if frame.Code == 200 {
 
