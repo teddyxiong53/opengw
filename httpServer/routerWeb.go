@@ -1,10 +1,11 @@
 package httpServer
 
 import (
-	"github.com/gin-gonic/gin"
 	"goAdapter/setting"
 	"os"
 	"path/filepath"
+
+	"github.com/gin-gonic/gin"
 )
 
 func RouterWeb() {
@@ -32,6 +33,12 @@ func RouterWeb() {
 			systemRouter.POST("/reboot", apiSystemReboot)
 
 			systemRouter.GET("/status", apiGetSystemStatus)
+
+			systemRouter.GET("/backup", apiBackupFiles)
+
+			systemRouter.POST("/recover", apiRecoverFiles)
+
+			systemRouter.POST("/update", apiSystemUpdate)
 
 			systemRouter.GET("/loginParam", apiSystemLoginParam)
 

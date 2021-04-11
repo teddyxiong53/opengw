@@ -3,6 +3,8 @@ package httpServer
 import (
 	"fmt"
 	"net/http"
+	"os"
+	"path/filepath"
 
 	"goAdapter/setting"
 
@@ -154,4 +156,104 @@ func apiSystemGetNTPHost(context *gin.Context) {
 		Message: "",
 		Data:    setting.NTPHostAddr,
 	})
+}
+
+func apiBackupFiles(context *gin.Context) {
+
+	status, name := setting.BackupFiles()
+	if status == true {
+		//返回文件流
+		context.Writer.Header().Add("Content-Disposition",
+			fmt.Sprintf("attachment;filename=%s", filepath.Base(name)))
+		context.File(name) //返回文件路径，自动调用http.ServeFile方法
+
+	} else {
+		context.JSON(http.StatusOK, ResponseData{
+			Code:    "1",
+			Message: "",
+			Data:    "",
+		})
+	}
+}
+
+func apiRecoverFiles(context *gin.Context) {
+
+	// 获取文件头
+	file, err := context.FormFile("file")
+	if err != nil {
+		context.JSON(http.StatusOK, ResponseData{
+			Code:    "1",
+			Message: "",
+			Data:    "",
+		})
+		return
+	}
+
+	exeCurDir, _ := filepath.Abs(filepath.Dir(os.Args[0]))
+	fileName := exeCurDir + "/selfpara/" + file.Filename
+
+	//保存文件到服务器本地
+	if err := context.SaveUploadedFile(file, fileName); err != nil {
+		context.JSON(http.StatusOK, ResponseData{
+			Code:    "1",
+			Message: "Save File Error",
+			Data:    "",
+		})
+
+		return
+	}
+
+	//恢复
+	status := setting.RecoverFiles(file.Filename)
+	if status == true {
+		context.JSON(http.StatusOK, ResponseData{
+			Code:    "0",
+			Message: "",
+			Data:    "",
+		})
+	} else {
+		context.JSON(http.StatusOK, ResponseData{
+			Code:    "1",
+			Message: "",
+			Data:    "",
+		})
+	}
+}
+
+func apiSystemUpdate(context *gin.Context) {
+
+	// 获取文件头
+	file, err := context.FormFile("file")
+	if err != nil {
+		context.JSON(http.StatusOK, ResponseData{
+			Code:    "1",
+			Message: "",
+			Data:    "",
+		})
+		return
+	}
+
+	exeCurDir, _ := filepath.Abs(filepath.Dir(os.Args[0]))
+	fileName := exeCurDir + "/config/" + file.Filename
+
+	//保存文件到服务器本地
+	if err := context.SaveUploadedFile(file, fileName); err != nil {
+		context.JSON(http.StatusOK, ResponseData{
+			Code:    "1",
+			Message: "Save File Error",
+			Data:    "",
+		})
+		return
+	}
+
+	//升级文件解析
+	status := setting.Update(file.Filename)
+	if status == true {
+		context.JSON(http.StatusOK, ResponseData{
+			Code:    "0",
+			Message: "",
+			Data:    "",
+		})
+		setting.SystemReboot()
+	}
 }
