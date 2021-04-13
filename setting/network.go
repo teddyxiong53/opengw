@@ -6,13 +6,14 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/safchain/ethtool"
 	"net"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"runtime"
 	"strings"
+
+	"github.com/safchain/ethtool"
 )
 
 type NetworkNameListTemplate struct {
@@ -63,6 +64,7 @@ func (n *NetworkParamTemplate) GetNetworkStatus() {
 	defer ethHandle.Close()
 
 	n.LinkStatus, _ = ethHandle.LinkState(n.Name)
+	Logger.Debugf("%v LinkStatus %v", n.Name, n.LinkStatus)
 }
 
 //获取当前网络参数
@@ -78,7 +80,7 @@ func (n *NetworkParamListTemplate) GetNetworkParam() {
 		v.Netmask = ethInfo.Netmask
 		v.Broadcast = ethInfo.Gateway
 		v.MAC = strings.ToUpper(ethInfo.MAC)
-		Logger.Debugf("%v netFlags %v", v.Name, ethInfo.NetFlags)
+		//Logger.Debugf("%v netFlags %v", v.Name, ethInfo.NetFlags)
 		//v.GetNetworkStatus()
 	}
 }
