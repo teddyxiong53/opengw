@@ -230,7 +230,7 @@ func NetworkParaRead() bool {
 	if fileExist(fileDir) == true {
 		fp, err := os.OpenFile(fileDir, os.O_RDONLY, 0777)
 		if err != nil {
-			fmt.Println("open networkpara.json err", err)
+			Logger.Errorf("open networkpara.json err,%v", err)
 			return false
 		}
 		defer fp.Close()
@@ -242,7 +242,7 @@ func NetworkParaRead() bool {
 
 		err = json.Unmarshal(data[:dataCnt], &NetworkParamList)
 		if err != nil {
-			Logger.Errorf("networkpara unmarshal err", err)
+			Logger.Errorf("networkpara unmarshal err,%v", err)
 
 			return false
 		}
@@ -271,7 +271,7 @@ func NetworkParaWrite() {
 
 	fp, err := os.OpenFile(fileDir, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0777)
 	if err != nil {
-		Logger.Warnf("open networkpara.json err", err)
+		Logger.Warnf("open networkpara.json err,%v", err)
 	}
 	defer fp.Close()
 
@@ -280,7 +280,7 @@ func NetworkParaWrite() {
 
 	_, err = fp.Write(sJson)
 	if err != nil {
-		Logger.Warnf("write networkpara.json err", err)
+		Logger.Warnf("write networkpara.json err,%v", err)
 	}
 	Logger.Debugf("write networkpara.json ok")
 	fp.Sync()
