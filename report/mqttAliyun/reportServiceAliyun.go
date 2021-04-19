@@ -325,6 +325,7 @@ func (r *ReportServiceParamAliyunTemplate) ReportTimeOut() {
 	for _, v := range r.NodeList {
 		nodeName = append(nodeName, v.Name)
 	}
+	setting.Logger.Debugf("report Nodes %v", nodeName)
 	if len(nodeName) > 0 {
 		reportNodeProperty := MQTTAliyunReportPropertyTemplate{
 			DeviceType: "node",
@@ -421,24 +422,28 @@ func ReportServiceAliyunPoll(r *ReportServiceParamAliyunTemplate) {
 				}
 
 				//节点有属性变化
-				for _, c := range device.CollectInterfaceMap {
-					for i := 0; i < len(c.PropertyReportChan); i++ {
-						nodeName := <-c.PropertyReportChan
-						for _, v := range r.NodeList {
-							if v.Name == nodeName {
-								if v.ReportStatus == "offLine" { //当设备上报状态是离线时立马发送设备上线
-									name = append(name, nodeName)
-									r.LogInRequestFrameChan <- name
-									name = name[0:0]
-								} else {
-									name = append(name, nodeName)
-									r.LogInRequestFrameChan <- name
-									name = name[0:0]
-								}
-							}
-						}
-					}
-				}
+				//for _, c := range device.CollectInterfaceMap {
+				//	for i := 0; i < len(c.PropertyReportChan); i++ {
+				//		nodeName := <-c.PropertyReportChan
+				//		for _, v := range r.NodeList {
+				//			if v.Name == nodeName {
+				//				if v.ReportStatus == "offLine" { //当设备上报状态是离线时立马发送设备上线
+				//					name = append(name, nodeName)
+				//					r.LogInRequestFrameChan <- name
+				//					name = name[0:0]
+				//				} else {
+				//					name = append(name, nodeName)
+				//					reportPropertyTemplate := MQTTAliyunReportPropertyTemplate{
+				//						DeviceType: "node",
+				//						DeviceName: name,
+				//					}
+				//					r.ReportPropertyRequestFrameChan <- reportPropertyTemplate
+				//					name = name[0:0]
+				//				}
+				//			}
+				//		}
+				//	}
+				//}
 			}
 		}
 

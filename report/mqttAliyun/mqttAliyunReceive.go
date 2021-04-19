@@ -1,6 +1,8 @@
 package mqttAliyun
 
 import (
+	"goAdapter/setting"
+
 	MQTT "github.com/eclipse/paho.mqtt.golang"
 )
 
@@ -29,10 +31,10 @@ type MQTTAliyunLogOutDataTemplate struct {
 }
 
 type MQTTAliyunLogOutAckTemplate struct {
-	ID      string                       `json:"id"`
-	Code    int32                        `json:"code"`
-	Message string                       `json:"message"`
-	Data    MQTTAliyunLogOutDataTemplate `json:"data"`
+	ID      string                         `json:"id"`
+	Code    int32                          `json:"code"`
+	Message string                         `json:"message"`
+	Data    []MQTTAliyunLogOutDataTemplate `json:"data"`
 }
 
 type MQTTAliyunReportPropertyAckTemplate struct {
@@ -47,30 +49,15 @@ type MQTTAliyunReportPropertyAckTemplate struct {
 //发送数据回调函数
 func ReceiveMessageHandler(client MQTT.Client, msg MQTT.Message) {
 
-	for _, v := range ReportServiceParamListAliyun.ServiceList {
+	for k, v := range ReportServiceParamListAliyun.ServiceList {
 		if v.GWParam.MQTTClient == client {
 			receiveFrame := MQTTAliyunReceiveFrameTemplate{
 				Topic:   msg.Topic(),
 				Payload: msg.Payload(),
 			}
-			v.ReceiveFrameChan <- receiveFrame
+			setting.Logger.Debugf("Recv TOPIC: %s\n", receiveFrame.Topic)
+			setting.Logger.Debugf("Recv MSG: %s\n", receiveFrame.Payload)
+			ReportServiceParamListAliyun.ServiceList[k].ReceiveFrameChan <- receiveFrame
 		}
 	}
 }
-
-//func ProcessPropertyPost(r *ReportServiceParamAliyunTemplate) {
-//
-//	for {
-//		select {
-//		case postParam := <-r.PropertyPostChan:
-//			{
-//				setting.Logger.Tracef("service %s,postParam %v,postChanCnt %v", r.GWParam.ServiceName, postParam, len(r.PropertyPostChan))
-//				if postParam.DeviceType == 0 { //网关上报
-//					r.GWPropertyPost()
-//				} else if postParam.DeviceType == 1 { //末端设备上报
-//					r.NodePropertyPost(postParam.DeviceName)
-//				}
-//			}
-//		}
-//	}
-//}

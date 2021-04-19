@@ -60,11 +60,13 @@ func (n *NetworkParamListTemplate) AddNetworkParam(param NetworkParamTemplate) e
 
 func (n *NetworkParamTemplate) GetNetworkStatus() {
 
-	ethHandle, _ := ethtool.NewEthtool()
-	defer ethHandle.Close()
+	if runtime.GOOS == "linux" {
+		ethHandle, _ := ethtool.NewEthtool()
+		defer ethHandle.Close()
 
-	n.LinkStatus, _ = ethHandle.LinkState(n.Name)
-	Logger.Debugf("%v LinkStatus %v", n.Name, n.LinkStatus)
+		n.LinkStatus, _ = ethHandle.LinkState(n.Name)
+		Logger.Debugf("%v LinkStatus %v", n.Name, n.LinkStatus)
+	}
 }
 
 //获取当前网络参数
@@ -81,7 +83,9 @@ func (n *NetworkParamListTemplate) GetNetworkParam() {
 		v.Broadcast = ethInfo.Gateway
 		v.MAC = strings.ToUpper(ethInfo.MAC)
 		//Logger.Debugf("%v netFlags %v", v.Name, ethInfo.NetFlags)
-		//v.GetNetworkStatus()
+		if runtime.GOOS == "linux" {
+			v.GetNetworkStatus()
+		}
 	}
 }
 
@@ -147,7 +151,7 @@ func (n *NetworkParamTemplate) CmdSetStaticIP() {
 }
 
 func findNetCard(name string) (string, error) {
-	if runtime.GOOS == "linux" || runtime.GOOS == "darwin" {
+	if runtime.GOOS == "linux" {
 		inters, err := net.Interfaces()
 		if err != nil {
 			return "", err

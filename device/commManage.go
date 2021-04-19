@@ -2,11 +2,12 @@ package device
 
 import (
 	"fmt"
-	"github.com/sirupsen/logrus"
 	"goAdapter/setting"
 	"log"
 	"strconv"
 	"time"
+
+	"github.com/sirupsen/logrus"
 )
 
 type CommunicationCmdTemplate struct {
@@ -178,8 +179,10 @@ func (c *CommunicationManageTemplate) CommunicationStateMachine(cmd Communicatio
 							if v.CurCommFailCnt >= c.CollInterface.OfflinePeriod {
 								v.CurCommFailCnt = 0
 								//设备从上线变成离线
-								c.CollInterface.OfflineReportChan <- v.Addr
-								v.CommStatus = "offLine"
+								if v.CommStatus == "onLine" {
+									c.CollInterface.OfflineReportChan <- v.Addr
+									v.CommStatus = "offLine"
+								}
 							}
 							rxTotalBufCnt = 0
 							rxTotalBuf = rxTotalBuf[0:0]
@@ -221,6 +224,10 @@ func (c *CommunicationManageTemplate) CommunicationStateMachine(cmd Communicatio
 								c.CollInterface.OnlineReportChan <- v.Addr
 							}
 
+							//防止Chan阻塞
+							if len(c.CollInterface.PropertyReportChan) >= 100 {
+								<-c.CollInterface.PropertyReportChan
+							}
 							c.CollInterface.PropertyReportChan <- v.Addr
 							//log.Printf("reportChan %v\n", len(c.CollInterface.PropertyReportChan))
 

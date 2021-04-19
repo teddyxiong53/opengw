@@ -128,8 +128,6 @@ func MQTTAliyunNodeLoginOut(client MQTT.Client, gw MQTTAliyunRegisterTemplate, n
 		ID     string               `json:"id"`
 		Params []NodeParamsTemplate `json:"params"`
 	}
-	//单个注册
-	//loginTopic := "/ext/session/" + MQTTAliyunGWParam.GWParam.ProductKey + "/" + MQTTAliyunGWParam.GWParam.DeviceName + "/combine/login"
 	//批量注册
 	loginOutTopic := "/ext/session/" + gw.ProductKey + "/" + gw.DeviceName + "/combine/batch_logout"
 
