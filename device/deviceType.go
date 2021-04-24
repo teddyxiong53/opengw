@@ -2,13 +2,14 @@ package device
 
 import (
 	"encoding/json"
-	lua "github.com/yuin/gopher-lua"
 	"goAdapter/setting"
 	"io/ioutil"
 	"log"
 	"os"
 	"path/filepath"
 	"strings"
+
+	lua "github.com/yuin/gopher-lua"
 )
 
 //最大设备模板数
@@ -43,28 +44,6 @@ var DeviceTypePluginMap = make(map[int]*lua.LState)
 
 func init() {
 
-}
-
-func WriteDeviceNodeTypeMapToJson() {
-
-	exeCurDir, _ := filepath.Abs(filepath.Dir(os.Args[0]))
-
-	fileDir := exeCurDir + "/selfpara/deviceNodeType.json"
-
-	fp, err := os.OpenFile(fileDir, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0777)
-	if err != nil {
-		log.Println("open DeviceNodeType.json err", err)
-		return
-	}
-	defer fp.Close()
-
-	sJson, _ := json.Marshal(DeviceNodeTypeMap)
-
-	_, err = fp.Write(sJson)
-	if err != nil {
-		log.Println("write DeviceNodeType.json err", err)
-	}
-	log.Println("write DeviceNodeType.json sucess")
 }
 
 func updataDeviceType(path string, fileName []string) ([]string, error) {

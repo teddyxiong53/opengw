@@ -6,11 +6,14 @@ import (
 	"goAdapter/setting"
 	"log"
 	"net/http"
+	"sync"
 
 	"goAdapter/device"
 
 	"github.com/gin-gonic/gin"
 )
+
+var lock sync.Mutex
 
 func apiAddInterface(context *gin.Context) {
 	interfaceInfo := &struct {
@@ -704,6 +707,8 @@ func apiAddTemplate(context *gin.Context) {
 		return
 	}
 
+	setting.Logger.Debugf("typeInfo %v", typeInfo)
+
 	index := len(device.DeviceNodeTypeMap.DeviceNodeType)
 	template := device.DeviceNodeTypeTemplate{
 		TemplateName:    typeInfo.TemplateName,
@@ -713,8 +718,6 @@ func apiAddTemplate(context *gin.Context) {
 	}
 
 	device.DeviceNodeTypeMap.DeviceNodeType = append(device.DeviceNodeTypeMap.DeviceNodeType, template)
-
-	device.WriteDeviceNodeTypeMapToJson()
 
 	aParam.Code = "0"
 	aParam.Data = ""
@@ -731,7 +734,12 @@ func apiGetTemplate(context *gin.Context) {
 		Data    []device.DeviceNodeTypeTemplate
 	}{}
 
-	// device.ReadDeviceNodeTypeMapFromJson()
+	lock.Lock()
+	//清空设备模版缓存
+	device.DeviceNodeTypeMap.DeviceNodeType = device.DeviceNodeTypeMap.DeviceNodeType[0:0]
+	//获取最新的模版
+	device.ReadDeviceNodeTypeMap()
+	lock.Unlock()
 
 	aParam.Code = "0"
 	aParam.Message = ""
