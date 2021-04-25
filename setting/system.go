@@ -3,8 +3,8 @@ package setting
 import (
 	"bytes"
 	"fmt"
-	"github.com/shirou/gopsutil/disk"
-	"github.com/shirou/gopsutil/mem"
+	"github.com/shirou/gopsutil/v3/disk"
+	"github.com/shirou/gopsutil/v3/mem"
 	"os"
 	"os/exec"
 	"path/filepath"

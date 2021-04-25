@@ -1,38 +1,30 @@
 module goAdapter
 
-go 1.14
+go 1.16
 
 require (
-	//deviceAPI v0.0.0
-	github.com/StackExchange/wmi v0.0.0-20190523213315-cbe66965904d // indirect
+	github.com/StackExchange/wmi v0.0.0-20210224194228-fe8f1750fd46 // indirect
 	github.com/beevik/ntp v0.3.0
 	github.com/dgrijalva/jwt-go v3.2.0+incompatible
-	github.com/eclipse/paho.mqtt.golang v1.2.0
-	github.com/fastly/go-utils v0.0.0-20180712184237-d95a45783239 // indirect
-	github.com/gin-gonic/gin v1.6.3
-	github.com/go-ole/go-ole v1.2.4 // indirect
+	github.com/eclipse/paho.mqtt.golang v1.3.3
+	github.com/gin-gonic/gin v1.7.1
+	github.com/go-ole/go-ole v1.2.5 // indirect
 	github.com/goburrow/serial v0.1.0
-	github.com/jehiah/go-strftime v0.0.0-20171201141054-1d33003b3869 // indirect
-	github.com/jonboulle/clockwork v0.2.0 // indirect
-	github.com/lestrrat-go/file-rotatelogs v2.3.0+incompatible
-	github.com/lestrrat-go/strftime v1.0.3 // indirect
-	github.com/mitchellh/mapstructure v1.3.3 // indirect
+	github.com/jonboulle/clockwork v0.2.2 // indirect
+	github.com/lestrrat-go/file-rotatelogs v2.4.0+incompatible
+	github.com/lestrrat-go/strftime v1.0.4 // indirect
+	github.com/mitchellh/mapstructure v1.4.1 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/robfig/cron v1.2.0
-	github.com/safchain/ethtool v0.0.0-20200609180057-ab94f15152e7
-	github.com/shirou/gopsutil v2.20.5+incompatible
-	github.com/sirupsen/logrus v1.6.0
+	github.com/safchain/ethtool v0.0.0-20201023143004-874930cb3ce0
+	github.com/shirou/gopsutil v3.21.3+incompatible
+	github.com/shirou/gopsutil/v3 v3.21.3
+	github.com/sirupsen/logrus v1.8.1
 	github.com/smartystreets/goconvey v1.6.4 // indirect
-	github.com/stretchr/testify v1.5.1 // indirect
 	github.com/tarm/serial v0.0.0-20180830185346-98f6abe2eb07
-	github.com/tebeka/strftime v0.1.5 // indirect
 	github.com/thinkgos/gomodbus/v2 v2.2.2
 	github.com/yuin/gluamapper v0.0.0-20150323120927-d836955830e7
 	github.com/yuin/gopher-lua v0.0.0-20200816102855-ee81675732da
-	golang.org/x/net v0.0.0-20200625001655-4c5254603344 // indirect
-	golang.org/x/sys v0.0.0-20200420163511-1957bb5e6d1f // indirect
-	gopkg.in/ini.v1 v1.57.0
+	gopkg.in/ini.v1 v1.62.0
 	layeh.com/gopher-luar v1.0.8
 )
-
-replace deviceAPI => ../../deviceAPI
