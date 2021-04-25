@@ -3,12 +3,14 @@ package httpServer
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/gin-gonic/gin"
 	"goAdapter/report/mqttAliyun"
+	"goAdapter/report/mqttHuawei"
 	"goAdapter/setting"
 	"net/http"
 	"os"
 	"path/filepath"
+
+	"github.com/gin-gonic/gin"
 )
 
 func apiSetReportGWParam(context *gin.Context) {
@@ -61,8 +63,12 @@ func apiSetReportGWParam(context *gin.Context) {
 		}
 		mqttAliyun.ReportServiceParamListAliyun.AddReportService(ReportServiceGWParamAliyun)
 	case "Emqx":
-
-	case "Huawei":
+	case "Huawei.MQTT":
+		ReportServiceGWParamHuawei := mqttHuawei.ReportServiceGWParamHuaweiTemplate{}
+		if err := json.Unmarshal(bodyBuf[:n], &ReportServiceGWParamHuawei); err != nil {
+			fmt.Println("ReportServiceGWParamAliyun json unMarshall err,", err)
+		}
+		mqttHuawei.ReportServiceParamListHuawei.AddReportService(ReportServiceGWParamHuawei)
 	default:
 		setting.Logger.Errorf("unknown param.Protocol")
 		aParam.Code = "1"
@@ -119,6 +125,20 @@ func apiGetReportGWParam(context *gin.Context) {
 		aParam.Data = append(aParam.Data, ReportService)
 	}
 
+	for _, v := range mqttHuawei.ReportServiceParamListHuawei.ServiceList {
+
+		ReportService := ReportServiceTemplate{}
+		ReportService.ServiceName = v.GWParam.ServiceName
+		ReportService.IP = v.GWParam.IP
+		ReportService.Port = v.GWParam.Port
+		ReportService.ReportTime = v.GWParam.ReportTime
+		ReportService.Protocol = v.GWParam.Protocol
+		ReportService.Param = v.GWParam.Param
+		ReportService.CommStatus = v.GWParam.ReportStatus
+
+		aParam.Data = append(aParam.Data, ReportService)
+	}
+
 	sJson, _ := json.Marshal(aParam)
 
 	context.String(http.StatusOK, string(sJson))
@@ -160,6 +180,20 @@ func apiDeleteReportGWParam(context *gin.Context) {
 	for _, v := range mqttAliyun.ReportServiceParamListAliyun.ServiceList {
 		if v.GWParam.ServiceName == param.ServiceName {
 			mqttAliyun.ReportServiceParamListAliyun.DeleteReportService(param.ServiceName)
+
+			aParam.Code = "0"
+			aParam.Message = ""
+			aParam.Data = ""
+			sJson, _ := json.Marshal(aParam)
+
+			context.String(http.StatusOK, string(sJson))
+			return
+		}
+	}
+
+	for _, v := range mqttHuawei.ReportServiceParamListHuawei.ServiceList {
+		if v.GWParam.ServiceName == param.ServiceName {
+			mqttHuawei.ReportServiceParamListHuawei.DeleteReportService(param.ServiceName)
 
 			aParam.Code = "0"
 			aParam.Message = ""
@@ -237,7 +271,7 @@ func apiSetReportNodeWParam(context *gin.Context) {
 		setting.Logger.Debugf("ParamListAliyun %v\n", mqttAliyun.ReportServiceParamListAliyun.ServiceList)
 	case "Emqx.MQTT":
 
-	case "Huawei":
+	case "Huawei.MQTT":
 	default:
 		setting.Logger.Errorf("unknown param.Protocol")
 		aParam.Code = "1"
