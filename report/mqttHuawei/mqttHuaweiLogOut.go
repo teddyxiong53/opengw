@@ -1,16 +1,12 @@
 package mqttHuawei
 
 import (
-	"encoding/json"
-	"goAdapter/setting"
-	"strconv"
-	"time"
-
 	MQTT "github.com/eclipse/paho.mqtt.golang"
 )
 
 func MQTTHuaweiNodeLoginOut(client MQTT.Client, gw MQTTHuaweiRegisterTemplate, node []MQTTHuaweiNodeRegisterTemplate) int {
 
+	/*
 	type NodeParamsTemplate struct {
 		DeviceName string `json:"deviceName"`
 		ProductKey string `json:"productKey"`
@@ -45,13 +41,15 @@ func MQTTHuaweiNodeLoginOut(client MQTT.Client, gw MQTTHuaweiRegisterTemplate, n
 		token.Wait()
 	}
 
+	 */
+
 	return MsgID
 }
 
 func (r *ReportServiceParamHuaweiTemplate) NodeLogOut(name []string) bool {
 
 	status := false
-
+	/*
 	nodeList := make([]MQTTHuaweiNodeRegisterTemplate, 0)
 	nodeParam := MQTTHuaweiNodeRegisterTemplate{}
 
@@ -93,5 +91,7 @@ func (r *ReportServiceParamHuaweiTemplate) NodeLogOut(name []string) bool {
 			}
 		}
 	}
+
+	 */
 	return status
 }

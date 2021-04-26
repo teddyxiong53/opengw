@@ -151,7 +151,7 @@ func (n *NetworkParamTemplate) CmdSetStaticIP() {
 }
 
 func findNetCard(name string) (string, error) {
-	if runtime.GOOS == "linux" {
+	if runtime.GOOS == "linux" || runtime.GOOS == "darwin" {
 		inters, err := net.Interfaces()
 		if err != nil {
 			return "", err

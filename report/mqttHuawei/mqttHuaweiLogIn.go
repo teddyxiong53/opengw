@@ -1,10 +1,11 @@
 package mqttHuawei
 
 import (
-	"bytes"
-	"encoding/json"
+	"crypto/hmac"
+	"crypto/sha256"
+	"encoding/hex"
 	"goAdapter/setting"
-	"strconv"
+	"strings"
 	"time"
 
 	MQTT "github.com/eclipse/paho.mqtt.golang"
@@ -13,37 +14,59 @@ import (
 type MQTTHuaweiRegisterTemplate struct {
 	RemoteIP     string
 	RemotePort   string
-	ProductKey   string `json:"ProductKey"`
-	DeviceName   string `json:"DeviceName"`
+	DeviceID   string `json:"DeviceName"`
 	DeviceSecret string `json:"DeviceSecret"`
 }
 
 type MQTTHuaweiNodeRegisterTemplate struct {
-	ProductKey   string `json:"ProductKey"`
-	DeviceName   string `json:"DeviceName"`
+	DeviceID   string `json:"DeviceName"`
 	DeviceSecret string `json:"DeviceSecret"`
 }
 
-var timeStamp string = "1528018257135"
+var timeStapmStatic string = "2021042609"
 var MsgID int = 0
+
+// 时间戳：为设备连接平台时的UTC时间，格式为YYYYMMDDHH，如UTC 时间2018/7/24 17:56:20 则应表示为2018072417。
+func timeStamp() string {
+	strFormatTime := time.Now().Format("2006-01-02 15:04:05")
+	strFormatTime = strings.ReplaceAll(strFormatTime, "-", "")
+	strFormatTime = strings.ReplaceAll(strFormatTime, " ", "")
+	strFormatTime = strFormatTime[0:10]
+	return strFormatTime
+}
+
+func assembleClientId(deviceID string) string {
+	segments := make([]string, 4)
+	segments[0] = deviceID
+	segments[1] = "0"
+	segments[2] = "0"
+	//segments[3] = timeStamp()
+	segments[3] = timeStapmStatic
+
+	return strings.Join(segments, "_")
+}
+
+func hmacSha256(data string, secret string) string {
+	h := hmac.New(sha256.New, []byte(secret))
+	h.Write([]byte(data))
+	return hex.EncodeToString(h.Sum(nil))
+}
 
 func MQTTHuaweiGWLogin(param MQTTHuaweiRegisterTemplate, publishHandler MQTT.MessageHandler) (bool, MQTT.Client) {
 
-	var raw_broker bytes.Buffer
+	opts := MQTT.NewClientOptions()
+	opts.AddBroker(param.RemoteIP)
 
-	//MQTT.DEBUG = log.New(os.Stdout, "[DEBUG] ", 0)
-
-	raw_broker.WriteString(param.ProductKey)
-	raw_broker.WriteString(param.RemoteIP)
-	opts := MQTT.NewClientOptions().AddBroker(raw_broker.String())
-
-	auth := MqttClient_CalculateSign(param.ProductKey,
-		param.DeviceName,
-		param.DeviceSecret, timeStamp)
-	opts.SetClientID(auth.mqttClientId)
-	opts.SetUsername(auth.username)
-	opts.SetPassword(auth.password)
-	opts.SetKeepAlive(60 * 2 * time.Second)
+	clientID := assembleClientId(param.DeviceID)
+	setting.Logger.Debugf("clientID %s",clientID)
+	opts.SetClientID(clientID)
+	opts.SetUsername(param.DeviceID)
+	setting.Logger.Debugf("DeviceSecret %s",param.DeviceSecret)
+	//passWord := hmacSha256(param.DeviceSecret, timeStamp())
+	passWord := hmacSha256(param.DeviceSecret, timeStapmStatic)
+	setting.Logger.Debugf("passWord %s",passWord)
+	opts.SetPassword(passWord)
+	opts.SetKeepAlive(250 * time.Second)
 	opts.SetDefaultPublishHandler(publishHandler)
 	opts.SetAutoReconnect(false)
 
@@ -55,11 +78,12 @@ func MQTTHuaweiGWLogin(param MQTTHuaweiRegisterTemplate, publishHandler MQTT.Mes
 	}
 	setting.Logger.Info("Connect Huawei IoT Cloud Sucess")
 
-	subTopic := ""
-	//属性上报回应
-	subTopic = "/sys/" + param.ProductKey + "/" + param.DeviceName + "/thing/event/property/pack/post_reply"
-	MQTTHuaweiSubscribeTopic(mqttClient, subTopic)
 
+	//subTopic := ""
+	//属性上报回应
+	//subTopic = "$oc/devices" + param.DeviceID + "/sys/messages/down"
+	//MQTTHuaweiSubscribeTopic(mqttClient, subTopic)
+	/*
 	//属性设置
 	subTopic = "/sys/" + param.ProductKey + "/" + param.DeviceName + "/thing/service/property/set"
 	MQTTHuaweiSubscribeTopic(mqttClient, subTopic)
@@ -72,11 +96,9 @@ func MQTTHuaweiGWLogin(param MQTTHuaweiRegisterTemplate, publishHandler MQTT.Mes
 	subTopic = "/sys/" + param.ProductKey + "/" + param.DeviceName + "/thing/sub/register_reply"
 	MQTTHuaweiSubscribeTopic(mqttClient, subTopic)
 
+	 */
+
 	return true, mqttClient
-
-	//MQTTClient_AddTopo()
-
-	//MQTTClient_Register()
 }
 
 func MQTTHuaweiSubscribeTopic(client MQTT.Client, topic string) {
@@ -92,8 +114,7 @@ func (r *ReportServiceParamHuaweiTemplate) GWLogin() bool {
 	mqttHuaweiRegister := MQTTHuaweiRegisterTemplate{
 		RemoteIP:     r.GWParam.IP,
 		RemotePort:   r.GWParam.Port,
-		ProductKey:   r.GWParam.Param.ProductKey,
-		DeviceName:   r.GWParam.Param.DeviceName,
+		DeviceID:   r.GWParam.Param.DeviceID,
 		DeviceSecret: r.GWParam.Param.DeviceSecret,
 	}
 
@@ -108,6 +129,7 @@ func (r *ReportServiceParamHuaweiTemplate) GWLogin() bool {
 
 func MQTTHuaweiNodeLoginIn(client MQTT.Client, gw MQTTHuaweiRegisterTemplate, node []MQTTHuaweiNodeRegisterTemplate) int {
 
+	/*
 	type NodeParamsTemplate struct {
 		DeviceName   string `json:"deviceName"`
 		ProductKey   string `json:"productKey"`
@@ -166,14 +188,17 @@ func MQTTHuaweiNodeLoginIn(client MQTT.Client, gw MQTTHuaweiRegisterTemplate, no
 		}
 	}
 
+	 */
+
 	return MsgID
 }
 
 func (r *ReportServiceParamHuaweiTemplate) NodeLogin(name []string) bool {
 
+	status := false
+	/*
 	nodeList := make([]MQTTHuaweiNodeRegisterTemplate, 0)
 	nodeParam := MQTTHuaweiNodeRegisterTemplate{}
-	status := false
 
 	setting.Logger.Debugf("nodeLoginName %v", name)
 	for _, d := range name {
@@ -206,6 +231,8 @@ func (r *ReportServiceParamHuaweiTemplate) NodeLogin(name []string) bool {
 			}
 		}
 	}
+
+	 */
 
 	return status
 }

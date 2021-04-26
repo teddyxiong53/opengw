@@ -3,7 +3,6 @@ package mqttHuawei
 import (
 	"encoding/json"
 	"goAdapter/device"
-	"goAdapter/setting"
 	"strings"
 
 	MQTT "github.com/eclipse/paho.mqtt.golang"
@@ -25,6 +24,7 @@ type MQTTHuaweiThingServiceAckTemplate struct {
 
 func MQTTHuaweiThingServiceAck(client MQTT.Client, gw MQTTHuaweiRegisterTemplate, ackMessage MQTTHuaweiThingServiceAckTemplate) {
 
+	/*
 	type MQTTThingServicePayloadTemplate struct {
 		ID   string                 `json:"id"`
 		Code int                    `json:"code"`
@@ -48,6 +48,8 @@ func MQTTHuaweiThingServiceAck(client MQTT.Client, gw MQTTHuaweiRegisterTemplate
 		token := client.Publish(thingServiceTopic, 0, false, sJson)
 		token.Wait()
 	}
+
+	 */
 }
 
 func ReportServiceHuaweiProcessGetSubDeviceProperty(r *ReportServiceParamHuaweiTemplate, message MQTTHuaweiMessageTemplate,

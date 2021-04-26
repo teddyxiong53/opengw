@@ -3,64 +3,63 @@ package setting
 import (
 	"bytes"
 	"fmt"
-	"github.com/shirou/gopsutil/v3/disk"
-	"github.com/shirou/gopsutil/v3/mem"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"time"
+
+	"github.com/shirou/gopsutil/v3/disk"
+	"github.com/shirou/gopsutil/v3/mem"
 )
 
-type SystemStateTemplate struct{
-	MemTotal  string		`json:"MemTotal"`
-	MemUse    string		`json:"MemUse"`
-	DiskTotal string        `json:"DiskTotal"`
-	DiskUse   string		`json:"DiskUse"`
-	Name      string		`json:"Name"`
-	SN        string		`json:"SN"`
-	HardVer   string		`json:"HardVer"`
-	SoftVer   string		`json:"SoftVer"`
-	SystemRTC string		`json:"SystemRTC"`
-	RunTime   string		`json:"RunTime"`			//累计时间
-	DeviceOnline string     `json:"DeviceOnline"`		//设备在线率
-	DevicePacketLoss string `json:"DevicePacketLoss"`	//设备丢包率
+type SystemStateTemplate struct {
+	MemTotal         string `json:"MemTotal"`
+	MemUse           string `json:"MemUse"`
+	DiskTotal        string `json:"DiskTotal"`
+	DiskUse          string `json:"DiskUse"`
+	Name             string `json:"Name"`
+	SN               string `json:"SN"`
+	HardVer          string `json:"HardVer"`
+	SoftVer          string `json:"SoftVer"`
+	SystemRTC        string `json:"SystemRTC"`
+	RunTime          string `json:"RunTime"`          //累计时间
+	DeviceOnline     string `json:"DeviceOnline"`     //设备在线率
+	DevicePacketLoss string `json:"DevicePacketLoss"` //设备丢包率
 }
 
-type DataPointTemplate struct{
+type DataPointTemplate struct {
 	Value string
-	Time string
+	Time  string
 }
 
-type DataStreamTemplate struct{
-	DataPoint 		[]DataPointTemplate		`json:"DataPoint"`
-	DataPointCnt 	int						`json:"DataPointCnt"`
-	Legend 			string 					`json:"Legend"`			//别名
+type DataStreamTemplate struct {
+	DataPoint    []DataPointTemplate `json:"DataPoint"`
+	DataPointCnt int                 `json:"DataPointCnt"`
+	Legend       string              `json:"Legend"` //别名
 }
 
 var SystemState = SystemStateTemplate{
-	MemTotal		:"0",
-	MemUse			:"0",
-	DiskTotal		:"0",
-	DiskUse			:"0",
-	Name			:"goteway",
-	SN				:"22005260001",
-	HardVer			:"goteway-V.A",
-	SoftVer			:"V0.0.1",
-	SystemRTC		:"2020-05-26 12:00:00",
-	RunTime			:"0",
-	DeviceOnline    :"0",
-	DevicePacketLoss : "0",
+	MemTotal:         "0",
+	MemUse:           "0",
+	DiskTotal:        "0",
+	DiskUse:          "0",
+	Name:             "openGW",
+	SN:               "22005260001",
+	HardVer:          "openGW-V.A",
+	SoftVer:          "V0.0.5",
+	SystemRTC:        "2020-05-26 12:00:00",
+	RunTime:          "0",
+	DeviceOnline:     "0",
+	DevicePacketLoss: "0",
 }
 
 var timeStart time.Time
 var (
-
-	MemoryDataStream 			*DataStreamTemplate
-	DiskDataStream 				*DataStreamTemplate
-	DeviceOnlineDataStream		*DataStreamTemplate
-	DevicePacketLossDataStream	*DataStreamTemplate
+	MemoryDataStream           *DataStreamTemplate
+	DiskDataStream             *DataStreamTemplate
+	DeviceOnlineDataStream     *DataStreamTemplate
+	DevicePacketLossDataStream *DataStreamTemplate
 )
-
 
 func SystemReboot() {
 	cmd := exec.Command("reboot")
@@ -72,9 +71,9 @@ func SystemReboot() {
 	fmt.Println(str)
 }
 
-func SystemSetRTC(rtc string){
+func SystemSetRTC(rtc string) {
 
-	cmd := exec.Command("date","-s",rtc)
+	cmd := exec.Command("date", "-s", rtc)
 	var out bytes.Buffer
 	cmd.Stdout = &out
 	cmd.Start()
@@ -85,7 +84,7 @@ func SystemSetRTC(rtc string){
 	cmd.Start()
 }
 
-func GetMemState(){
+func GetMemState() {
 
 	v, _ := mem.VirtualMemory()
 
@@ -93,11 +92,11 @@ func GetMemState(){
 	//log.Printf("Mem Total: %v, Free:%v, UsedPercent:%f%%\n",
 	//					v.Total/1024/1024, v.Free/1024/1024, v.UsedPercent)
 
-	SystemState.MemTotal = fmt.Sprintf("%d",v.Total/1024/1024)
-	SystemState.MemUse = fmt.Sprintf("%3.1f",v.UsedPercent)
+	SystemState.MemTotal = fmt.Sprintf("%d", v.Total/1024/1024)
+	SystemState.MemUse = fmt.Sprintf("%3.1f", v.UsedPercent)
 }
 
-func GetDiskState(){
+func GetDiskState() {
 
 	exeCurDir, _ := filepath.Abs(filepath.Dir(os.Args[0]))
 	v, _ := disk.Usage(exeCurDir)
@@ -106,51 +105,51 @@ func GetDiskState(){
 	//log.Printf("Disk Total: %v, Free:%v, UsedPercent:%f%%\n",
 	//				v.Total/1024/1024, v.Free/1024/1024, v.UsedPercent)
 
-	SystemState.DiskTotal = fmt.Sprintf("%d",v.Total/1024/1024)
-	SystemState.DiskUse = fmt.Sprintf("%3.1f",v.UsedPercent)
+	SystemState.DiskTotal = fmt.Sprintf("%d", v.Total/1024/1024)
+	SystemState.DiskUse = fmt.Sprintf("%3.1f", v.UsedPercent)
 }
 
-func GetTimeStart(){
+func GetTimeStart() {
 
 	timeStart = time.Now()
 }
 
-func GetRunTime(){
+func GetRunTime() {
 
 	elapsed := time.Since(timeStart)
 	sec := int64(elapsed.Seconds())
-	day := sec/86400
-	hour := sec%86400/3600
-	min := sec%3600/60
+	day := sec / 86400
+	hour := sec % 86400 / 3600
+	min := sec % 3600 / 60
 	sec = sec % 60
 
-	strRunTime := fmt.Sprintf("%d天%d时%d分%d秒",day,hour,min,sec)
+	strRunTime := fmt.Sprintf("%d天%d时%d分%d秒", day, hour, min, sec)
 
 	SystemState.SystemRTC = time.Now().Format("2006-01-02 15:04:05")
 	SystemState.RunTime = strRunTime
 }
 
-func NewDataStreamTemplate(legend string) *DataStreamTemplate{
+func NewDataStreamTemplate(legend string) *DataStreamTemplate {
 
 	return &DataStreamTemplate{
-		DataPoint: make([]DataPointTemplate,0),
+		DataPoint:    make([]DataPointTemplate, 0),
 		DataPointCnt: 0,
-		Legend: legend,
+		Legend:       legend,
 	}
 }
 
-func (d *DataStreamTemplate)AddDataPoint(data DataPointTemplate){
+func (d *DataStreamTemplate) AddDataPoint(data DataPointTemplate) {
 
-	if d.DataPointCnt < 2880{
-		d.DataPoint = append(d.DataPoint,data)
+	if d.DataPointCnt < 2880 {
+		d.DataPoint = append(d.DataPoint, data)
 		d.DataPointCnt++
-	}else{
+	} else {
 		d.DataPoint = d.DataPoint[1:]
-		d.DataPoint = append(d.DataPoint,data)
+		d.DataPoint = append(d.DataPoint, data)
 	}
 }
 
-func CollectSystemParam(){
+func CollectSystemParam() {
 
 	GetMemState()
 	GetRunTime()
@@ -173,4 +172,3 @@ func CollectSystemParam(){
 	point.Time = SystemState.SystemRTC
 	DevicePacketLossDataStream.AddDataPoint(point)
 }
-

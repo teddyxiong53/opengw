@@ -20,7 +20,7 @@ func main() {
 	//记录起始时间
 	setting.GetTimeStart()
 
-	setting.Logger.Debugf("goteway V0.0.1")
+	setting.Logger.Debugf("%s %s", setting.SystemState.Name, setting.SystemState.SoftVer)
 
 	setting.MemoryDataStream = setting.NewDataStreamTemplate("内存使用率")
 	setting.DiskDataStream = setting.NewDataStreamTemplate("硬盘使用率")

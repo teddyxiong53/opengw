@@ -42,8 +42,7 @@ type ReportServiceGWParamHuaweiTemplate struct {
 	ReportErrCnt int
 	Protocol     string
 	Param        struct {
-		ProductKey   string
-		DeviceName   string
+		DeviceID   string
 		DeviceSecret string
 	}
 	MQTTClient MQTT.Client `json:"-"`
