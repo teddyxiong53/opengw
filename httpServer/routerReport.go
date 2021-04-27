@@ -261,7 +261,7 @@ func apiSetReportNodeWParam(context *gin.Context) {
 	case "Aliyun.MQTT":
 		ReportServiceNodeParamAliyun := mqttAliyun.ReportServiceNodeParamAliyunTemplate{}
 		if err := json.Unmarshal(bodyBuf[:n], &ReportServiceNodeParamAliyun); err != nil {
-			fmt.Println("ReportServiceNodeParamAliyun json unMarshall err,", err)
+			setting.Logger.Errorf("ReportServiceNodeParamAliyun json unMarshall err,", err)
 		}
 		for _, v := range mqttAliyun.ReportServiceParamListAliyun.ServiceList {
 			if v.GWParam.ServiceName == param.ServiceName {
@@ -272,6 +272,16 @@ func apiSetReportNodeWParam(context *gin.Context) {
 	case "Emqx.MQTT":
 
 	case "Huawei.MQTT":
+		ReportServiceNodeParamHuawei := mqttHuawei.ReportServiceNodeParamHuaweiTemplate{}
+		if err := json.Unmarshal(bodyBuf[:n], &ReportServiceNodeParamHuawei); err != nil {
+			setting.Logger.Errorf("ReportServiceNodeParamHuawei json unMarshall err,", err)
+		}
+		for _, v := range mqttHuawei.ReportServiceParamListHuawei.ServiceList {
+			if v.GWParam.ServiceName == param.ServiceName {
+				v.AddReportNode(ReportServiceNodeParamHuawei)
+			}
+		}
+		setting.Logger.Debugf("ParamListHuawei %v\n", mqttHuawei.ReportServiceParamListHuawei.ServiceList)
 	default:
 		setting.Logger.Errorf("unknown param.Protocol")
 		aParam.Code = "1"
@@ -406,6 +416,28 @@ func apiGetReportNodeWParam(context *gin.Context) {
 		}
 	}
 
+	for _, v := range mqttHuawei.ReportServiceParamListHuawei.ServiceList {
+		if v.GWParam.ServiceName == ServiceName {
+			ReportServiceNode := ReportServiceNodeTemplate{}
+			for _, d := range v.NodeList {
+				ReportServiceNode.ServiceName = d.ServiceName
+				ReportServiceNode.CollInterfaceName = d.CollInterfaceName
+				ReportServiceNode.Name = d.Name
+				ReportServiceNode.Addr = d.Addr
+				ReportServiceNode.Protocol = d.Protocol
+				ReportServiceNode.CommStatus = d.CommStatus
+				ReportServiceNode.ReportStatus = d.ReportStatus
+				ReportServiceNode.Param = d.Param
+				aParam.Data = append(aParam.Data, ReportServiceNode)
+			}
+			aParam.Code = "0"
+			aParam.Message = ""
+			sJson, _ := json.Marshal(aParam)
+			context.String(http.StatusOK, string(sJson))
+			return
+		}
+	}
+
 	aParam.Code = "1"
 	aParam.Message = "ServiceName is not correct"
 	sJson, _ := json.Marshal(aParam)
@@ -448,6 +480,25 @@ func apiDeleteReportNodeWParam(context *gin.Context) {
 
 	//查看Aliyun
 	for _, v := range mqttAliyun.ReportServiceParamListAliyun.ServiceList {
+		for _, n := range v.NodeList {
+			if (n.ServiceName == param.ServiceName) &&
+				(n.CollInterfaceName == param.CollInterfaceName) &&
+				(n.Addr == param.Addr) {
+
+				v.DeleteReportNode(param.Addr)
+
+				aParam.Code = "0"
+				aParam.Message = ""
+				aParam.Data = ""
+				sJson, _ := json.Marshal(aParam)
+
+				context.String(http.StatusOK, string(sJson))
+				return
+			}
+		}
+	}
+
+	for _, v := range mqttHuawei.ReportServiceParamListHuawei.ServiceList {
 		for _, n := range v.NodeList {
 			if (n.ServiceName == param.ServiceName) &&
 				(n.CollInterfaceName == param.CollInterfaceName) &&

@@ -25,31 +25,31 @@ type MQTTHuaweiThingServiceAckTemplate struct {
 func MQTTHuaweiThingServiceAck(client MQTT.Client, gw MQTTHuaweiRegisterTemplate, ackMessage MQTTHuaweiThingServiceAckTemplate) {
 
 	/*
-	type MQTTThingServicePayloadTemplate struct {
-		ID   string                 `json:"id"`
-		Code int                    `json:"code"`
-		Data map[string]interface{} `json:"data"`
-	}
+		type MQTTThingServicePayloadTemplate struct {
+			ID   string                 `json:"id"`
+			Code int                    `json:"code"`
+			Data map[string]interface{} `json:"data"`
+		}
 
-	payload := MQTTThingServicePayloadTemplate{
-		ID:   ackMessage.ID,
-		Code: ackMessage.Code,
-		Data: ackMessage.Data,
-	}
+		payload := MQTTThingServicePayloadTemplate{
+			ID:   ackMessage.ID,
+			Code: ackMessage.Code,
+			Data: ackMessage.Data,
+		}
 
-	sJson, _ := json.Marshal(payload)
-	setting.Logger.Debugf("thingServiceAck post msg: %s\n", sJson)
+		sJson, _ := json.Marshal(payload)
+		setting.Logger.Debugf("thingServiceAck post msg: %s\n", sJson)
 
-	thingServiceTopic := "/sys/" + gw.ProductKey + "/" + gw.DeviceName +
-		"/thing/service/" + ackMessage.Identifier + "_reply"
-	setting.Logger.Infof("thingServiceAck post topic: %s\n", thingServiceTopic)
+		thingServiceTopic := "/sys/" + gw.ProductKey + "/" + gw.DeviceName +
+			"/thing/service/" + ackMessage.Identifier + "_reply"
+		setting.Logger.Infof("thingServiceAck post topic: %s\n", thingServiceTopic)
 
-	if client != nil {
-		token := client.Publish(thingServiceTopic, 0, false, sJson)
-		token.Wait()
-	}
+		if client != nil {
+			token := client.Publish(thingServiceTopic, 0, false, sJson)
+			token.Wait()
+		}
 
-	 */
+	*/
 }
 
 func ReportServiceHuaweiProcessGetSubDeviceProperty(r *ReportServiceParamHuaweiTemplate, message MQTTHuaweiMessageTemplate,
@@ -58,7 +58,7 @@ func ReportServiceHuaweiProcessGetSubDeviceProperty(r *ReportServiceParamHuaweiT
 	addrArray := strings.Split(message.Params["Addr"].(string), ",")
 	for _, v := range addrArray {
 		for _, n := range r.NodeList {
-			if v == n.Param.DeviceName {
+			if v == n.Param.DeviceID {
 				cmd := device.CommunicationCmdTemplate{}
 				cmd.CollInterfaceName = "coll1"
 				cmd.DeviceName = n.Addr

@@ -4,6 +4,7 @@ import (
 	"crypto/hmac"
 	"crypto/sha256"
 	"encoding/hex"
+	"encoding/json"
 	"goAdapter/setting"
 	"strings"
 	"time"
@@ -14,13 +15,13 @@ import (
 type MQTTHuaweiRegisterTemplate struct {
 	RemoteIP     string
 	RemotePort   string
-	DeviceID   string `json:"DeviceName"`
+	DeviceID     string `json:"DeviceID"`
 	DeviceSecret string `json:"DeviceSecret"`
 }
 
 type MQTTHuaweiNodeRegisterTemplate struct {
-	DeviceID   string `json:"DeviceName"`
-	DeviceSecret string `json:"DeviceSecret"`
+	DeviceID string `json:"device_id"`
+	Status   string `json:"status"`
 }
 
 var timeStapmStatic string = "2021042609"
@@ -58,13 +59,13 @@ func MQTTHuaweiGWLogin(param MQTTHuaweiRegisterTemplate, publishHandler MQTT.Mes
 	opts.AddBroker(param.RemoteIP)
 
 	clientID := assembleClientId(param.DeviceID)
-	setting.Logger.Debugf("clientID %s",clientID)
+	setting.Logger.Debugf("clientID %s", clientID)
 	opts.SetClientID(clientID)
 	opts.SetUsername(param.DeviceID)
-	setting.Logger.Debugf("DeviceSecret %s",param.DeviceSecret)
+	setting.Logger.Debugf("DeviceSecret %s", param.DeviceSecret)
 	//passWord := hmacSha256(param.DeviceSecret, timeStamp())
 	passWord := hmacSha256(param.DeviceSecret, timeStapmStatic)
-	setting.Logger.Debugf("passWord %s",passWord)
+	setting.Logger.Debugf("passWord %s", passWord)
 	opts.SetPassword(passWord)
 	opts.SetKeepAlive(250 * time.Second)
 	opts.SetDefaultPublishHandler(publishHandler)
@@ -78,25 +79,24 @@ func MQTTHuaweiGWLogin(param MQTTHuaweiRegisterTemplate, publishHandler MQTT.Mes
 	}
 	setting.Logger.Info("Connect Huawei IoT Cloud Sucess")
 
-
 	//subTopic := ""
 	//属性上报回应
 	//subTopic = "$oc/devices" + param.DeviceID + "/sys/messages/down"
 	//MQTTHuaweiSubscribeTopic(mqttClient, subTopic)
 	/*
-	//属性设置
-	subTopic = "/sys/" + param.ProductKey + "/" + param.DeviceName + "/thing/service/property/set"
-	MQTTHuaweiSubscribeTopic(mqttClient, subTopic)
+		//属性设置
+		subTopic = "/sys/" + param.ProductKey + "/" + param.DeviceName + "/thing/service/property/set"
+		MQTTHuaweiSubscribeTopic(mqttClient, subTopic)
 
-	//服务调用(服务不需要主动订阅，平台自动订阅)
-	//subTopic = "/sys/" + param.ProductKey + "/" + param.DeviceName + "/thing/service/RemoteCmdOpen"
-	//MQTTHuaweiSubscribeTopic(mqttClient, subTopic)
+		//服务调用(服务不需要主动订阅，平台自动订阅)
+		//subTopic = "/sys/" + param.ProductKey + "/" + param.DeviceName + "/thing/service/RemoteCmdOpen"
+		//MQTTHuaweiSubscribeTopic(mqttClient, subTopic)
 
-	//子设备注册
-	subTopic = "/sys/" + param.ProductKey + "/" + param.DeviceName + "/thing/sub/register_reply"
-	MQTTHuaweiSubscribeTopic(mqttClient, subTopic)
+		//子设备注册
+		subTopic = "/sys/" + param.ProductKey + "/" + param.DeviceName + "/thing/sub/register_reply"
+		MQTTHuaweiSubscribeTopic(mqttClient, subTopic)
 
-	 */
+	*/
 
 	return true, mqttClient
 }
@@ -114,7 +114,7 @@ func (r *ReportServiceParamHuaweiTemplate) GWLogin() bool {
 	mqttHuaweiRegister := MQTTHuaweiRegisterTemplate{
 		RemoteIP:     r.GWParam.IP,
 		RemotePort:   r.GWParam.Port,
-		DeviceID:   r.GWParam.Param.DeviceID,
+		DeviceID:     r.GWParam.Param.DeviceID,
 		DeviceSecret: r.GWParam.Param.DeviceSecret,
 	}
 
@@ -127,68 +127,48 @@ func (r *ReportServiceParamHuaweiTemplate) GWLogin() bool {
 	return status
 }
 
-func MQTTHuaweiNodeLoginIn(client MQTT.Client, gw MQTTHuaweiRegisterTemplate, node []MQTTHuaweiNodeRegisterTemplate) int {
+func MQTTHuaweiNodeLoginIn(client MQTT.Client, gw ReportServiceGWParamHuaweiTemplate, node []MQTTHuaweiNodeRegisterTemplate) int {
 
-	/*
-	type NodeParamsTemplate struct {
-		DeviceName   string `json:"deviceName"`
-		ProductKey   string `json:"productKey"`
-		Sign         string `json:"sign"`
-		SignMethod   string `json:"signMethod"`
-		TimeStamp    string `json:"timestamp"`
-		ClientID     string `json:"clientId"`
-		CleanSession string `json:"cleanSession"`
+	type NodeStatusesTemplate struct {
+		DeviceStatuses []MQTTHuaweiNodeRegisterTemplate `json:"device_statuses"`
 	}
 
-	type NodeParamsListTemplate struct {
-		DeviceList []NodeParamsTemplate `json:"deviceList"`
+	type NodeRegisterTemplate struct {
+		ServiceID string               `json:"service_id"`
+		EventType string               `json:"event_type"`
+		Paras     NodeStatusesTemplate `json:"paras"`
 	}
 
-	type MQTTNodePayloadTemplate struct {
-		ID     string                 `json:"id"`
-		Params NodeParamsListTemplate `json:"params"`
-	}
-	//单个注册
-	//loginTopic := "/ext/session/" + MQTTAliyunGWParam.GWParam.ProductKey + "/" + MQTTAliyunGWParam.GWParam.DeviceName + "/combine/login"
-	//批量注册
-	loginInTopic := "/ext/session/" + gw.ProductKey + "/" + gw.DeviceName + "/combine/batch_login"
-
-	NodeParamsList := NodeParamsListTemplate{
-		make([]NodeParamsTemplate, 0),
+	type NodeServicesTemplate struct {
+		Services []NodeRegisterTemplate `json:"services"`
 	}
 
-	mqttPayload := MQTTNodePayloadTemplate{
-		ID: strconv.Itoa(MsgID),
-	}
-	MsgID++
+	nodeStatuses := NodeStatusesTemplate{}
+	nodeStatuses.DeviceStatuses = node
 
-	for _, v := range node {
-		auth := MqttClient_CalculateSign(v.ProductKey, v.DeviceName, v.DeviceSecret, timeStamp)
-		MQTTNodeParams := NodeParamsTemplate{
-			DeviceName:   v.DeviceName,
-			ProductKey:   v.ProductKey,
-			Sign:         auth.password,
-			SignMethod:   "hmacSha1",
-			TimeStamp:    timeStamp,
-			ClientID:     v.ProductKey + "&" + v.DeviceName,
-			CleanSession: "true",
-		}
-		NodeParamsList.DeviceList = append(NodeParamsList.DeviceList, MQTTNodeParams)
+	nodeRegister := NodeRegisterTemplate{
+		ServiceID: "$sub_device_manager",
+		EventType: "sub_device_update_status",
+		Paras:     nodeStatuses,
 	}
-	mqttPayload.Params = NodeParamsList
-	sJson, _ := json.Marshal(mqttPayload)
-	if len(NodeParamsList.DeviceList) > 0 {
+
+	nodeServices := NodeServicesTemplate{
+		Services: make([]NodeRegisterTemplate, 0),
+	}
+	nodeServices.Services = append(nodeServices.Services, nodeRegister)
+
+	sJson, _ := json.Marshal(nodeServices)
+	if len(node) > 0 {
+		//批量注册
+		loginInTopic := "$oc/devices/" + gw.Param.DeviceID + "/sys/events/up"
 
 		setting.Logger.Debugf("node publish logInMsg: %s\n", sJson)
 		setting.Logger.Infof("node publish topic: %s\n", loginInTopic)
-
 		if client != nil {
 			token := client.Publish(loginInTopic, 0, false, sJson)
 			token.Wait()
 		}
 	}
-
-	 */
 
 	return MsgID
 }
@@ -196,7 +176,7 @@ func MQTTHuaweiNodeLoginIn(client MQTT.Client, gw MQTTHuaweiRegisterTemplate, no
 func (r *ReportServiceParamHuaweiTemplate) NodeLogin(name []string) bool {
 
 	status := false
-	/*
+
 	nodeList := make([]MQTTHuaweiNodeRegisterTemplate, 0)
 	nodeParam := MQTTHuaweiNodeRegisterTemplate{}
 
@@ -204,20 +184,11 @@ func (r *ReportServiceParamHuaweiTemplate) NodeLogin(name []string) bool {
 	for _, d := range name {
 		for k, v := range r.NodeList {
 			if d == v.Name {
-				nodeParam.DeviceSecret = v.Param.DeviceSecret
-				nodeParam.DeviceName = v.Param.DeviceName
-				nodeParam.ProductKey = v.Param.ProductKey
-				nodeList = append(nodeList, nodeParam)
+				nodeParam.DeviceID = v.Param.DeviceID
 				r.NodeList[k].CommStatus = "onLine"
-
-				mqttHuaweiRegister := MQTTHuaweiRegisterTemplate{
-					RemoteIP:     r.GWParam.IP,
-					RemotePort:   r.GWParam.Port,
-					ProductKey:   r.GWParam.Param.ProductKey,
-					DeviceName:   r.GWParam.Param.DeviceName,
-					DeviceSecret: r.GWParam.Param.DeviceSecret,
-				}
-				MQTTHuaweiNodeLoginIn(r.GWParam.MQTTClient, mqttHuaweiRegister, nodeList)
+				nodeParam.Status = "ONLINE"
+				nodeList = append(nodeList, nodeParam)
+				MQTTHuaweiNodeLoginIn(r.GWParam.MQTTClient, r.GWParam, nodeList)
 				select {
 				case <-r.ReceiveLogInAckFrameChan:
 					{
@@ -231,8 +202,6 @@ func (r *ReportServiceParamHuaweiTemplate) NodeLogin(name []string) bool {
 			}
 		}
 	}
-
-	 */
 
 	return status
 }

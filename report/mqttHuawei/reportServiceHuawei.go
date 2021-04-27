@@ -26,9 +26,7 @@ type ReportServiceNodeParamHuaweiTemplate struct {
 	ReportStatus      string
 	Protocol          string
 	Param             struct {
-		ProductKey   string
-		DeviceName   string
-		DeviceSecret string
+		DeviceID string
 	}
 }
 
@@ -42,7 +40,7 @@ type ReportServiceGWParamHuaweiTemplate struct {
 	ReportErrCnt int
 	Protocol     string
 	Param        struct {
-		DeviceID   string
+		DeviceID     string
 		DeviceSecret string
 	}
 	MQTTClient MQTT.Client `json:"-"`
