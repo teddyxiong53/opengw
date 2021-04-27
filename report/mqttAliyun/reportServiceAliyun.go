@@ -314,26 +314,27 @@ func (r *ReportServiceParamAliyunTemplate) LogOut(nodeName []string) {
 
 func (r *ReportServiceParamAliyunTemplate) ReportTimeOut() {
 
-	//网关上报
-	reportGWProperty := MQTTAliyunReportPropertyTemplate{
-		DeviceType: "gw",
-	}
-	r.ReportPropertyRequestFrameChan <- reportGWProperty
-
-	//全部末端设备上报
-	nodeName := make([]string, 0)
-	for _, v := range r.NodeList {
-		nodeName = append(nodeName, v.Name)
-	}
-	setting.Logger.Debugf("report Nodes %v", nodeName)
-	if len(nodeName) > 0 {
-		reportNodeProperty := MQTTAliyunReportPropertyTemplate{
-			DeviceType: "node",
-			DeviceName: nodeName,
+	if r.GWParam.ReportStatus == "onLine" {
+		//网关上报
+		reportGWProperty := MQTTAliyunReportPropertyTemplate{
+			DeviceType: "gw",
 		}
-		r.ReportPropertyRequestFrameChan <- reportNodeProperty
-	}
+		r.ReportPropertyRequestFrameChan <- reportGWProperty
 
+		//全部末端设备上报
+		nodeName := make([]string, 0)
+		for _, v := range r.NodeList {
+			nodeName = append(nodeName, v.Name)
+		}
+		setting.Logger.Debugf("report Nodes %v", nodeName)
+		if len(nodeName) > 0 {
+			reportNodeProperty := MQTTAliyunReportPropertyTemplate{
+				DeviceType: "node",
+				DeviceName: nodeName,
+			}
+			r.ReportPropertyRequestFrameChan <- reportNodeProperty
+		}
+	}
 }
 
 //查看上报服务中设备是否离线
@@ -368,6 +369,7 @@ func ReportServiceAliyunPoll(r *ReportServiceParamAliyunTemplate) {
 	reportOfflineTime := fmt.Sprintf("@every %dm%ds", (3*r.GWParam.ReportTime)/60, (3*r.GWParam.ReportTime)%60)
 	setting.Logger.Infof("reportServiceAliyun reportOfflineTime%v", reportOfflineTime)
 	_ = cronProcess.AddFunc(reportOfflineTime, r.ReportOfflineTime)
+	_ = cronProcess.AddFunc(reportTime, r.ReportTimeOut)
 
 	cronProcess.Start()
 	defer cronProcess.Stop()
@@ -384,7 +386,6 @@ func ReportServiceAliyunPoll(r *ReportServiceParamAliyunTemplate) {
 				if r.GWLogin() == true {
 					reportState = 1
 
-					_ = cronProcess.AddFunc(reportTime, r.ReportTimeOut)
 				} else {
 					time.Sleep(5 * time.Second)
 				}

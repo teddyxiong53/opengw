@@ -119,6 +119,9 @@ func (r *ReportServiceParamHuaweiTemplate) GWLogin() bool {
 	}
 
 	status := false
+	if r.GWParam.MQTTClient != nil {
+		r.GWParam.MQTTClient.Disconnect(5)
+	}
 	status, r.GWParam.MQTTClient = MQTTHuaweiGWLogin(mqttHuaweiRegister, ReceiveMessageHandler)
 	if status == true {
 		r.GWParam.ReportStatus = "onLine"
