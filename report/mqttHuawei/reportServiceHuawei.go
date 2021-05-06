@@ -206,6 +206,7 @@ func (r *ReportServiceParamHuaweiTemplate) DeleteReportNode(name string) int {
 			return index
 		}
 	}
+	ReportServiceParamListHuawei.WriteParamToJson()
 
 	return index
 }
