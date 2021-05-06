@@ -270,19 +270,17 @@ func (r *ReportServiceParamHuaweiTemplate) ProcessDownLinkFrame() {
 						return
 					}
 					r.ReceiveLogOutAckFrameChan <- ackFrame
+				} else if strings.Contains(frame.Topic, "/sys/properties/get") { //获取属性请求
+					getPropertiesRequest := MQTTHuaweiGetPropertiesRequestTemplate{}
+					err := json.Unmarshal(frame.Payload, &getPropertiesRequest)
+					if err != nil {
+						setting.Logger.Errorf("getPropertiesRequest json unmarshal err")
+						return
+					}
+					ReportServiceHuaweiProcessGetProperties(r, getPropertiesRequest)
+
 				} else if strings.Contains(frame.Topic, "/thing/service/property/set") { //设置属性请求
 
-					cmd := device.CommunicationCmdTemplate{}
-					cmd.CollInterfaceName = "coll1"
-					//cmd.DeviceAddr = property["Addr"]
-					cmd.FunName = "SetRemoteCmdAdjust"
-					//cmd.FunPara = string(bodyBuf[:n])
-
-					if len(device.CommunicationManage) > 0 {
-						if device.CommunicationManage[0].CommunicationManageAddEmergency(cmd) == true {
-
-						}
-					}
 				}
 			}
 		}

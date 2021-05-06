@@ -72,16 +72,22 @@ func SystemReboot() {
 }
 
 func SystemSetRTC(rtc string) {
-
+	Logger.Debugf("setRTC %v", rtc)
 	cmd := exec.Command("date", "-s", rtc)
 	var out bytes.Buffer
 	cmd.Stdout = &out
-	cmd.Start()
+	err := cmd.Start()
+	if err != nil {
+		return
+	}
 
 	//将时间写入硬件RTC中
 	cmd = exec.Command("hwclock", "-w")
 	cmd.Stdout = &out
-	cmd.Start()
+	err = cmd.Start()
+	if err != nil {
+		return
+	}
 }
 
 func GetMemState() {

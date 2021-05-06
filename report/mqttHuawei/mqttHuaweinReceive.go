@@ -46,6 +46,11 @@ type MQTTHuaweiReportPropertyAckTemplate struct {
 	Version string `json:"version"`
 }
 
+type MQTTHuaweiGetPropertiesRequestTemplate struct {
+	ServiceID      string `json:"service_id"`
+	ObjectDeviceID string `json:"object_device_id"`
+}
+
 //发送数据回调函数
 func ReceiveMessageHandler(client MQTT.Client, msg MQTT.Message) {
 

@@ -2,42 +2,42 @@ package setting
 
 import (
 	"encoding/json"
-	"github.com/beevik/ntp"
-	"github.com/sirupsen/logrus"
 	"log"
 	"os"
 	"path/filepath"
+
+	"github.com/beevik/ntp"
+	"github.com/sirupsen/logrus"
 )
 
-
 type NTPHostAddrTemplate struct {
-	Status   bool		`json:"Status"`
-	HostAddr []string	`json:"HostAddr"`
+	Status   bool     `json:"Status"`
+	HostAddr []string `json:"HostAddr"`
 }
 
 var NTPHostAddr = NTPHostAddrTemplate{
-	Status:false,
-	HostAddr: make([]string,0),
+	Status:   false,
+	HostAddr: make([]string, 0),
 }
 
-func NTPInit(){
+func NTPInit() {
 	ReadNTPHostAddrFromJson()
 }
 
-func NTPGetTime() bool{
+func NTPGetTime() bool {
 
-	if NTPHostAddr.Status == true{
+	if NTPHostAddr.Status == true {
 		//多个服务器只要有一个能获取到时间就退出
-		for _,v := range NTPHostAddr.HostAddr{
+		for _, v := range NTPHostAddr.HostAddr {
 			ntpTime, err := ntp.Time(v)
 			Logger.WithFields(logrus.Fields{
-				"host"   : v,
-				"err"    : err,
-				"ntpTime":ntpTime,
+				"host":    v,
+				"err":     err,
+				"ntpTime": ntpTime,
 			}).Warning("getNTPTime err")
-			if err != nil{
+			if err != nil {
 				return false
-			}else{
+			} else {
 				SystemSetRTC(ntpTime.String())
 				return true
 			}
@@ -70,7 +70,7 @@ func ReadNTPHostAddrFromJson() bool {
 		}
 		return true
 	} else {
-		log.Println("ntpHostAddr.json is not exist")
+		Logger.Infof("ntpHostAddr.json is not exist")
 
 		return false
 	}

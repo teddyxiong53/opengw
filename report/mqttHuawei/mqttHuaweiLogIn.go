@@ -79,10 +79,10 @@ func MQTTHuaweiGWLogin(param MQTTHuaweiRegisterTemplate, publishHandler MQTT.Mes
 	}
 	setting.Logger.Info("Connect Huawei IoT Cloud Sucess")
 
-	//subTopic := ""
-	//属性上报回应
-	//subTopic = "$oc/devices" + param.DeviceID + "/sys/messages/down"
-	//MQTTHuaweiSubscribeTopic(mqttClient, subTopic)
+	subTopic := ""
+	//平台查询属性
+	subTopic = "$oc/devices" + param.DeviceID + "/sys/properties/get/#"
+	MQTTHuaweiSubscribeTopic(mqttClient, subTopic)
 	/*
 		//属性设置
 		subTopic = "/sys/" + param.ProductKey + "/" + param.DeviceName + "/thing/service/property/set"

@@ -3,89 +3,77 @@ package mqttHuawei
 import (
 	"encoding/json"
 	"goAdapter/device"
-	"strings"
-
-	MQTT "github.com/eclipse/paho.mqtt.golang"
+	"goAdapter/setting"
 )
 
-type MQTTHuaweiMessageTemplate struct {
-	Method  string                 `json:"method"`
-	ID      string                 `json:"id"`
-	Params  map[string]interface{} `json:"params"`
-	Version string                 `json:"version"`
+func MQTTHuaweiGetPropertiesAck(r *ReportServiceParamHuaweiTemplate, service MQTTHuaweiServiceTemplate) {
+
+	type MQTTHuaweiDeviceServiceTemplate struct {
+		Services []MQTTHuaweiServiceTemplate `json:"services"`
+	}
+
+	deviceService := MQTTHuaweiDeviceServiceTemplate{
+		Services: make([]MQTTHuaweiServiceTemplate, 0),
+	}
+
+	deviceService.Services = append(deviceService.Services, service)
+
+	sJson, _ := json.Marshal(deviceService)
+	setting.Logger.Debugf("thingServiceAck post msg: %s\n", sJson)
+
+	serviceTopic := "$oc/devices/" + r.GWParam.Param.DeviceID + "/sys/properties/get/response/" + service.ServiceID
+	setting.Logger.Infof("thingServiceAck post topic: %s\n", serviceTopic)
+
+	if r.GWParam.MQTTClient != nil {
+		token := r.GWParam.MQTTClient.Publish(serviceTopic, 0, false, sJson)
+		token.Wait()
+	}
+
 }
 
-type MQTTHuaweiThingServiceAckTemplate struct {
-	Identifier string                 `json:"identifier"`
-	ID         string                 `json:"id"`
-	Code       int                    `json:"code"`
-	Data       map[string]interface{} `json:"data"`
-}
+func ReportServiceHuaweiProcessGetProperties(r *ReportServiceParamHuaweiTemplate, request MQTTHuaweiGetPropertiesRequestTemplate) {
 
-func MQTTHuaweiThingServiceAck(client MQTT.Client, gw MQTTHuaweiRegisterTemplate, ackMessage MQTTHuaweiThingServiceAckTemplate) {
-
-	/*
-		type MQTTThingServicePayloadTemplate struct {
-			ID   string                 `json:"id"`
-			Code int                    `json:"code"`
-			Data map[string]interface{} `json:"data"`
+	x := 0
+	for k, v := range r.NodeList {
+		if v.Param.DeviceID == request.ObjectDeviceID {
+			x = k
+			break
 		}
-
-		payload := MQTTThingServicePayloadTemplate{
-			ID:   ackMessage.ID,
-			Code: ackMessage.Code,
-			Data: ackMessage.Data,
+	}
+	y := 0
+	for k, v := range device.CollectInterfaceMap {
+		if v.CollInterfaceName == r.NodeList[x].CollInterfaceName {
+			y = k
+			break
 		}
-
-		sJson, _ := json.Marshal(payload)
-		setting.Logger.Debugf("thingServiceAck post msg: %s\n", sJson)
-
-		thingServiceTopic := "/sys/" + gw.ProductKey + "/" + gw.DeviceName +
-			"/thing/service/" + ackMessage.Identifier + "_reply"
-		setting.Logger.Infof("thingServiceAck post topic: %s\n", thingServiceTopic)
-
-		if client != nil {
-			token := client.Publish(thingServiceTopic, 0, false, sJson)
-			token.Wait()
+	}
+	i := 0
+	for k, v := range device.CollectInterfaceMap[y].DeviceNodeMap {
+		if v.Name == r.NodeList[x].Name {
+			i = k
+			break
 		}
+	}
 
-	*/
-}
+	cmd := device.CommunicationCmdTemplate{}
+	cmd.CollInterfaceName = device.CollectInterfaceMap[y].CollInterfaceName
+	cmd.DeviceName = device.CollectInterfaceMap[y].DeviceNodeMap[i].Name
+	cmd.FunName = "GetRealVariables"
+	cmd.FunPara = ""
 
-func ReportServiceHuaweiProcessGetSubDeviceProperty(r *ReportServiceParamHuaweiTemplate, message MQTTHuaweiMessageTemplate,
-	gw MQTTHuaweiRegisterTemplate, cmdName string) {
-
-	addrArray := strings.Split(message.Params["Addr"].(string), ",")
-	for _, v := range addrArray {
-		for _, n := range r.NodeList {
-			if v == n.Param.DeviceID {
-				cmd := device.CommunicationCmdTemplate{}
-				cmd.CollInterfaceName = "coll1"
-				cmd.DeviceName = n.Addr
-				cmd.FunName = "GetRealVariables"
-				paramStr, _ := json.Marshal(message.Params)
-				cmd.FunPara = string(paramStr)
-
-				if len(device.CommunicationManage) > 0 {
-					if device.CommunicationManage[0].CommunicationManageAddEmergency(cmd) == true {
-						payload := MQTTHuaweiThingServiceAckTemplate{
-							Identifier: cmdName,
-							ID:         message.ID,
-							Code:       200,
-							Data:       make(map[string]interface{}),
-						}
-						MQTTHuaweiThingServiceAck(r.GWParam.MQTTClient, gw, payload)
-					} else {
-						payload := MQTTHuaweiThingServiceAckTemplate{
-							Identifier: cmdName,
-							ID:         message.ID,
-							Code:       1000,
-							Data:       make(map[string]interface{}),
-						}
-						MQTTHuaweiThingServiceAck(r.GWParam.MQTTClient, gw, payload)
-					}
+	if device.CommunicationManage[y].CommunicationManageAddEmergency(cmd) == true {
+		setting.Logger.Debugf("GetRealVariables ok")
+		service := MQTTHuaweiServiceTemplate{}
+		for _, v := range device.CollectInterfaceMap[y].DeviceNodeMap[i].VariableMap {
+			if v.Name == request.ServiceID {
+				if len(v.Value) >= 1 {
+					index := len(v.Value) - 1
+					service := MQTTHuaweiServiceTemplate{}
+					service.ServiceID = v.Name
+					service.Properties.Value = v.Value[index].Value
 				}
 			}
 		}
+		MQTTHuaweiGetPropertiesAck(r, service)
 	}
 }

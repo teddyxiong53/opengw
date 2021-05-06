@@ -104,7 +104,7 @@ func apiSystemDevicePacketLossList(context *gin.Context) {
 
 func apiSystemSetSystemRTC(context *gin.Context) {
 	rRTC := &struct {
-		systemRTC string
+		SystemRTC string `json:"systemRTC"`
 	}{}
 	err := context.ShouldBindJSON(rRTC)
 	if err != nil {
@@ -116,8 +116,8 @@ func apiSystemSetSystemRTC(context *gin.Context) {
 		})
 		return
 	}
-
-	setting.SystemSetRTC(rRTC.systemRTC)
+	setting.Logger.Debugf("systemRTC %v", rRTC)
+	setting.SystemSetRTC(rRTC.SystemRTC)
 	context.JSON(http.StatusOK, Response{
 		Code:    "0",
 		Message: "",

@@ -3,7 +3,6 @@ package device
 import (
 	"fmt"
 	"goAdapter/setting"
-	"log"
 	"strconv"
 	"time"
 
@@ -104,16 +103,16 @@ func (c *CommunicationManageTemplate) CommunicationStateMachine(cmd Communicatio
 				con := false
 				if cmd.FunName == "GetDeviceRealVariables" {
 					txBuf, ok, con = v.GenerateGetRealVariables(v.Addr, step)
+					if ok == false {
+						setting.Logger.Errorf("%v:DeviceCustomCmd false", c.CollInterface.CollInterfaceName)
+						goto LoopCommon
+					}
 				} else {
 					txBuf, ok, con = v.DeviceCustomCmd(cmd.DeviceName, cmd.FunName, cmd.FunPara, step)
 					if ok == false {
-						setting.Logger.Errorln("DeviceCustomCmd false")
+						setting.Logger.Errorf("%v:DeviceCustomCmd false", c.CollInterface.CollInterfaceName)
 						goto LoopCommon
 					}
-				}
-				if ok == false {
-					setting.Logger.Debugf("%v:cmd finish\n", c.CollInterface.CollInterfaceName)
-					goto LoopCommon
 				}
 
 				step++
@@ -283,20 +282,19 @@ func (c *CommunicationManageTemplate) CommunicationManageDel() {
 		select {
 		case cmd := <-c.EmergencyRequestChan:
 			{
-				log.Println("emergency chan")
-
+				setting.Logger.Infof("emergency chan")
 				setting.Logger.WithFields(logrus.Fields{
 					"collName":   c.CollInterface.CollInterfaceName,
 					"deviceName": cmd.DeviceName,
 					"funName":    cmd.FunName,
 				}).Info("emergency chan")
 				status := false
-
 				status = c.CommunicationStateMachine(cmd)
 
 				GetDeviceOnline()
 				GetDevicePacketLoss()
 
+				setting.Logger.Debugf("emergency chan status %v", status)
 				c.EmergencyAckChan <- status
 			}
 		default:
