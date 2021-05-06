@@ -206,11 +206,11 @@ func (r *ReportServiceParamAliyunTemplate) DeleteReportNode(name string) int {
 		//节点已经存在
 		if v.Name == name {
 			index = k
+			r.NodeList = append(r.NodeList[:k], r.NodeList[k+1:]...)
+			ReportServiceParamListAliyun.WriteParamToJson()
 			return index
 		}
 	}
-	ReportServiceParamListAliyun.WriteParamToJson()
-
 	return index
 }
 

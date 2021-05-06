@@ -517,7 +517,7 @@ func apiDeleteReportNodeWParam(context *gin.Context) {
 		}
 	}
 
-	aParam.Code = "0"
+	aParam.Code = "1"
 	aParam.Message = "node is not exist"
 	sJson, _ := json.Marshal(aParam)
 

@@ -145,7 +145,6 @@ func (s *ReportServiceParamListHuaweiTemplate) AddReportService(param ReportServ
 	for k, v := range s.ServiceList {
 		//存在相同的，表示修改;不存在表示增加
 		if v.GWParam.ServiceName == param.ServiceName {
-
 			s.ServiceList[k].GWParam = param
 			s.WriteParamToJson()
 			return
@@ -156,7 +155,6 @@ func (s *ReportServiceParamListHuaweiTemplate) AddReportService(param ReportServ
 		GWParam: param,
 	}
 	s.ServiceList = append(s.ServiceList, ReportServiceParam)
-
 	s.WriteParamToJson()
 }
 
@@ -164,7 +162,6 @@ func (s *ReportServiceParamListHuaweiTemplate) DeleteReportService(serviceName s
 
 	for k, v := range s.ServiceList {
 		if v.GWParam.ServiceName == serviceName {
-
 			s.ServiceList = append(s.ServiceList[:k], s.ServiceList[k+1:]...)
 			s.WriteParamToJson()
 			return
@@ -203,10 +200,11 @@ func (r *ReportServiceParamHuaweiTemplate) DeleteReportNode(name string) int {
 		//节点已经存在
 		if v.Name == name {
 			index = k
+			r.NodeList = append(r.NodeList[:k], r.NodeList[k+1:]...)
+			ReportServiceParamListHuawei.WriteParamToJson()
 			return index
 		}
 	}
-	ReportServiceParamListHuawei.WriteParamToJson()
 
 	return index
 }
