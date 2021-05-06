@@ -209,6 +209,7 @@ func (r *ReportServiceParamAliyunTemplate) DeleteReportNode(name string) int {
 			return index
 		}
 	}
+	ReportServiceParamListAliyun.WriteParamToJson()
 
 	return index
 }
