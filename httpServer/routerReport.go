@@ -281,7 +281,6 @@ func apiSetReportNodeWParam(context *gin.Context) {
 				v.AddReportNode(ReportServiceNodeParamHuawei)
 			}
 		}
-		setting.Logger.Debugf("ParamListHuawei %v\n", mqttHuawei.ReportServiceParamListHuawei.ServiceList)
 	default:
 		setting.Logger.Errorf("unknown param.Protocol")
 		aParam.Code = "1"

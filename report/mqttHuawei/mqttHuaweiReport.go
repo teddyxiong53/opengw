@@ -38,7 +38,7 @@ func MQTTHuaweiGWPropertyPost(client MQTT.Client, gw MQTTHuaweiRegisterTemplate,
 		Services: services,
 	}
 
-	MsgID++
+	MsgID = 0
 
 	sJson, _ := json.Marshal(PropertyPayload)
 
@@ -47,8 +47,12 @@ func MQTTHuaweiGWPropertyPost(client MQTT.Client, gw MQTTHuaweiRegisterTemplate,
 	setting.Logger.Infof("gw property post topic: %s", propertyPostTopic)
 	setting.Logger.Debugf("gw property post msg: %s", sJson)
 	if client != nil {
-		token := client.Publish(propertyPostTopic, 0, false, sJson)
-		token.Wait()
+		token := client.Publish(propertyPostTopic, 1, false, sJson)
+		if token.WaitTimeout(2*time.Second) == true {
+			MsgID = 0
+		} else {
+			MsgID = 1
+		}
 	}
 
 	return MsgID
@@ -136,23 +140,11 @@ func (r *ReportServiceParamHuaweiTemplate) GWPropertyPost() {
 	for i := 0; i < len(r.ReceiveReportPropertyAckFrameChan); i++ {
 		<-r.ReceiveReportPropertyAckFrameChan
 	}
-	MQTTHuaweiGWPropertyPost(r.GWParam.MQTTClient, mqttHuaweiRegister, services)
-
-	select {
-	case frame := <-r.ReceiveReportPropertyAckFrameChan:
-		{
-			setting.Logger.Debugf("frameCode %v", frame.Code)
-			if frame.Code == 200 {
-				r.GWParam.ReportErrCnt--
-				setting.Logger.Debugf("%s,MQTTHuaweiGWPropertyPost OK", r.GWParam.ServiceName)
-			} else {
-				setting.Logger.Debugf("%s,MQTTHuaweiGWPropertyPost Err", r.GWParam.ServiceName)
-			}
-		}
-	case <-time.After(time.Millisecond * 2000):
-		{
-			setting.Logger.Debugf("%s,MQTTHuaweiGWPropertyPost Err", r.GWParam.ServiceName)
-		}
+	if MQTTHuaweiGWPropertyPost(r.GWParam.MQTTClient, mqttHuaweiRegister, services) == 0 {
+		r.GWParam.ReportErrCnt--
+		setting.Logger.Debugf("%s,MQTTHuaweiGWPropertyPost OK", r.GWParam.ServiceName)
+	} else {
+		setting.Logger.Debugf("%s,MQTTHuaweiGWPropertyPost Err", r.GWParam.ServiceName)
 	}
 }
 
@@ -171,15 +163,20 @@ func MQTTHuaweiNodePropertyPost(client MQTT.Client, gw MQTTHuaweiRegisterTemplat
 	propertyPostTopic := "$oc/devices/" + gw.DeviceID + "/sys/gateway/sub_devices/properties/report"
 	setting.Logger.Infof("node property post topic: %s\n", propertyPostTopic)
 	setting.Logger.Debugf("node property post msg: %s\n", sJson)
+
+	MsgID = 0
 	if client != nil {
-		token := client.Publish(propertyPostTopic, 0, false, sJson)
-		token.Wait()
+		token := client.Publish(propertyPostTopic, 1, false, sJson)
+		if token.WaitTimeout(2*time.Second) == true {
+			MsgID = 0
+		} else {
+			MsgID = 1
+		}
 	}
 
 	return MsgID
 }
 
-//指定设备上传属性
 func (r *ReportServiceParamHuaweiTemplate) NodePropertyPost(name []string) {
 
 	nodeList := make([]ReportServiceNodeParamHuaweiTemplate, 0)
@@ -233,23 +230,21 @@ func (r *ReportServiceParamHuaweiTemplate) NodePropertyPost(name []string) {
 				DeviceSecret: r.GWParam.Param.DeviceSecret,
 			}
 
-			MQTTHuaweiNodePropertyPost(r.GWParam.MQTTClient, mqttHuaweiRegister, DeviceServiceMap)
-			select {
-			case frame := <-r.ReceiveReportPropertyAckFrameChan:
-				{
-					if frame.Code == 200 {
-						setting.Logger.Debugf("%s,MQTTHuaweiNodePropertyPost OK", r.GWParam.ServiceName)
-					} else {
-						setting.Logger.Debugf("%s,MQTTHuaweiNodePropertyPost Err", r.GWParam.ServiceName)
+			if MQTTHuaweiNodePropertyPost(r.GWParam.MQTTClient, mqttHuaweiRegister, DeviceServiceMap) == 0 {
+				setting.Logger.Debugf("%s,MQTTHuaweiNodePropertyPost OK", r.GWParam.ServiceName)
+				for _, n := range node {
+					for k, v := range r.NodeList {
+						if n.Name == v.Name {
+							//上报故障计数值先加，收到正确回应后清0
+							r.NodeList[k].ReportErrCnt--
+						}
 					}
 				}
-			case <-time.After(time.Millisecond * 2000):
-				{
-					setting.Logger.Debugf("%s,MQTTHuaweiNodePropertyPost Err", r.GWParam.ServiceName)
-				}
+			} else {
+				setting.Logger.Debugf("%s,MQTTHuaweiNodePropertyPost Err", r.GWParam.ServiceName)
 			}
 		} else { //最后一页
-			node := nodeList[20*pageIndex : len(nodeList)]
+			node := nodeList[20*pageIndex:]
 			DeviceServiceMap := make([]MQTTHuaweiDeviceServiceTemplate, 0)
 			for _, n := range node {
 				for _, c := range device.CollectInterfaceMap {
@@ -282,21 +277,18 @@ func (r *ReportServiceParamHuaweiTemplate) NodePropertyPost(name []string) {
 				DeviceID:     r.GWParam.Param.DeviceID,
 				DeviceSecret: r.GWParam.Param.DeviceSecret,
 			}
-			MQTTHuaweiNodePropertyPost(r.GWParam.MQTTClient, mqttHuaweiRegister, DeviceServiceMap)
-
-			select {
-			case frame := <-r.ReceiveReportPropertyAckFrameChan:
-				{
-					if frame.Code == 200 {
-						setting.Logger.Debugf("%s,MQTTHuaweiNodePropertyPost OK", r.GWParam.ServiceName)
-					} else {
-						setting.Logger.Debugf("%s,MQTTHuaweiNodePropertyPost Err", r.GWParam.ServiceName)
+			if MQTTHuaweiNodePropertyPost(r.GWParam.MQTTClient, mqttHuaweiRegister, DeviceServiceMap) == 0 {
+				setting.Logger.Debugf("%s,MQTTHuaweiNodePropertyPost OK", r.GWParam.ServiceName)
+				for _, n := range node {
+					for k, v := range r.NodeList {
+						if n.Name == v.Name {
+							//上报故障计数值先加，收到正确回应后清0
+							r.NodeList[k].ReportErrCnt--
+						}
 					}
 				}
-			case <-time.After(time.Millisecond * 2000):
-				{
-					setting.Logger.Debugf("%s,MQTTHuaweiNodePropertyPost Err", r.GWParam.ServiceName)
-				}
+			} else {
+				setting.Logger.Debugf("%s,MQTTHuaweiNodePropertyPost Err", r.GWParam.ServiceName)
 			}
 		}
 	}

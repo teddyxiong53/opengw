@@ -60,6 +60,7 @@ func ReceiveMessageHandler(client MQTT.Client, msg MQTT.Message) {
 				Topic:   msg.Topic(),
 				Payload: msg.Payload(),
 			}
+
 			setting.Logger.Debugf("Recv TOPIC: %s\n", receiveFrame.Topic)
 			setting.Logger.Debugf("Recv MSG: %s\n", receiveFrame.Payload)
 			ReportServiceParamListHuawei.ServiceList[k].ReceiveFrameChan <- receiveFrame
