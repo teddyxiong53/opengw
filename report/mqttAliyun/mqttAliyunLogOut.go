@@ -13,7 +13,7 @@ func (r *ReportServiceParamAliyunTemplate) NodeLogOut(name []string) bool {
 	nodeParam := MQTTAliyunNodeRegisterTemplate{}
 
 	for _, d := range name {
-		for k, v := range r.NodeList {
+		for _, v := range r.NodeList {
 			if d == v.Name {
 				if v.ReportStatus == "offLine" {
 					setting.Logger.Infof("service:%s,%s is already offLine", r.GWParam.ServiceName, v.Name)
@@ -23,7 +23,7 @@ func (r *ReportServiceParamAliyunTemplate) NodeLogOut(name []string) bool {
 					nodeParam.ProductKey = v.Param.ProductKey
 
 					nodeList = append(nodeList, nodeParam)
-					r.NodeList[k].CommStatus = "offLine"
+					//r.NodeList[k].CommStatus = "offLine"
 
 					mqttAliyunRegister := MQTTAliyunRegisterTemplate{
 						RemoteIP:     r.GWParam.IP,

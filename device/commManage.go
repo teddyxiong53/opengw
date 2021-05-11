@@ -200,10 +200,7 @@ func (c *CommunicationManageTemplate) CommunicationStateMachine(cmd Communicatio
 							if v.CurCommFailCnt >= c.CollInterface.OfflinePeriod {
 								v.CurCommFailCnt = 0
 								//设备从上线变成离线
-								if v.CommStatus == "onLine" {
-									c.CollInterface.OfflineReportChan <- v.Addr
-									v.CommStatus = "offLine"
-								}
+								v.CommStatus = "offLine"
 							}
 							rxTotalBufCnt = 0
 							rxTotalBuf = rxTotalBuf[0:0]
@@ -238,11 +235,6 @@ func (c *CommunicationManageTemplate) CommunicationStateMachine(cmd Communicatio
 									//通信帧延时
 									time.Sleep(time.Duration(interval) * time.Millisecond)
 								}
-							}
-
-							//设备从离线变成上线
-							if v.CommStatus == "offLine" {
-								c.CollInterface.OnlineReportChan <- v.Addr
 							}
 
 							//防止Chan阻塞

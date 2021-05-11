@@ -402,28 +402,34 @@ func ReportServiceAliyunPoll(r *ReportServiceParamAliyunTemplate) {
 					r.GWParam.ReportErrCnt = 0
 				}
 
-				//节点发生了上线
-				for _, c := range device.CollectInterfaceMap {
-					for i := 0; i < len(c.OnlineReportChan); i++ {
-						name = append(name, <-c.OnlineReportChan)
+				for k, v := range r.NodeList {
+					commStatus := "offLine"
+					for _, d := range device.CollectInterfaceMap {
+						if v.CollInterfaceName == v.CollInterfaceName {
+							for _, n := range d.DeviceNodeMap {
+								if v.Name == n.Name {
+									commStatus = n.CommStatus
+									break
+								}
+							}
+						}
 					}
-				}
-				if len(name) > 0 {
-					setting.Logger.Infof("DeviceOnline %v\n", name)
-					r.LogInRequestFrameChan <- name
-					name = name[0:0]
-				}
-
-				//节点发生了离线
-				for _, c := range device.CollectInterfaceMap {
-					for i := 0; i < len(c.OfflineReportChan); i++ {
-						name = append(name, <-c.OfflineReportChan)
+					if commStatus != v.CommStatus {
+						if commStatus == "onLine" {
+							//节点发生了上线
+							setting.Logger.Debugf("service %s,node %s onLine", v.ServiceName, v.Name)
+							name = append(name, v.Name)
+							r.LogInRequestFrameChan <- name
+							name = name[0:0]
+						} else if commStatus == "offLine" {
+							//节点发生了离线
+							setting.Logger.Debugf("service %s,node %s onLine", v.ServiceName, v.Name)
+							name = append(name, v.Name)
+							r.LogOutRequestFrameChan <- name
+							name = name[0:0]
+						}
+						r.NodeList[k].CommStatus = commStatus
 					}
-				}
-				if len(name) > 0 {
-					setting.Logger.Infof("DeviceOffline %v\n", name)
-					r.LogOutRequestFrameChan <- name
-					name = name[0:0]
 				}
 
 				//节点有属性变化

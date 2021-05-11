@@ -103,13 +103,13 @@ func (r *ReportServiceParamAliyunTemplate) NodeLogin(name []string) bool {
 
 	setting.Logger.Debugf("nodeLoginName %v", name)
 	for _, d := range name {
-		for k, v := range r.NodeList {
+		for _, v := range r.NodeList {
 			if d == v.Name {
 				nodeParam.DeviceSecret = v.Param.DeviceSecret
 				nodeParam.DeviceName = v.Param.DeviceName
 				nodeParam.ProductKey = v.Param.ProductKey
 				nodeList = append(nodeList, nodeParam)
-				r.NodeList[k].CommStatus = "onLine"
+				//r.NodeList[k].CommStatus = "onLine"
 
 				mqttAliyunRegister := MQTTAliyunRegisterTemplate{
 					RemoteIP:     r.GWParam.IP,
@@ -120,9 +120,11 @@ func (r *ReportServiceParamAliyunTemplate) NodeLogin(name []string) bool {
 				}
 				MQTTAliyunNodeLoginIn(r.GWParam.MQTTClient, mqttAliyunRegister, nodeList)
 				select {
-				case <-r.ReceiveLogInAckFrameChan:
+				case frame := <-r.ReceiveLogInAckFrameChan:
 					{
-						status = true
+						if frame.Code == 200 {
+							status = true
+						}
 					}
 				case <-time.After(time.Millisecond * 2000):
 					{
