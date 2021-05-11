@@ -32,6 +32,7 @@ type CommunicationMessageTemplate struct {
 type CollectInterfaceTemplate struct {
 	CollInterfaceName   string                         `json:"CollInterfaceName"` //采集接口
 	CommInterfaceName   string                         `json:"CommInterfaceName"` //通信接口
+	CommInterface       CommunicationInterface         `json:"-"`
 	CommMessage         []CommunicationMessageTemplate `json:"-"`
 	PollPeriod          int                            `json:"PollPeriod"`          //采集周期
 	OfflinePeriod       int                            `json:"OfflinePeriod"`       //离线超时周期
@@ -158,7 +159,6 @@ func ReadCollectInterfaceManageFromJson() bool {
 
 		setting.Logger.Debugf("CollectInterfaceParamMap %+v\n", CollectInterfaceParamMap)
 		for k, v := range CollectInterfaceParamMap.CollectInterfaceParam {
-
 			//创建接口实例
 			CollectInterfaceMap = append(CollectInterfaceMap, NewCollectInterface(v.CollInterfaceName,
 				v.CommInterfaceName,
@@ -211,9 +211,18 @@ func DeviceNodeManageInit() {
 func NewCollectInterface(collInterfaceName, commInterfaceName string,
 	pollPeriod, offlinePeriod int, deviceNodeCnt int) *CollectInterfaceTemplate {
 
+	index := 0
+	for k, v := range CommunicationInterfaceMap {
+		if v.GetName() == commInterfaceName {
+			index = k
+			break
+		}
+	}
+
 	nodeManage := &CollectInterfaceTemplate{
 		CollInterfaceName:  collInterfaceName,
 		CommInterfaceName:  commInterfaceName,
+		CommInterface:      CommunicationInterfaceMap[index],
 		CommMessage:        make([]CommunicationMessageTemplate, 0),
 		PollPeriod:         pollPeriod,
 		OfflinePeriod:      offlinePeriod,

@@ -51,15 +51,17 @@ type ReportServiceGWParamAliyunTemplate struct {
 
 //阿里云上报服务参数，网关参数，节点参数
 type ReportServiceParamAliyunTemplate struct {
-	GWParam                           ReportServiceGWParamAliyunTemplate
-	NodeList                          []ReportServiceNodeParamAliyunTemplate
-	ReceiveFrameChan                  chan MQTTAliyunReceiveFrameTemplate      `json:"-"`
-	LogInRequestFrameChan             chan []string                            `json:"-"` //上线
-	ReceiveLogInAckFrameChan          chan MQTTAliyunLogInAckTemplate          `json:"-"`
-	LogOutRequestFrameChan            chan []string                            `json:"-"`
-	ReceiveLogOutAckFrameChan         chan MQTTAliyunLogOutAckTemplate         `json:"-"`
-	ReportPropertyRequestFrameChan    chan MQTTAliyunReportPropertyTemplate    `json:"-"`
-	ReceiveReportPropertyAckFrameChan chan MQTTAliyunReportPropertyAckTemplate `json:"-"`
+	GWParam                             ReportServiceGWParamAliyunTemplate
+	NodeList                            []ReportServiceNodeParamAliyunTemplate
+	ReceiveFrameChan                    chan MQTTAliyunReceiveFrameTemplate               `json:"-"`
+	LogInRequestFrameChan               chan []string                                     `json:"-"` //上线
+	ReceiveLogInAckFrameChan            chan MQTTAliyunLogInAckTemplate                   `json:"-"`
+	LogOutRequestFrameChan              chan []string                                     `json:"-"`
+	ReceiveLogOutAckFrameChan           chan MQTTAliyunLogOutAckTemplate                  `json:"-"`
+	ReportPropertyRequestFrameChan      chan MQTTAliyunReportPropertyTemplate             `json:"-"`
+	ReceiveReportPropertyAckFrameChan   chan MQTTAliyunReportPropertyAckTemplate          `json:"-"`
+	InvokeThingsServiceRequestFrameChan chan MQTTAliyunInvokeThingsServiceRequestTemplate `json:"-"`
+	InvokeThingsServiceAckFrameChan     chan MQTTAliyunInvokeThingsServiceAckTemplate     `json:"-"`
 }
 
 type ReportServiceParamListAliyunTemplate struct {
@@ -234,6 +236,10 @@ func (r *ReportServiceParamAliyunTemplate) ProcessUpLinkFrame() {
 					r.NodePropertyPost(reqFrame.DeviceName)
 				}
 			}
+		case reqFrame := <-r.InvokeThingsServiceRequestFrameChan:
+			{
+				r.ReportServiceAliyunProcessInvokeThingsService(reqFrame)
+			}
 		}
 	}
 }
@@ -274,19 +280,16 @@ func (r *ReportServiceParamAliyunTemplate) ProcessDownLinkFrame() {
 						return
 					}
 					r.ReceiveLogOutAckFrameChan <- ackFrame
+				} else if strings.Contains(frame.Topic, "/thing/service") { //设备服务调用
+					serviceFrame := MQTTAliyunInvokeThingsServiceRequestTemplate{}
+					err := json.Unmarshal(frame.Payload, &serviceFrame)
+					if err != nil {
+						setting.Logger.Errorf("serviceFrame json unmarshal err")
+						return
+					}
+					r.InvokeThingsServiceRequestFrameChan <- serviceFrame
 				} else if strings.Contains(frame.Topic, "/thing/service/property/set") { //设置属性请求
 
-					cmd := device.CommunicationCmdTemplate{}
-					cmd.CollInterfaceName = "coll1"
-					//cmd.DeviceAddr = property["Addr"]
-					cmd.FunName = "SetRemoteCmdAdjust"
-					//cmd.FunPara = string(bodyBuf[:n])
-
-					if len(device.CommunicationManage) > 0 {
-						if device.CommunicationManage[0].CommunicationManageAddEmergency(cmd) == true {
-
-						}
-					}
 				}
 			}
 		}

@@ -1,14 +1,13 @@
 package device
 
-import (
-	"goAdapter/setting"
-)
-
 type CommunicationInterface interface {
 	Open() bool
 	Close() bool
 	WriteData(data []byte) int
 	ReadData(data []byte) int
+	GetName() string
+	GetTimeOut() string
+	GetInterval() string
 }
 
 type CommunicationTemplate struct {
@@ -23,20 +22,20 @@ var CommunicationInterfaceMap = make([]CommunicationInterface, 0)
 func CommInterfaceInit() {
 
 	//获取串口通信接口参数
-	if ReadCommSerialInterfaceListFromJson() == false {
-
-	} else {
-		setting.Logger.Debugf("read CommSerialInterfaceList.json ok")
-
-		//for _, v := range CommunicationSerialMap {
-		//
-		//	CommunicationInterfaceMap = append(CommunicationInterfaceMap, &v)
-		//}
+	if ReadCommSerialInterfaceListFromJson() == true {
+		for _, v := range CommunicationSerialMap {
+			CommunicationInterfaceMap = append(CommunicationInterfaceMap, v)
+		}
 	}
 
-	//打开串口通信
-	for _, v := range CommunicationSerialMap {
+	//获取TCP通信接口参数
+	if ReadCommTcpInterfaceListFromJson() == true {
+		for _, v := range CommunicationTcpMap {
+			CommunicationInterfaceMap = append(CommunicationInterfaceMap, v)
+		}
+	}
 
+	for _, v := range CommunicationInterfaceMap {
 		v.Open()
 	}
 }

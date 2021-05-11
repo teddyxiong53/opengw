@@ -53,26 +53,52 @@ func (c *CommunicationManageTemplate) CommunicationManageAddEmergency(cmd Commun
 	return <-c.EmergencyAckChan
 }
 
+//func (c *CommunicationManageTemplate) AnalysisRx() {
+//
+//	//阻塞读
+//	rxBuf := make([]byte, 1024)
+//	rxBufCnt := 0
+//
+//	serialPort := &CommunicationSerialTemplate{}
+//
+//	for k, v := range CommunicationSerialMap {
+//		if v.Name == c.CollInterface.CommInterfaceName {
+//			serialPort = CommunicationSerialMap[k]
+//		}
+//	}
+//
+//	for {
+//		//阻塞读
+//		rxBufCnt = serialPort.ReadData(rxBuf)
+//		if rxBufCnt > 0 {
+//			//log.Printf("curRxBufCnt %v,", rxBufCnt)
+//			//log.Printf("CurRxBuf %X\n", rxBuf[:rxBufCnt])
+//
+//			//rxTotalBufCnt += rxBufCnt
+//			//追加接收的数据到接收缓冲区
+//			//rxTotalBuf = append(rxTotalBuf, rxBuf[:rxBufCnt]...)
+//			c.PacketChan <- rxBuf[:rxBufCnt]
+//			//log.Printf("chanLen %v\n", len(c.PacketChan))
+//
+//			//清除本次接收数据
+//			rxBufCnt = 0
+//		}
+//		time.Sleep(10 * time.Millisecond)
+//	}
+//}
+
 func (c *CommunicationManageTemplate) AnalysisRx() {
 
 	//阻塞读
 	rxBuf := make([]byte, 1024)
 	rxBufCnt := 0
 
-	serialPort := &CommunicationSerialTemplate{}
-
-	for k, v := range CommunicationSerialMap {
-		if v.Name == c.CollInterface.CommInterfaceName {
-			serialPort = CommunicationSerialMap[k]
-		}
-	}
-
 	for {
 		//阻塞读
-		rxBufCnt = serialPort.ReadData(rxBuf)
+		rxBufCnt = c.CollInterface.CommInterface.ReadData(rxBuf)
 		if rxBufCnt > 0 {
-			//log.Printf("curRxBufCnt %v,", rxBufCnt)
-			//log.Printf("CurRxBuf %X\n", rxBuf[:rxBufCnt])
+			//setting.Logger.Debugf("curRxBufCnt %v,", rxBufCnt)
+			//setting.Logger.Debugf("CurRxBuf %X\n", rxBuf[:rxBufCnt])
 
 			//rxTotalBufCnt += rxBufCnt
 			//追加接收的数据到接收缓冲区
@@ -135,13 +161,9 @@ func (c *CommunicationManageTemplate) CommunicationStateMachine(cmd Communicatio
 				var timeout int
 				var interval int
 				//判断是否是串口采集
-				for _, v := range CommunicationSerialMap {
-					if v.Name == c.CollInterface.CommInterfaceName {
-						v.WriteData(txBuf)
-						timeout, _ = strconv.Atoi(v.Param.Timeout)
-						interval, _ = strconv.Atoi(v.Param.Interval)
-					}
-				}
+				c.CollInterface.CommInterface.WriteData(txBuf)
+				timeout, _ = strconv.Atoi(c.CollInterface.CommInterface.GetTimeOut())
+				interval, _ = strconv.Atoi(c.CollInterface.CommInterface.GetInterval())
 				timerOut := time.NewTimer(time.Duration(timeout) * time.Millisecond)
 				v.CommTotalCnt++
 				//---------------等待接收----------------------

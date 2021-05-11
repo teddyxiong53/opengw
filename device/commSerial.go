@@ -2,13 +2,14 @@ package device
 
 import (
 	"encoding/json"
-	"github.com/tarm/serial"
 	"goAdapter/setting"
 	"log"
 	"os"
 	"path/filepath"
 	"strconv"
 	"time"
+
+	"github.com/tarm/serial"
 )
 
 type SerialInterfaceParam struct {
@@ -106,6 +107,18 @@ func (c *CommunicationSerialTemplate) ReadData(data []byte) int {
 	cnt, _ := c.Port.Read(data)
 
 	return cnt
+}
+
+func (c *CommunicationSerialTemplate) GetName() string {
+	return c.Name
+}
+
+func (c *CommunicationSerialTemplate) GetTimeOut() string {
+	return c.Param.Timeout
+}
+
+func (c *CommunicationSerialTemplate) GetInterval() string {
+	return c.Param.Interval
 }
 
 func NewCommunicationSerialTemplate(commName, commType string, param SerialInterfaceParam) *CommunicationSerialTemplate {

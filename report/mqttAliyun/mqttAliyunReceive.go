@@ -37,6 +37,19 @@ type MQTTAliyunLogOutAckTemplate struct {
 	Data    []MQTTAliyunLogOutDataTemplate `json:"data"`
 }
 
+type MQTTAliyunInvokeThingsServiceRequestTemplate struct {
+	ID      string                 `json:"id"`
+	Version string                 `json:"version"`
+	Method  string                 `json:"method"`
+	Params  map[string]interface{} `json:"params"`
+}
+
+type MQTTAliyunInvokeThingsServiceAckTemplate struct {
+	ID   string                 `json:"id"`
+	Code int                    `json:"code"`
+	Data map[string]interface{} `json:"data"`
+}
+
 type MQTTAliyunReportPropertyAckTemplate struct {
 	Code    int32  `json:"code"`
 	Data    string `json:"-"`

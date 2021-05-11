@@ -38,13 +38,6 @@ type MQTTAliyunMessageTemplate struct {
 	Version string                 `json:"version"`
 }
 
-type MQTTAliyunThingServiceAckTemplate struct {
-	Identifier string                 `json:"identifier"`
-	ID         string                 `json:"id"`
-	Code       int                    `json:"code"`
-	Data       map[string]interface{} `json:"data"`
-}
-
 var (
 	timeStamp string = "1528018257135"
 	MsgID     int    = 0
@@ -274,25 +267,13 @@ func MQTTAliyunNodePropertyPost(client MQTT.Client, gw MQTTAliyunRegisterTemplat
 	return MsgID
 }
 
-func MQTTAliyunThingServiceAck(client MQTT.Client, gw MQTTAliyunRegisterTemplate, ackMessage MQTTAliyunThingServiceAckTemplate) {
+func MQTTAliyunThingServiceAck(client MQTT.Client, gw ReportServiceGWParamAliyunTemplate, ackMessage MQTTAliyunInvokeThingsServiceAckTemplate, serviceName string) {
 
-	type MQTTThingServicePayloadTemplate struct {
-		ID   string                 `json:"id"`
-		Code int                    `json:"code"`
-		Data map[string]interface{} `json:"data"`
-	}
-
-	payload := MQTTThingServicePayloadTemplate{
-		ID:   ackMessage.ID,
-		Code: ackMessage.Code,
-		Data: ackMessage.Data,
-	}
-
-	sJson, _ := json.Marshal(payload)
+	sJson, _ := json.Marshal(ackMessage)
 	setting.Logger.Debugf("thingServiceAck post msg: %s\n", sJson)
 
-	thingServiceTopic := "/sys/" + gw.ProductKey + "/" + gw.DeviceName +
-		"/thing/service/" + ackMessage.Identifier + "_reply"
+	thingServiceTopic := "/sys/" + gw.Param.ProductKey + "/" + gw.Param.DeviceName +
+		"/thing/service/" + serviceName + "_reply"
 	setting.Logger.Infof("thingServiceAck post topic: %s\n", thingServiceTopic)
 
 	if client != nil {
