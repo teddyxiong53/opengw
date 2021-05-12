@@ -5,8 +5,6 @@ import (
 	"goAdapter/setting"
 	"strconv"
 	"time"
-
-	"github.com/sirupsen/logrus"
 )
 
 type CommunicationCmdTemplate struct {
@@ -134,7 +132,7 @@ func (c *CommunicationManageTemplate) CommunicationStateMachine(cmd Communicatio
 						goto LoopCommon
 					}
 				} else {
-					txBuf, ok, con = v.DeviceCustomCmd(cmd.DeviceName, cmd.FunName, cmd.FunPara, step)
+					txBuf, ok, con = v.DeviceCustomCmd(v.Addr, cmd.FunName, cmd.FunPara, step)
 					if ok == false {
 						setting.Logger.Errorf("%v:DeviceCustomCmd false", c.CollInterface.CollInterfaceName)
 						goto LoopCommon
@@ -296,12 +294,7 @@ func (c *CommunicationManageTemplate) CommunicationManageDel() {
 		select {
 		case cmd := <-c.EmergencyRequestChan:
 			{
-				setting.Logger.Infof("emergency chan")
-				setting.Logger.WithFields(logrus.Fields{
-					"collName":   c.CollInterface.CollInterfaceName,
-					"deviceName": cmd.DeviceName,
-					"funName":    cmd.FunName,
-				}).Info("emergency chan")
+				setting.Logger.Infof("emergency chan,collName %v,nodeName %v,funName %v", c.CollInterface.CollInterfaceName, cmd.DeviceName, cmd.FunName)
 				status := false
 				status = c.CommunicationStateMachine(cmd)
 

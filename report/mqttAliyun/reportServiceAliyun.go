@@ -86,6 +86,8 @@ func init() {
 		v.ReceiveLogOutAckFrameChan = make(chan MQTTAliyunLogOutAckTemplate, 5)
 		v.ReportPropertyRequestFrameChan = make(chan MQTTAliyunReportPropertyTemplate, 50)
 		v.ReceiveReportPropertyAckFrameChan = make(chan MQTTAliyunReportPropertyAckTemplate, 50)
+		v.InvokeThingsServiceRequestFrameChan = make(chan MQTTAliyunInvokeThingsServiceRequestTemplate, 50)
+		v.InvokeThingsServiceAckFrameChan = make(chan MQTTAliyunInvokeThingsServiceAckTemplate, 50)
 
 		go ReportServiceAliyunPoll(v)
 	}
@@ -236,10 +238,6 @@ func (r *ReportServiceParamAliyunTemplate) ProcessUpLinkFrame() {
 					r.NodePropertyPost(reqFrame.DeviceName)
 				}
 			}
-		case reqFrame := <-r.InvokeThingsServiceRequestFrameChan:
-			{
-				r.ReportServiceAliyunProcessInvokeThingsService(reqFrame)
-			}
 		}
 	}
 }
@@ -381,6 +379,8 @@ func ReportServiceAliyunPoll(r *ReportServiceParamAliyunTemplate) {
 	go r.ProcessUpLinkFrame()
 
 	go r.ProcessDownLinkFrame()
+
+	go r.ProcessInvokeThingsService()
 
 	name := make([]string, 0)
 	for {
