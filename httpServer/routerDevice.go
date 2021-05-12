@@ -1039,3 +1039,64 @@ func apiDeleteCommSerialInterface(context *gin.Context) {
 	sJson, _ := json.Marshal(aParam)
 	context.String(http.StatusOK, string(sJson))
 }
+
+func apiInvokeService(context *gin.Context) {
+
+	aParam := struct {
+		Code    string `json:"Code"`
+		Message string `json:"Message"`
+		Data    string `json:"Data"`
+	}{
+		Code:    "1",
+		Message: "",
+		Data:    "",
+	}
+
+	bodyBuf := make([]byte, 1024)
+	n, _ := context.Request.Body.Read(bodyBuf)
+
+	serviceInfo := struct {
+		CollInterfaceName string
+		DeviceName        string
+		ServiceName       string
+		ServiceParam      string
+	}{}
+
+	err := json.Unmarshal(bodyBuf[:n], &serviceInfo)
+	if err != nil {
+		fmt.Println("serviceInfo json unMarshall err,", err)
+
+		aParam.Code = "1"
+		aParam.Message = "json unMarshall err"
+		sJson, _ := json.Marshal(aParam)
+		context.String(http.StatusOK, string(sJson))
+		return
+	}
+
+	for _, c := range device.CollectInterfaceMap {
+		if c.CollInterfaceName == serviceInfo.CollInterfaceName {
+			for _, n := range device.CommunicationManage {
+				if n.CollInterface.CollInterfaceName == serviceInfo.CollInterfaceName {
+					cmd := device.CommunicationCmdTemplate{}
+					cmd.CollInterfaceName = serviceInfo.CollInterfaceName
+					cmd.DeviceName = serviceInfo.DeviceName
+					cmd.FunName = serviceInfo.ServiceName
+					cmd.FunPara = serviceInfo.ServiceParam
+					if n.CommunicationManageAddEmergency(cmd) == true {
+						aParam.Code = "0"
+						aParam.Message = ""
+						sJson, _ := json.Marshal(aParam)
+						context.String(http.StatusOK, string(sJson))
+						return
+					} else {
+						aParam.Code = "1"
+						aParam.Message = "device is not return"
+						sJson, _ := json.Marshal(aParam)
+						context.String(http.StatusOK, string(sJson))
+						return
+					}
+				}
+			}
+		}
+	}
+}

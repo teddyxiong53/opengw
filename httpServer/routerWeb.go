@@ -139,6 +139,8 @@ func RouterWeb() {
 
 			//删除串口通信接口
 			deviceRouter.DELETE("/commSerialInterface", apiDeleteCommSerialInterface)
+
+			deviceRouter.POST("/service", apiInvokeService)
 		}
 
 		toolRouter := router.Group("/api/v1/tool")
