@@ -1,5 +1,7 @@
 package device
 
+import "goAdapter/setting"
+
 type CommunicationInterface interface {
 	Open() bool
 	Close() bool
@@ -8,6 +10,12 @@ type CommunicationInterface interface {
 	GetName() string
 	GetTimeOut() string
 	GetInterval() string
+}
+
+type CommunicationInterfaceTemplate struct {
+	Name  string      `json:"Name"`  // 接口名称
+	Type  string      `json:"Type"`  // 接口类型,比如serial,tcp,udp,http
+	Param interface{} `json:"Param"` // 接口参数
 }
 
 type CommunicationTemplate struct {
@@ -34,8 +42,8 @@ func CommInterfaceInit() {
 			CommunicationInterfaceMap = append(CommunicationInterfaceMap, v)
 		}
 	}
-
 	for _, v := range CommunicationInterfaceMap {
+		setting.Logger.Debugf("commName %v,", v.GetName())
 		v.Open()
 	}
 }

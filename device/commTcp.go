@@ -7,6 +7,7 @@ import (
 	"net"
 	"os"
 	"path/filepath"
+	"time"
 )
 
 type TcpInterfaceParam struct {
@@ -26,10 +27,12 @@ type CommunicationTcpTemplate struct {
 var CommunicationTcpMap = make([]*CommunicationTcpTemplate, 0)
 
 func (c *CommunicationTcpTemplate) Open() bool {
-	conn, err := net.Dial("tcp", c.Param.IP+":"+c.Param.Port)
+	conn, err := net.DialTimeout("tcp", c.Param.IP+":"+c.Param.Port, 2*time.Second)
 	if err != nil {
-		setting.Logger.Errorf("%s,tcp open err,%v", c.Name, err)
+		//setting.Logger.Errorf("%s,tcp open err,%v", c.Name, err)
 		return false
+	} else {
+		setting.Logger.Debugf("%s,tcp open ok", c.Name)
 	}
 	c.Conn = conn
 	return true
@@ -51,6 +54,11 @@ func (c *CommunicationTcpTemplate) WriteData(data []byte) int {
 		cnt, err := c.Conn.Write(data)
 		if err != nil {
 			setting.Logger.Errorf("%s,tcp write err,%v", c.Name, err)
+			err = c.Conn.Close()
+			if err != nil {
+				setting.Logger.Errorf("%s,tcp close err,%v", c.Name, err)
+			}
+			c.Open()
 			return 0
 		}
 		return cnt
@@ -62,8 +70,9 @@ func (c *CommunicationTcpTemplate) ReadData(data []byte) int {
 
 	if c.Conn != nil {
 		cnt, err := c.Conn.Read(data)
+		//setting.Logger.Debugf("%s,tcp read data cnt %v", c.Name, cnt)
 		if err != nil {
-			setting.Logger.Errorf("%s,tcp read err,%v", c.Name, err)
+			//setting.Logger.Errorf("%s,tcp read err,%v", c.Name, err)
 			return 0
 		}
 		return cnt
@@ -131,5 +140,5 @@ func WriteCommTcpInterfaceListToJson() {
 	if err != nil {
 		log.Println("write commTcpInterface.json err", err)
 	}
-	log.Println("write commTcpInterface.json sucess")
+	setting.Logger.Infof("write commTcpInterface.json sucess")
 }

@@ -95,8 +95,8 @@ func (c *CommunicationManageTemplate) AnalysisRx() {
 		//阻塞读
 		rxBufCnt = c.CollInterface.CommInterface.ReadData(rxBuf)
 		if rxBufCnt > 0 {
-			//setting.Logger.Debugf("curRxBufCnt %v,", rxBufCnt)
-			//setting.Logger.Debugf("CurRxBuf %X\n", rxBuf[:rxBufCnt])
+			setting.Logger.Debugf("curRxBufCnt %v,", rxBufCnt)
+			setting.Logger.Debugf("CurRxBuf %X\n", rxBuf[:rxBufCnt])
 
 			//rxTotalBufCnt += rxBufCnt
 			//追加接收的数据到接收缓冲区
@@ -128,13 +128,13 @@ func (c *CommunicationManageTemplate) CommunicationStateMachine(cmd Communicatio
 				if cmd.FunName == "GetDeviceRealVariables" {
 					txBuf, ok, con = v.GenerateGetRealVariables(v.Addr, step)
 					if ok == false {
-						setting.Logger.Errorf("%v:DeviceCustomCmd false", c.CollInterface.CollInterfaceName)
+						setting.Logger.Errorf("%v:GetRealVariables complete", c.CollInterface.CollInterfaceName)
 						goto LoopCommon
 					}
 				} else {
 					txBuf, ok, con = v.DeviceCustomCmd(v.Addr, cmd.FunName, cmd.FunPara, step)
 					if ok == false {
-						setting.Logger.Errorf("%v:DeviceCustomCmd false", c.CollInterface.CollInterfaceName)
+						setting.Logger.Errorf("%v:DeviceCustomCmd complete", c.CollInterface.CollInterfaceName)
 						goto LoopCommon
 					}
 				}

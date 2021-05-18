@@ -766,11 +766,14 @@ func apiAddCommInterface(context *gin.Context) {
 	n, _ := context.Request.Body.Read(bodyBuf)
 	// fmt.Println(string(bodyBuf[:n]))
 
+	var Param json.RawMessage
 	interfaceInfo := struct {
 		Name  string           `json:"Name"` // 接口名称
 		Type  string           `json:"Type"` // 接口类型,比如serial,tcp,udp,http
 		Param *json.RawMessage `json:"Param"`
-	}{}
+	}{
+		Param: &Param,
+	}
 
 	err := json.Unmarshal(bodyBuf[:n], &interfaceInfo)
 	if err != nil {
@@ -783,35 +786,35 @@ func apiAddCommInterface(context *gin.Context) {
 		return
 	}
 
-	// log.Printf("info %+v\n",interfaceInfo)
-	// log.Printf("type %+v\n",reflect.TypeOf(interfaceInfo.Param))
-	// switch t:= interfaceInfo.Param.(type){
-	// case device.SerialInterfaceParam:
-	//	log.Printf("param %+v\n",t)
-	//	device.CommInterfaceList.AddCommInterface(t.Name,t.Type,t.Param)
-	// default:
-	//	aParam.Code = "1"
-	//	aParam.Message = "param is noexist"
-	//	aParam.Data = ""
-	//	sJson,_ := json.Marshal(aParam)
-	//	context.String(http.StatusOK,string(sJson))
-	// }
-
-	var msg json.RawMessage
 	switch interfaceInfo.Type {
 	case "serial":
 		serial := &device.SerialInterfaceParam{}
-		err := json.Unmarshal(msg, serial)
+		err := json.Unmarshal(Param, serial)
 		if err != nil {
 			setting.Logger.Errorf("CommunicationSerialInterface json unMarshall err,", err)
 			break
 		}
 		setting.Logger.Debugf("type %+v\n", serial)
 		// device.CommInterfaceList.AddCommInterface(serial.Name,serial.Type,serial.Param)
-	case "tcp":
-	}
+	case "tcpClient":
+		tcp := device.TcpInterfaceParam{}
+		err := json.Unmarshal(Param, &tcp)
+		if err != nil {
+			setting.Logger.Errorf("CommunicationTcpInterface json unMarshall err,%v", err)
+			break
+		}
+		setting.Logger.Debugf("type %+v\n", tcp)
+		TcpInterface := &device.CommunicationTcpTemplate{
+			Param: tcp,
+			CommunicationTemplate: device.CommunicationTemplate{
+				Name: interfaceInfo.Name,
+				Type: interfaceInfo.Type,
+			},
+		}
 
-	// device.WriteCommInterfaceListToJson()
+		device.CommunicationTcpMap = append(device.CommunicationTcpMap, TcpInterface)
+		device.WriteCommTcpInterfaceListToJson()
+	}
 
 	aParam.Code = "0"
 	aParam.Message = ""
@@ -848,7 +851,17 @@ func apiGetCommInterface(context *gin.Context) {
 	aParam.Code = "0"
 	aParam.Message = ""
 	for _, v := range device.CommunicationSerialMap {
+		CommunicationInterface := CommunicationInterfaceTemplate{
+			Name:  v.Name,
+			Type:  v.Type,
+			Param: v.Param,
+		}
+		CommunicationInterfaceManage.InterfaceCnt++
+		CommunicationInterfaceManage.InterfaceMap = append(CommunicationInterfaceManage.InterfaceMap,
+			CommunicationInterface)
+	}
 
+	for _, v := range device.CommunicationTcpMap {
 		CommunicationInterface := CommunicationInterfaceTemplate{
 			Name:  v.Name,
 			Type:  v.Type,

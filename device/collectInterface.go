@@ -192,7 +192,6 @@ func DeviceNodeManageInit() {
 	//采集接口
 	if ReadCollectInterfaceManageFromJson() == true {
 		setting.Logger.Debugf("read collectInterface json ok")
-		//log.Printf("collectMInterfaceMap %+v\n",CollectInterfaceMap)
 	} else {
 
 	}
