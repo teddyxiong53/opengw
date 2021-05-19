@@ -769,7 +769,7 @@ func apiAddCommInterface(context *gin.Context) {
 	var Param json.RawMessage
 	interfaceInfo := struct {
 		Name  string           `json:"Name"` // 接口名称
-		Type  string           `json:"Type"` // 接口类型,比如serial,tcp,udp,http
+		Type  string           `json:"Type"` // 接口类型,比如serial,TcpClient,udp,http
 		Param *json.RawMessage `json:"Param"`
 	}{
 		Param: &Param,
@@ -796,24 +796,22 @@ func apiAddCommInterface(context *gin.Context) {
 		}
 		setting.Logger.Debugf("type %+v\n", serial)
 		// device.CommInterfaceList.AddCommInterface(serial.Name,serial.Type,serial.Param)
-	case "tcpClient":
-		tcp := device.TcpInterfaceParam{}
-		err := json.Unmarshal(Param, &tcp)
+	case "TcpClient":
+		TcpClient := device.TcpClientInterfaceParam{}
+		err := json.Unmarshal(Param, &TcpClient)
 		if err != nil {
-			setting.Logger.Errorf("CommunicationTcpInterface json unMarshall err,%v", err)
+			setting.Logger.Errorf("CommunicationTcpClientInterface json unMarshall err,%v", err)
 			break
 		}
-		setting.Logger.Debugf("type %+v\n", tcp)
-		TcpInterface := &device.CommunicationTcpTemplate{
-			Param: tcp,
-			CommunicationTemplate: device.CommunicationTemplate{
-				Name: interfaceInfo.Name,
-				Type: interfaceInfo.Type,
-			},
+		setting.Logger.Debugf("type %+v\n", TcpClient)
+		TcpClientInterface := &device.CommunicationTcpClientTemplate{
+			Param: TcpClient,
+			Name:  interfaceInfo.Name,
+			Type:  interfaceInfo.Type,
 		}
 
-		device.CommunicationTcpMap = append(device.CommunicationTcpMap, TcpInterface)
-		device.WriteCommTcpInterfaceListToJson()
+		device.CommunicationTcpClientMap = append(device.CommunicationTcpClientMap, TcpClientInterface)
+		device.WriteCommTcpClientInterfaceListToJson()
 	}
 
 	aParam.Code = "0"
@@ -828,7 +826,7 @@ func apiGetCommInterface(context *gin.Context) {
 
 	type CommunicationInterfaceTemplate struct {
 		Name  string      `json:"Name"`  // 接口名称
-		Type  string      `json:"Type"`  // 接口类型,比如serial,tcp,udp,http
+		Type  string      `json:"Type"`  // 接口类型,比如serial,TcpClient,udp,http
 		Param interface{} `json:"Param"` // 接口参数
 	}
 
@@ -861,7 +859,7 @@ func apiGetCommInterface(context *gin.Context) {
 			CommunicationInterface)
 	}
 
-	for _, v := range device.CommunicationTcpMap {
+	for _, v := range device.CommunicationTcpClientMap {
 		CommunicationInterface := CommunicationInterfaceTemplate{
 			Name:  v.Name,
 			Type:  v.Type,
@@ -895,7 +893,7 @@ func apiAddCommSerialInterface(context *gin.Context) {
 
 	interfaceInfo := struct {
 		Name  string                      `json:"Name"` // 接口名称
-		Type  string                      `json:"Type"` // 接口类型,比如serial,tcp,udp,http
+		Type  string                      `json:"Type"` // 接口类型,比如serial,TcpClient,udp,http
 		Param device.SerialInterfaceParam `json:"Param"`
 	}{}
 
@@ -925,10 +923,8 @@ func apiAddCommSerialInterface(context *gin.Context) {
 
 	SerialInterface := &device.CommunicationSerialTemplate{
 		Param: interfaceInfo.Param,
-		CommunicationTemplate: device.CommunicationTemplate{
-			Name: interfaceInfo.Name,
-			Type: interfaceInfo.Type,
-		},
+		Name:  interfaceInfo.Name,
+		Type:  interfaceInfo.Type,
 	}
 
 	device.CommunicationSerialMap = append(device.CommunicationSerialMap, SerialInterface)
@@ -958,7 +954,7 @@ func apiModifyCommSerialInterface(context *gin.Context) {
 
 	interfaceInfo := struct {
 		Name  string                      `json:"Name"` // 接口名称
-		Type  string                      `json:"Type"` // 接口类型,比如serial,tcp,udp,http
+		Type  string                      `json:"Type"` // 接口类型,比如serial,TcpClient,udp,http
 		Param device.SerialInterfaceParam `json:"Param"`
 	}{}
 
@@ -1014,7 +1010,7 @@ func apiDeleteCommSerialInterface(context *gin.Context) {
 
 	interfaceInfo := struct {
 		Name string `json:"Name"` // 接口名称
-		Type string `json:"Type"` // 接口类型,比如serial,tcp,udp,http
+		Type string `json:"Type"` // 接口类型,比如serial,TcpClient,udp,http
 	}{}
 
 	err := json.Unmarshal(bodyBuf[:n], &interfaceInfo)

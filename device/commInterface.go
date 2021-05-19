@@ -12,18 +12,6 @@ type CommunicationInterface interface {
 	GetInterval() string
 }
 
-type CommunicationInterfaceTemplate struct {
-	Name  string      `json:"Name"`  // 接口名称
-	Type  string      `json:"Type"`  // 接口类型,比如serial,tcp,udp,http
-	Param interface{} `json:"Param"` // 接口参数
-}
-
-type CommunicationTemplate struct {
-	Name   string `json:"Name"` //接口名称
-	Type   string `json:"Type"` //接口类型,比如serial,tcp,udp,http
-	Status bool   `json:"-"`    //接口状态
-}
-
 //通信接口Map
 var CommunicationInterfaceMap = make([]CommunicationInterface, 0)
 
@@ -36,9 +24,9 @@ func CommInterfaceInit() {
 		}
 	}
 
-	//获取TCP通信接口参数
-	if ReadCommTcpInterfaceListFromJson() == true {
-		for _, v := range CommunicationTcpMap {
+	//获取TcpClient通信接口参数
+	if ReadCommTcpClientInterfaceListFromJson() == true {
+		for _, v := range CommunicationTcpClientMap {
 			CommunicationInterfaceMap = append(CommunicationInterfaceMap, v)
 		}
 	}

@@ -23,7 +23,8 @@ type SerialInterfaceParam struct {
 }
 
 type CommunicationSerialTemplate struct {
-	CommunicationTemplate
+	Name  string               `json:"Name"`  //接口名称
+	Type  string               `json:"Type"`  //接口类型,比如serial,tcp,udp,http
 	Param SerialInterfaceParam `json:"Param"` //接口参数
 	Port  *serial.Port         `json:"-"`     //通信句柄
 }
@@ -121,16 +122,16 @@ func (c *CommunicationSerialTemplate) GetInterval() string {
 	return c.Param.Interval
 }
 
-func NewCommunicationSerialTemplate(commName, commType string, param SerialInterfaceParam) *CommunicationSerialTemplate {
-
-	return &CommunicationSerialTemplate{
-		Param: param,
-		CommunicationTemplate: CommunicationTemplate{
-			Name: commName,
-			Type: commType,
-		},
-	}
-}
+//func NewCommunicationSerialTemplate(commName, commType string, param SerialInterfaceParam) *CommunicationSerialTemplate {
+//
+//	return &CommunicationSerialTemplate{
+//		Param: param,
+//		CommunicationTemplate: CommunicationTemplate{
+//			Name: commName,
+//			Type: commType,
+//		},
+//	}
+//}
 
 func ReadCommSerialInterfaceListFromJson() bool {
 
