@@ -787,7 +787,7 @@ func apiAddCommInterface(context *gin.Context) {
 	}
 
 	switch interfaceInfo.Type {
-	case "serial":
+	case "LocalSerial":
 		serial := device.SerialInterfaceParam{}
 		err := json.Unmarshal(Param, &serial)
 		if err != nil {
@@ -864,7 +864,7 @@ func apiModifyCommInterface(context *gin.Context) {
 	}
 
 	switch interfaceInfo.Type {
-	case "serial":
+	case "LocalSerial":
 		serial := device.SerialInterfaceParam{}
 		err := json.Unmarshal(Param, &serial)
 		if err != nil {
@@ -940,20 +940,6 @@ func apiDeleteCommInterface(context *gin.Context) {
 	}
 
 	cName := context.Query("CommInterfaceName")
-
-	for k, v := range device.CommunicationSerialMap {
-		if v.Name == cName {
-			device.CommunicationSerialMap = append(device.CommunicationSerialMap[:k], device.CommunicationSerialMap[k+1:]...)
-			device.WriteCommSerialInterfaceListToJson()
-
-			aParam.Code = "0"
-			aParam.Message = ""
-			aParam.Data = ""
-			sJson, _ := json.Marshal(aParam)
-			context.String(http.StatusOK, string(sJson))
-			return
-		}
-	}
 
 	for k, v := range device.CommunicationSerialMap {
 		if v.Name == cName {
