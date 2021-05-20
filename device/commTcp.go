@@ -11,7 +11,6 @@ import (
 )
 
 type TcpClientInterfaceParam struct {
-	Name     string `json:"Name"`
 	IP       string `json:"IP"`
 	Port     string `json:"Port"`
 	Timeout  string `json:"Timeout"`  //通信超时

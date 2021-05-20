@@ -788,14 +788,20 @@ func apiAddCommInterface(context *gin.Context) {
 
 	switch interfaceInfo.Type {
 	case "serial":
-		serial := &device.SerialInterfaceParam{}
-		err := json.Unmarshal(Param, serial)
+		serial := device.SerialInterfaceParam{}
+		err := json.Unmarshal(Param, &serial)
 		if err != nil {
 			setting.Logger.Errorf("CommunicationSerialInterface json unMarshall err,", err)
 			break
 		}
 		setting.Logger.Debugf("type %+v\n", serial)
-		// device.CommInterfaceList.AddCommInterface(serial.Name,serial.Type,serial.Param)
+		SerialInterface := &device.CommunicationSerialTemplate{
+			Param: serial,
+			Name:  interfaceInfo.Name,
+			Type:  interfaceInfo.Type,
+		}
+		device.CommunicationSerialMap = append(device.CommunicationSerialMap, SerialInterface)
+		device.WriteCommSerialInterfaceListToJson()
 	case "TcpClient":
 		TcpClient := device.TcpClientInterfaceParam{}
 		err := json.Unmarshal(Param, &TcpClient)
@@ -816,6 +822,169 @@ func apiAddCommInterface(context *gin.Context) {
 
 	aParam.Code = "0"
 	aParam.Message = ""
+	aParam.Data = ""
+
+	sJson, _ := json.Marshal(aParam)
+	context.String(http.StatusOK, string(sJson))
+}
+
+func apiModifyCommInterface(context *gin.Context) {
+	aParam := struct {
+		Code    string `json:"Code"`
+		Message string `json:"Message"`
+		Data    string `json:"Data"`
+	}{
+		Code:    "1",
+		Message: "",
+		Data:    "",
+	}
+
+	bodyBuf := make([]byte, 1024)
+	n, _ := context.Request.Body.Read(bodyBuf)
+	// fmt.Println(string(bodyBuf[:n]))
+
+	var Param json.RawMessage
+	interfaceInfo := struct {
+		Name  string           `json:"Name"` // 接口名称
+		Type  string           `json:"Type"` // 接口类型,比如serial,TcpClient,udp,http
+		Param *json.RawMessage `json:"Param"`
+	}{
+		Param: &Param,
+	}
+
+	err := json.Unmarshal(bodyBuf[:n], &interfaceInfo)
+	if err != nil {
+		fmt.Println("interfaceInfo json unMarshall err,", err)
+
+		aParam.Code = "1"
+		aParam.Message = "json unMarshall err"
+		sJson, _ := json.Marshal(aParam)
+		context.String(http.StatusOK, string(sJson))
+		return
+	}
+
+	switch interfaceInfo.Type {
+	case "serial":
+		serial := device.SerialInterfaceParam{}
+		err := json.Unmarshal(Param, &serial)
+		if err != nil {
+			setting.Logger.Errorf("CommunicationSerialInterface json unMarshall err,", err)
+			break
+		}
+		setting.Logger.Debugf("type %+v\n", serial)
+		SerialInterface := &device.CommunicationSerialTemplate{
+			Param: serial,
+			Name:  interfaceInfo.Name,
+			Type:  interfaceInfo.Type,
+		}
+		for k, v := range device.CommunicationSerialMap {
+			if v.Name == SerialInterface.Name {
+				device.CommunicationSerialMap[k] = SerialInterface
+				device.WriteCommSerialInterfaceListToJson()
+
+				aParam.Code = "0"
+				aParam.Message = ""
+				aParam.Data = ""
+				sJson, _ := json.Marshal(aParam)
+				context.String(http.StatusOK, string(sJson))
+				return
+			}
+		}
+	case "TcpClient":
+		TcpClient := device.TcpClientInterfaceParam{}
+		err := json.Unmarshal(Param, &TcpClient)
+		if err != nil {
+			setting.Logger.Errorf("CommunicationTcpClientInterface json unMarshall err,%v", err)
+			break
+		}
+		setting.Logger.Debugf("type %+v\n", TcpClient)
+		TcpClientInterface := &device.CommunicationTcpClientTemplate{
+			Param: TcpClient,
+			Name:  interfaceInfo.Name,
+			Type:  interfaceInfo.Type,
+		}
+
+		for k, v := range device.CommunicationTcpClientMap {
+			if v.Name == TcpClientInterface.Name {
+				device.CommunicationTcpClientMap[k] = TcpClientInterface
+				device.WriteCommTcpClientInterfaceListToJson()
+
+				aParam.Code = "0"
+				aParam.Message = ""
+				aParam.Data = ""
+				sJson, _ := json.Marshal(aParam)
+				context.String(http.StatusOK, string(sJson))
+				return
+			}
+		}
+	}
+
+	aParam.Code = "1"
+	aParam.Message = "commInterface is not exist"
+	aParam.Data = ""
+
+	sJson, _ := json.Marshal(aParam)
+	context.String(http.StatusOK, string(sJson))
+}
+
+func apiDeleteCommInterface(context *gin.Context) {
+
+	aParam := struct {
+		Code    string `json:"Code"`
+		Message string `json:"Message"`
+		Data    string `json:"Data"`
+	}{
+		Code:    "1",
+		Message: "",
+		Data:    "",
+	}
+
+	cName := context.Query("CommInterfaceName")
+
+	for k, v := range device.CommunicationSerialMap {
+		if v.Name == cName {
+			device.CommunicationSerialMap = append(device.CommunicationSerialMap[:k], device.CommunicationSerialMap[k+1:]...)
+			device.WriteCommSerialInterfaceListToJson()
+
+			aParam.Code = "0"
+			aParam.Message = ""
+			aParam.Data = ""
+			sJson, _ := json.Marshal(aParam)
+			context.String(http.StatusOK, string(sJson))
+			return
+		}
+	}
+
+	for k, v := range device.CommunicationSerialMap {
+		if v.Name == cName {
+			device.CommunicationSerialMap = append(device.CommunicationSerialMap[:k], device.CommunicationSerialMap[k+1:]...)
+			device.WriteCommSerialInterfaceListToJson()
+
+			aParam.Code = "0"
+			aParam.Message = ""
+			aParam.Data = ""
+			sJson, _ := json.Marshal(aParam)
+			context.String(http.StatusOK, string(sJson))
+			return
+		}
+	}
+
+	for k, v := range device.CommunicationTcpClientMap {
+		if v.Name == cName {
+			device.CommunicationTcpClientMap = append(device.CommunicationTcpClientMap[:k], device.CommunicationTcpClientMap[k+1:]...)
+			device.WriteCommTcpClientInterfaceListToJson()
+
+			aParam.Code = "0"
+			aParam.Message = ""
+			aParam.Data = ""
+			sJson, _ := json.Marshal(aParam)
+			context.String(http.StatusOK, string(sJson))
+			return
+		}
+	}
+
+	aParam.Code = "1"
+	aParam.Message = "commInterface is not exist"
 	aParam.Data = ""
 
 	sJson, _ := json.Marshal(aParam)

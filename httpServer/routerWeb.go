@@ -131,6 +131,12 @@ func RouterWeb() {
 			//增加通信接口
 			deviceRouter.POST("/commInterface", apiAddCommInterface)
 
+			//修改通信接口
+			deviceRouter.PUT("/commInterface", apiModifyCommInterface)
+
+			//删除通信接口
+			deviceRouter.DELETE("/commInterface", apiDeleteCommInterface)
+
 			//增加串口通信接口
 			deviceRouter.POST("/commSerialInterface", apiAddCommSerialInterface)
 
