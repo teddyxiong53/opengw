@@ -939,7 +939,7 @@ func apiDeleteCommInterface(context *gin.Context) {
 		Data:    "",
 	}
 
-	cName := context.Query("CommInterfaceName")
+	cName := context.Query("commInterface")
 
 	for k, v := range device.CommunicationSerialMap {
 		if v.Name == cName {

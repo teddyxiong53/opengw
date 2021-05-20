@@ -27,7 +27,7 @@ type CommunicationTcpClientTemplate struct {
 var CommunicationTcpClientMap = make([]*CommunicationTcpClientTemplate, 0)
 
 func (c *CommunicationTcpClientTemplate) Open() bool {
-	conn, err := net.DialTimeout("TcpClient", c.Param.IP+":"+c.Param.Port, 2*time.Second)
+	conn, err := net.DialTimeout("tcp", c.Param.IP+":"+c.Param.Port, 2*time.Second)
 	if err != nil {
 		//setting.Logger.Errorf("%s,TcpClient open err,%v", c.Name, err)
 		return false
