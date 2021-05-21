@@ -128,13 +128,13 @@ func (c *CommunicationManageTemplate) CommunicationStateMachine(cmd Communicatio
 				if cmd.FunName == "GetDeviceRealVariables" {
 					txBuf, ok, con = v.GenerateGetRealVariables(v.Addr, step)
 					if ok == false {
-						setting.Logger.Errorf("%v:GetRealVariables complete", c.CollInterface.CollInterfaceName)
+						setting.Logger.Errorf("%v:GetRealVariables fail", c.CollInterface.CollInterfaceName)
 						goto LoopCommon
 					}
 				} else {
 					txBuf, ok, con = v.DeviceCustomCmd(v.Addr, cmd.FunName, cmd.FunPara, step)
 					if ok == false {
-						setting.Logger.Errorf("%v:DeviceCustomCmd complete", c.CollInterface.CollInterfaceName)
+						setting.Logger.Errorf("%v:DeviceCustomCmd fail", c.CollInterface.CollInterfaceName)
 						goto LoopCommon
 					}
 				}
@@ -224,16 +224,6 @@ func (c *CommunicationManageTemplate) CommunicationStateMachine(cmd Communicatio
 								c.CollInterface.CommMessage = c.CollInterface.CommMessage[1:]
 								c.CollInterface.CommMessage = append(c.CollInterface.CommMessage, CommunicationMessage)
 							}
-							if len(c.CommonRequestChan) > 0 {
-								//通信帧延时
-								time.Sleep(time.Duration(interval) * time.Millisecond)
-							} else {
-								//是否后续有通信帧
-								if con == true {
-									//通信帧延时
-									time.Sleep(time.Duration(interval) * time.Millisecond)
-								}
-							}
 
 							//防止Chan阻塞
 							if len(c.CollInterface.PropertyReportChan) >= 100 {
@@ -268,8 +258,15 @@ func (c *CommunicationManageTemplate) CommunicationStateMachine(cmd Communicatio
 						}
 					}
 				}
-				//}
 			LoopCommonStep:
+				//是否后续有通信帧
+				if con == false {
+					setting.Logger.Errorf("%v:comm complete", c.CollInterface.CollInterfaceName)
+					goto LoopCommon
+				} else {
+					//通信帧延时
+					time.Sleep(time.Duration(interval) * time.Millisecond)
+				}
 			}
 		LoopCommon:
 		}
@@ -309,7 +306,7 @@ func (c *CommunicationManageTemplate) CommunicationManageDel() {
 				select {
 				case cmd := <-c.CommonRequestChan:
 					{
-						setting.Logger.Debugf("%v:,commChanLen %v\n", c.CollInterface.CollInterfaceName, len(c.CommonRequestChan))
+						setting.Logger.Debugf("%v:commChanLen %v\n", c.CollInterface.CollInterfaceName, len(c.CommonRequestChan))
 						c.CommunicationStateMachine(cmd)
 
 						GetDeviceOnline()

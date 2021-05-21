@@ -2,14 +2,15 @@ package device
 
 import (
 	"bytes"
-	"github.com/yuin/gluamapper"
-	lua "github.com/yuin/gopher-lua"
 	"goAdapter/setting"
-	"layeh.com/gopher-luar"
 	"runtime"
 	"strconv"
 	"sync"
 	"time"
+
+	"github.com/yuin/gluamapper"
+	lua "github.com/yuin/gopher-lua"
+	luar "layeh.com/gopher-luar"
 )
 
 var MaxDeviceNodeCnt int = 50
@@ -145,7 +146,7 @@ func (d *DeviceNodeTemplate) GenerateGetRealVariables(sAddr string, step int) ([
 					nBytes = append(nBytes, *v)
 				}
 			} else {
-				ok = false
+				ok = true
 			}
 			lock.Unlock()
 			return nBytes, ok, con
