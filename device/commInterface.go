@@ -38,6 +38,13 @@ func CommInterfaceInit() {
 		}
 	}
 
+	//获取开关量输入通信接口参数
+	if ReadCommIoInInterfaceListFromJson() == true {
+		for _, v := range CommunicationIoInMap {
+			CommunicationInterfaceMap = append(CommunicationInterfaceMap, v)
+		}
+	}
+
 	for _, v := range CommunicationInterfaceMap {
 		setting.Logger.Debugf("commName %v,", v.GetName())
 		v.Open()

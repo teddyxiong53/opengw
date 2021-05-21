@@ -833,7 +833,21 @@ func apiAddCommInterface(context *gin.Context) {
 		}
 		device.CommunicationIoOutMap = append(device.CommunicationIoOutMap, IoOutInterface)
 		device.WriteCommIoOutInterfaceListToJson()
-
+	case "IoIn":
+		IoIn := device.IoInInterfaceParam{}
+		err = json.Unmarshal(Param, &IoIn)
+		if err != nil {
+			setting.Logger.Errorf("CommunicationIoInInterface json unMarshall err,", err)
+			break
+		}
+		setting.Logger.Debugf("type %+v\n", IoIn)
+		IoInInterface := &device.CommunicationIoInTemplate{
+			Param: IoIn,
+			Name:  interfaceInfo.Name,
+			Type:  interfaceInfo.Type,
+		}
+		device.CommunicationIoInMap = append(device.CommunicationIoInMap, IoInInterface)
+		device.WriteCommIoInInterfaceListToJson()
 	}
 
 	aParam.Code = "0"
@@ -882,7 +896,7 @@ func apiModifyCommInterface(context *gin.Context) {
 	switch interfaceInfo.Type {
 	case "LocalSerial":
 		serial := device.SerialInterfaceParam{}
-		err := json.Unmarshal(Param, &serial)
+		err = json.Unmarshal(Param, &serial)
 		if err != nil {
 			setting.Logger.Errorf("CommunicationSerialInterface json unMarshall err,", err)
 			break
@@ -908,7 +922,7 @@ func apiModifyCommInterface(context *gin.Context) {
 		}
 	case "TcpClient":
 		TcpClient := device.TcpClientInterfaceParam{}
-		err := json.Unmarshal(Param, &TcpClient)
+		err = json.Unmarshal(Param, &TcpClient)
 		if err != nil {
 			setting.Logger.Errorf("CommunicationTcpClientInterface json unMarshall err,%v", err)
 			break
@@ -935,7 +949,7 @@ func apiModifyCommInterface(context *gin.Context) {
 		}
 	case "IoOut":
 		IoOut := device.IoOutInterfaceParam{}
-		err := json.Unmarshal(Param, &IoOut)
+		err = json.Unmarshal(Param, &IoOut)
 		if err != nil {
 			setting.Logger.Errorf("CommunicationIoOutInterface json unMarshall err,%v", err)
 			break
@@ -951,6 +965,33 @@ func apiModifyCommInterface(context *gin.Context) {
 			if v.Name == IoOutInterface.Name {
 				device.CommunicationIoOutMap[k] = IoOutInterface
 				device.WriteCommIoOutInterfaceListToJson()
+
+				aParam.Code = "0"
+				aParam.Message = ""
+				aParam.Data = ""
+				sJson, _ := json.Marshal(aParam)
+				context.String(http.StatusOK, string(sJson))
+				return
+			}
+		}
+	case "IoIn":
+		IoIn := device.IoInInterfaceParam{}
+		err = json.Unmarshal(Param, &IoIn)
+		if err != nil {
+			setting.Logger.Errorf("CommunicationIoInInterface json unMarshall err,%v", err)
+			break
+		}
+		setting.Logger.Debugf("type %+v\n", IoIn)
+		IoInInterface := &device.CommunicationIoInTemplate{
+			Param: IoIn,
+			Name:  interfaceInfo.Name,
+			Type:  interfaceInfo.Type,
+		}
+
+		for k, v := range device.CommunicationIoInMap {
+			if v.Name == IoInInterface.Name {
+				device.CommunicationIoInMap[k] = IoInInterface
+				device.WriteCommIoInInterfaceListToJson()
 
 				aParam.Code = "0"
 				aParam.Message = ""
@@ -1016,6 +1057,20 @@ func apiDeleteCommInterface(context *gin.Context) {
 		if v.Name == cName {
 			device.CommunicationIoOutMap = append(device.CommunicationIoOutMap[:k], device.CommunicationIoOutMap[k+1:]...)
 			device.WriteCommIoOutInterfaceListToJson()
+
+			aParam.Code = "0"
+			aParam.Message = ""
+			aParam.Data = ""
+			sJson, _ := json.Marshal(aParam)
+			context.String(http.StatusOK, string(sJson))
+			return
+		}
+	}
+
+	for k, v := range device.CommunicationIoInMap {
+		if v.Name == cName {
+			device.CommunicationIoInMap = append(device.CommunicationIoInMap[:k], device.CommunicationIoInMap[k+1:]...)
+			device.WriteCommIoInInterfaceListToJson()
 
 			aParam.Code = "0"
 			aParam.Message = ""
@@ -1092,6 +1147,18 @@ func apiGetCommInterface(context *gin.Context) {
 		CommunicationInterfaceManage.InterfaceMap = append(CommunicationInterfaceManage.InterfaceMap,
 			CommunicationInterface)
 	}
+
+	for _, v := range device.CommunicationIoInMap {
+		CommunicationInterface := CommunicationInterfaceTemplate{
+			Name:  v.Name,
+			Type:  v.Type,
+			Param: v.Param,
+		}
+		CommunicationInterfaceManage.InterfaceCnt++
+		CommunicationInterfaceManage.InterfaceMap = append(CommunicationInterfaceManage.InterfaceMap,
+			CommunicationInterface)
+	}
+
 	aParam.Data = CommunicationInterfaceManage
 
 	sJson, _ := json.Marshal(aParam)
