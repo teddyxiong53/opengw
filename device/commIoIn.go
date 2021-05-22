@@ -65,16 +65,20 @@ func (c *CommunicationIoInTemplate) WriteData(data []byte) int {
 func (c *CommunicationIoInTemplate) ReadData(data []byte) int {
 
 	if c.Param.FD != nil {
+		_, err := c.Param.FD.Seek(0, 0)
+		if err != nil {
+			setting.Logger.Errorf("IoIn seek err,%v", err)
+		}
 		cnt, err := c.Param.FD.Read(data)
 		if err != nil {
 			if err != io.EOF {
 				setting.Logger.Errorf("IoIn read err,%v", err)
 			}
 		}
-		if cnt > 0 {
-			setting.Logger.Errorf("IoIn read data,%v", data[:cnt])
-		}
-		return 0
+		//if cnt > 0 {
+		//	setting.Logger.Errorf("IoIn read data,%v", data[:cnt])
+		//}
+		return cnt
 	}
 	return 0
 }
