@@ -95,8 +95,8 @@ func (c *CommunicationManageTemplate) AnalysisRx() {
 		//阻塞读
 		rxBufCnt = c.CollInterface.CommInterface.ReadData(rxBuf)
 		if rxBufCnt > 0 {
-			setting.Logger.Debugf("curRxBufCnt %v,", rxBufCnt)
-			setting.Logger.Debugf("CurRxBuf %X\n", rxBuf[:rxBufCnt])
+			//setting.Logger.Debugf("curRxBufCnt %v,", rxBufCnt)
+			//setting.Logger.Debugf("CurRxBuf %X\n", rxBuf[:rxBufCnt])
 
 			//rxTotalBufCnt += rxBufCnt
 			//追加接收的数据到接收缓冲区

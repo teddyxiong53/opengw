@@ -92,16 +92,60 @@ func ReadDeviceNodeTypeMap() bool {
 		return false
 	}
 	for _, v := range fileInfoMap {
-		setting.Logger.Debugf("fileInfo %v", v.Name())
-		if v.IsDir() == false {
-			fileFullName := pluginPath + "/" + v.Name()
-			setting.Logger.Debugf("fileFullName %v", fileFullName)
-			if strings.Contains(v.Name(), ".json") {
-				//log.Println("fullName ",fullName)
+		//文件夹
+		if v.IsDir() == true {
+			setting.Logger.Debugf("fileDirInfo %v", v.Name())
+			fileDirName := pluginPath + "/" + v.Name()
+			fileMap, err := ioutil.ReadDir(fileDirName)
+			if err != nil {
+				log.Println("readDir err,", err)
+				return false
+			}
+			for _, f := range fileMap {
+				setting.Logger.Debugf("fileName %v", f.Name())
+				fileFullName := fileDirName + "/" + f.Name()
+				if strings.Contains(f.Name(), ".json") {
+					fp, err := os.OpenFile(fileFullName, os.O_RDONLY, 0777)
+					if err != nil {
+						setting.Logger.Errorf("open %s err", f)
+						return false
+					}
+					defer fp.Close()
 
-			} else if strings.Contains(v.Name(), ".lua") {
-				//log.Println("fullName ",fullName)
+					data := make([]byte, 2048)
+					dataCnt, err := fp.Read(data)
 
+					err = json.Unmarshal(data[:dataCnt], &deviceTypeTemplate)
+					if err != nil {
+						log.Println("deviceTypeTemplate unmarshal err", err)
+						return false
+					}
+
+					nodeType := DeviceNodeTypeTemplate{}
+					nodeType.TemplateID = len(DeviceNodeTypeMap.DeviceNodeType)
+					nodeType.TemplateType = deviceTypeTemplate.TemplateType
+					nodeType.TemplateName = deviceTypeTemplate.TemplateName
+					nodeType.TemplateMessage = deviceTypeTemplate.TemplateMessage
+
+					DeviceNodeTypeMap.DeviceNodeType = append(DeviceNodeTypeMap.DeviceNodeType, nodeType)
+				} else if strings.Contains(f.Name(), ".lua") {
+					if strings.Contains(f.Name(), v.Name()) == true {
+						template, err := setting.LuaOpenFile(fileFullName)
+						if err != nil {
+							setting.Logger.Errorf("openPlug %s err,%s\n", v.Name(), err)
+						} else {
+							setting.Logger.Debugf("openPlug  %s ok\n", f.Name())
+						}
+						for k, d := range DeviceNodeTypeMap.DeviceNodeType {
+							//setting.Logger.Debugf("DeviceNodeType %v", nodeType)
+							if d.TemplateName == v.Name() {
+								DeviceTypePluginMap[k] = template
+								DeviceTypePluginMap[k].SetGlobal("GetCRCModbus", DeviceTypePluginMap[k].NewFunction(setting.GetCRCModbus))
+								DeviceTypePluginMap[k].SetGlobal("CheckCRCModbus", DeviceTypePluginMap[k].NewFunction(setting.CheckCRCModbus))
+							}
+						}
+					}
+				}
 			}
 		}
 	}
