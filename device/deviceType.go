@@ -55,6 +55,7 @@ func updataDeviceType(path string, fileName []string) ([]string, error) {
 	}
 
 	for _, fi := range rd {
+		setting.Logger.Debugf("fi %v", fi.Name())
 		if fi.IsDir() {
 			fullDir := path + "/" + fi.Name()
 			fileName, _ = updataDeviceType(fullDir, fileName)
@@ -85,6 +86,26 @@ func ReadDeviceNodeTypeMap() bool {
 
 	//遍历json和so文件
 	pluginPath := exeCurDir + "/plugin"
+	fileInfoMap, err := ioutil.ReadDir(pluginPath)
+	if err != nil {
+		log.Println("readDir err,", err)
+		return false
+	}
+	for _, v := range fileInfoMap {
+		setting.Logger.Debugf("fileInfo %v", v.Name())
+		if v.IsDir() == false {
+			fileFullName := pluginPath + "/" + v.Name()
+			setting.Logger.Debugf("fileFullName %v", fileFullName)
+			if strings.Contains(v.Name(), ".json") {
+				//log.Println("fullName ",fullName)
+
+			} else if strings.Contains(v.Name(), ".lua") {
+				//log.Println("fullName ",fullName)
+
+			}
+		}
+	}
+
 	fileNameMap := make([]string, 0)
 	fileNameMap, _ = updataDeviceType(pluginPath, fileNameMap)
 	for _, v := range fileNameMap {
@@ -136,6 +157,70 @@ func ReadDeviceNodeTypeMap() bool {
 
 	return true
 }
+
+//func ReadDeviceNodeTypeMap() bool {
+//
+//	deviceTypeTemplate := struct {
+//		TemplateName    string `json:"TemplateName"`    //模板名称
+//		TemplateType    string `json:"TemplateType"`    //模板型号
+//		TemplateMessage string `json:"TemplateMessage"` //备注信息
+//	}{}
+//
+//	exeCurDir, _ := filepath.Abs(filepath.Dir(os.Args[0]))
+//
+//	//遍历json和so文件
+//	pluginPath := exeCurDir + "/plugin"
+//	fileNameMap := make([]string, 0)
+//	fileNameMap, _ = updataDeviceType(pluginPath, fileNameMap)
+//	for _, v := range fileNameMap {
+//		if strings.Contains(v, ".json") {
+//			fp, err := os.OpenFile(v, os.O_RDONLY, 0777)
+//			if err != nil {
+//				setting.Logger.Errorf("open %s err", v)
+//				return false
+//			}
+//			defer fp.Close()
+//
+//			data := make([]byte, 2048)
+//			dataCnt, err := fp.Read(data)
+//
+//			err = json.Unmarshal(data[:dataCnt], &deviceTypeTemplate)
+//			if err != nil {
+//				log.Println("deviceTypeTemplate unmarshal err", err)
+//				return false
+//			}
+//
+//			nodeType := DeviceNodeTypeTemplate{}
+//			nodeType.TemplateID = len(DeviceNodeTypeMap.DeviceNodeType)
+//			nodeType.TemplateType = deviceTypeTemplate.TemplateType
+//			nodeType.TemplateName = deviceTypeTemplate.TemplateName
+//			nodeType.TemplateMessage = deviceTypeTemplate.TemplateMessage
+//
+//			DeviceNodeTypeMap.DeviceNodeType = append(DeviceNodeTypeMap.DeviceNodeType, nodeType)
+//		}
+//	}
+//
+//	//打开lua文件
+//	for k, v := range DeviceNodeTypeMap.DeviceNodeType {
+//		for _, fileName := range fileNameMap {
+//			if strings.Contains(fileName, ".lua") {
+//				if strings.Contains(fileName, v.TemplateType) {
+//					template, err := setting.LuaOpenFile(fileName)
+//					if err != nil {
+//						setting.Logger.Errorf("openPlug %s err,%s\n", fileName, err)
+//					} else {
+//						setting.Logger.Debugf("openPlug  %s ok\n", fileName)
+//					}
+//					DeviceTypePluginMap[k] = template
+//					DeviceTypePluginMap[k].SetGlobal("GetCRCModbus", DeviceTypePluginMap[k].NewFunction(setting.GetCRCModbus))
+//					DeviceTypePluginMap[k].SetGlobal("CheckCRCModbus", DeviceTypePluginMap[k].NewFunction(setting.CheckCRCModbus))
+//				}
+//			}
+//		}
+//	}
+//
+//	return true
+//}
 
 //func UpdateDeviceNodeType(collName string) {
 //
