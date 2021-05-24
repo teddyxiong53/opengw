@@ -146,6 +146,7 @@ func RouterWeb() {
 			//删除串口通信接口
 			deviceRouter.DELETE("/commSerialInterface", apiDeleteCommSerialInterface)
 
+			//调用设备服务
 			deviceRouter.POST("/service", apiInvokeService)
 		}
 
