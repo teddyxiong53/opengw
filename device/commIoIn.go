@@ -123,7 +123,7 @@ func ReadCommIoInInterfaceListFromJson() bool {
 		}
 		return true
 	} else {
-		log.Println("commIoInInterface.json is not exist")
+		setting.Logger.Infof("commIoInInterface.json is not exist")
 
 		return false
 	}

@@ -59,7 +59,7 @@ func (d *DeviceNodeTemplate) NewVariables() []VariableTemplate {
 	}
 
 	lock.Lock()
-	//log.Printf("DeviceTypePluginMap %v\n",DeviceTypePluginMap)
+	setting.Logger.Debugf("DeviceTypePluginMap %v", DeviceTypePluginMap)
 	for k, v := range DeviceNodeTypeMap.DeviceNodeType {
 		if d.Type == v.TemplateType {
 			//调用NewVariables
