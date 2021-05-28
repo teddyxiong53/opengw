@@ -46,33 +46,33 @@ func init() {
 
 }
 
-func updataDeviceType(path string, fileName []string) ([]string, error) {
-
-	rd, err := ioutil.ReadDir(path)
-	if err != nil {
-		log.Println("readDir err,", err)
-		return fileName, err
-	}
-
-	for _, fi := range rd {
-		setting.Logger.Debugf("fi %v", fi.Name())
-		if fi.IsDir() {
-			fullDir := path + "/" + fi.Name()
-			fileName, _ = updataDeviceType(fullDir, fileName)
-		} else {
-			fullName := path + "/" + fi.Name()
-			if strings.Contains(fi.Name(), ".json") {
-				//log.Println("fullName ",fullName)
-				fileName = append(fileName, fullName)
-			} else if strings.Contains(fi.Name(), ".lua") {
-				//log.Println("fullName ",fullName)
-				fileName = append(fileName, fullName)
-			}
-		}
-	}
-
-	return fileName, nil
-}
+//func updataDeviceType(path string, fileName []string) ([]string, error) {
+//
+//	rd, err := ioutil.ReadDir(path)
+//	if err != nil {
+//		log.Println("readDir err,", err)
+//		return fileName, err
+//	}
+//
+//	for _, fi := range rd {
+//		setting.Logger.Debugf("fi %v", fi.Name())
+//		if fi.IsDir() {
+//			fullDir := path + "/" + fi.Name()
+//			fileName, _ = updataDeviceType(fullDir, fileName)
+//		} else {
+//			fullName := path + "/" + fi.Name()
+//			if strings.Contains(fi.Name(), ".json") {
+//				//log.Println("fullName ",fullName)
+//				fileName = append(fileName, fullName)
+//			} else if strings.Contains(fi.Name(), ".lua") {
+//				//log.Println("fullName ",fullName)
+//				fileName = append(fileName, fullName)
+//			}
+//		}
+//	}
+//
+//	return fileName, nil
+//}
 
 func ReadDeviceNodeTypeMap() bool {
 
@@ -92,6 +92,7 @@ func ReadDeviceNodeTypeMap() bool {
 		return false
 	}
 	for _, v := range fileInfoMap {
+		status := false
 		//文件夹
 		if v.IsDir() == true {
 			setting.Logger.Debugf("fileDirInfo %v", v.Name())
@@ -143,15 +144,19 @@ func ReadDeviceNodeTypeMap() bool {
 								DeviceTypePluginMap[k].SetGlobal("CheckCRCModbus", DeviceTypePluginMap[k].NewFunction(setting.CheckCRCModbus))
 							}
 						}
+						status = true
 					} else {
-						for k, d := range DeviceNodeTypeMap.DeviceNodeType {
-							if d.TemplateType == v.Name() {
-								err = DeviceTypePluginMap[k].DoFile(fileFullName)
-								if err != nil {
-									setting.Logger.Errorf("%s Lua DoFile err, %v", fileFullName, err)
-									return false
-								} else {
-									setting.Logger.Debugf("%s Lua DoFile ok", f.Name())
+						if status == true {
+							for k, d := range DeviceNodeTypeMap.DeviceNodeType {
+								//setting.Logger.Debugf("type %v,name %v", d.TemplateType, v.Name())
+								if d.TemplateType == v.Name() {
+									err = DeviceTypePluginMap[k].DoFile(fileFullName)
+									if err != nil {
+										setting.Logger.Errorf("%s Lua DoFile err, %v", fileFullName, err)
+										return false
+									} else {
+										setting.Logger.Debugf("%s Lua DoFile ok", f.Name())
+									}
 								}
 							}
 						}
