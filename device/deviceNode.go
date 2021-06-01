@@ -134,16 +134,16 @@ func (d *DeviceNodeTemplate) GenerateGetRealVariables(sAddr string, step int) ([
 
 			ok := false
 			con := false //后续是否有报文
-			if LuaVariableMap.Status == "0" {
-				con = false
-			} else {
-				con = true
-			}
 			nBytes := make([]byte, 0)
 			if len(LuaVariableMap.Variable) > 0 {
 				ok = true
 				for _, v := range LuaVariableMap.Variable {
 					nBytes = append(nBytes, *v)
+				}
+				if LuaVariableMap.Status == "1" {
+					con = true
+				} else {
+					con = false
 				}
 			} else {
 				ok = true
@@ -198,7 +198,7 @@ func (d *DeviceNodeTemplate) DeviceCustomCmd(sAddr string, cmdName string, cmdPa
 
 			ok := false
 			con := false //后续是否有报文
-			if LuaVariableMap.Status == "0" {
+			if LuaVariableMap.Status == "1" {
 				con = false
 			} else {
 				con = true
