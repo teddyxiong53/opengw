@@ -94,7 +94,7 @@ func ReadDeviceNodeTypeMap() bool {
 	for _, v := range fileInfoMap {
 		//文件夹
 		if v.IsDir() == true {
-			setting.Logger.Debugf("fileDirInfo %v", v.Name())
+			//setting.Logger.Debugf("fileDirInfo %v", v.Name())
 			fileDirName := pluginPath + "/" + v.Name()
 			fileMap, err := ioutil.ReadDir(fileDirName)
 			if err != nil {
@@ -127,13 +127,13 @@ func ReadDeviceNodeTypeMap() bool {
 					nodeType.TemplateName = deviceTypeTemplate.TemplateName
 					nodeType.TemplateMessage = deviceTypeTemplate.TemplateMessage
 					DeviceNodeTypeMap.DeviceNodeType = append(DeviceNodeTypeMap.DeviceNodeType, nodeType)
-					setting.Logger.Debugf("DeviceNodeType  %v", DeviceNodeTypeMap.DeviceNodeType)
+					//setting.Logger.Debugf("DeviceNodeType  %v", DeviceNodeTypeMap.DeviceNodeType)
 				}
 			}
 
 			index := -1
 			for _, f := range fileMap {
-				setting.Logger.Debugf("fileName %v", f.Name())
+				//setting.Logger.Debugf("fileName %v", f.Name())
 				fileFullName := fileDirName + "/" + f.Name()
 				if strings.Contains(f.Name(), ".lua") {
 					if strings.Contains(f.Name(), v.Name()) == true { //lua文件和设备模版名字一样
@@ -160,7 +160,7 @@ func ReadDeviceNodeTypeMap() bool {
 			}
 
 			for _, f := range fileMap {
-				setting.Logger.Debugf("fileName %v", f.Name())
+				//setting.Logger.Debugf("fileName %v", f.Name())
 				fileFullName := fileDirName + "/" + f.Name()
 				if strings.Contains(f.Name(), ".lua") {
 					if strings.Contains(f.Name(), v.Name()) == false { //lua文件和设备模版名字不一样
