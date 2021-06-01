@@ -51,40 +51,6 @@ func (c *CommunicationManageTemplate) CommunicationManageAddEmergency(cmd Commun
 	return <-c.EmergencyAckChan
 }
 
-//func (c *CommunicationManageTemplate) AnalysisRx() {
-//
-//	//阻塞读
-//	rxBuf := make([]byte, 1024)
-//	rxBufCnt := 0
-//
-//	serialPort := &CommunicationSerialTemplate{}
-//
-//	for k, v := range CommunicationSerialMap {
-//		if v.Name == c.CollInterface.CommInterfaceName {
-//			serialPort = CommunicationSerialMap[k]
-//		}
-//	}
-//
-//	for {
-//		//阻塞读
-//		rxBufCnt = serialPort.ReadData(rxBuf)
-//		if rxBufCnt > 0 {
-//			//log.Printf("curRxBufCnt %v,", rxBufCnt)
-//			//log.Printf("CurRxBuf %X\n", rxBuf[:rxBufCnt])
-//
-//			//rxTotalBufCnt += rxBufCnt
-//			//追加接收的数据到接收缓冲区
-//			//rxTotalBuf = append(rxTotalBuf, rxBuf[:rxBufCnt]...)
-//			c.PacketChan <- rxBuf[:rxBufCnt]
-//			//log.Printf("chanLen %v\n", len(c.PacketChan))
-//
-//			//清除本次接收数据
-//			rxBufCnt = 0
-//		}
-//		time.Sleep(10 * time.Millisecond)
-//	}
-//}
-
 func (c *CommunicationManageTemplate) AnalysisRx() {
 
 	//阻塞读
