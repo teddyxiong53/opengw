@@ -62,7 +62,7 @@ func apiSetReportGWParam(context *gin.Context) {
 			fmt.Println("ReportServiceGWParamAliyun json unMarshall err,", err)
 		}
 		mqttAliyun.ReportServiceParamListAliyun.AddReportService(ReportServiceGWParamAliyun)
-	case "Emqx":
+	case "EMQX.MQTT":
 	case "Huawei.MQTT":
 		ReportServiceGWParamHuawei := mqttHuawei.ReportServiceGWParamHuaweiTemplate{}
 		if err := json.Unmarshal(bodyBuf[:n], &ReportServiceGWParamHuawei); err != nil {
@@ -269,7 +269,7 @@ func apiSetReportNodeWParam(context *gin.Context) {
 			}
 		}
 		setting.Logger.Debugf("ParamListAliyun %v\n", mqttAliyun.ReportServiceParamListAliyun.ServiceList)
-	case "Emqx.MQTT":
+	case "EMQX.MQTT":
 
 	case "Huawei.MQTT":
 		ReportServiceNodeParamHuawei := mqttHuawei.ReportServiceNodeParamHuaweiTemplate{}
