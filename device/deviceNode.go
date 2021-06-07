@@ -63,6 +63,7 @@ func (d *DeviceNodeTemplate) NewVariables() []VariableTemplate {
 	for k, v := range DeviceNodeTypeMap.DeviceNodeType {
 		if d.Type == v.TemplateType {
 			//调用NewVariables
+			setting.Logger.Debugf("TemplateType %v", v.TemplateType)
 			err := DeviceTypePluginMap[k].CallByParam(lua.P{
 				Fn:      DeviceTypePluginMap[k].GetGlobal("NewVariables"),
 				NRet:    1,
