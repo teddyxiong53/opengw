@@ -12,8 +12,6 @@ import (
 	"path/filepath"
 	"runtime"
 	"strings"
-
-	"github.com/safchain/ethtool"
 )
 
 type NetworkNameListTemplate struct {
@@ -60,13 +58,13 @@ func (n *NetworkParamListTemplate) AddNetworkParam(param NetworkParamTemplate) e
 
 func (n *NetworkParamTemplate) GetNetworkStatus() {
 
-	if runtime.GOOS == "linux" {
-		ethHandle, _ := ethtool.NewEthtool()
-		defer ethHandle.Close()
-
-		n.LinkStatus, _ = ethHandle.LinkState(n.Name)
-		Logger.Debugf("%v LinkStatus %v", n.Name, n.LinkStatus)
-	}
+	//if runtime.GOOS == "linux" {
+	//	ethHandle, _ := ethtool.NewEthtool()
+	//	defer ethHandle.Close()
+	//
+	//	n.LinkStatus, _ = ethHandle.LinkState(n.Name)
+	//	Logger.Debugf("%v LinkStatus %v", n.Name, n.LinkStatus)
+	//}
 }
 
 //获取当前网络参数
