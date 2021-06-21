@@ -1,0 +1,101 @@
+<html>
+  <head>
+		<meta charset="UTF-8">
+    <title>串口助手</title>
+    <link rel="stylesheet" href="css/layui.css">
+  </head>
+ 
+  <script src="layui.js"></script>
+  <script>
+  //一般直接写在一个js文件中
+  layui.use(['layer', 'form'], function(){
+    var layer = layui.layer
+    ,form = layui.form;
+    var $ = layui.$;
+
+    // 接收父页面数据
+    window.addEventListener('message', function(messageEvent) {
+        var data = messageEvent.data
+        switch (data.cmd) {
+        case 'getSerials':
+          layer.msg('收到数据：' + 'getSerials')
+          if (data.params) {
+            // console.log(data.params.interfaceList)
+            obj = document.getElementById("interfaceList");
+            for(i=obj.options.length-1 ; i>= 0 ; i--){
+              obj.options[i] = null;
+            }
+            $.each(data.params.interfaceList, function (index, item) {
+              document.getElementById("interfaceList").append(new Option(item.CollInterfaceName, item.CollInterfaceName));// 下拉菜单里添加元素
+            });
+            layui.form.render("select");
+          }
+          break
+        case 'receiveData':
+          if (data.params) {
+            document.getElementById("receiveContent").value += data.params.receiveData;
+            layer.msg('收到数据：' + data.params.receiveData)
+          }
+          break
+        }
+    }, false);
+  // 发送数据
+  $("#sendDataBtn").click(function(){
+    var sendContent = document.getElementById("sendContent").value
+    // layer.msg("获取发送区数据："+ sendContent);
+    // 向父页面传输数据
+    window.parent.postMessage({
+      cmd: 'sendData',
+      params: {
+        sendContent:sendContent
+      }
+    }, '*')
+  });
+  // 清空发送区
+  $("#clearSendDataBtn").click(function(){
+    document.getElementById("sendContent").value = '';
+    layer.msg("清空发送区数据成功");
+  });
+  // 清空接收区
+  $("#clearReceiveDataBtn").click(function(){
+    document.getElementById("receiveContent").value = '';
+    layer.msg("清空发送区数据成功");
+  });
+    // layer.msg('进入外部写入工具');
+  });
+
+
+  </script>
+ <body>
+  <div class="layui-container">
+    <div class="layui-row layui-col-space10">
+      <div class="layui-col-xs8 layui-col-sm8 layui-col-md8">
+        <div class="layui-input-block" style="margin-left:0px;">
+          <textarea name="receive" placeholder="接收区" class="layui-textarea" style="height:290px;border:1px solid #0990D2;border-radius:10px;padding:10px;" id="receiveContent"></textarea>
+        </div>
+      </div>
+      <div class="layui-col-xs4 layui-col-sm4 layui-col-md4">
+        <div class="layui-form layui-form-item">
+          <div class="layui-input-block" style="margin-left:0px;">
+            <select name="selectInterface" lay-verify="required" id="interfaceList">
+              <option value="">请选择接口</option>
+            </select>
+          </div>
+        </div>
+        <button class="layui-btn layui-btn-radius layui-btn-warm layui-btn-fluid" style="display:block;margin:5px 0px;" id="clearReceiveDataBtn">清空接收区</button>
+      </div>
+    </div>
+    <div class="layui-row layui-col-space10">
+      <div class="layui-col-xs8 layui-col-sm8 layui-col-md8">
+        <div class="layui-input-block" style="margin-left:0px;">
+          <textarea name="receive" placeholder="发送区" class="layui-textarea" style="border:1px solid #0990D2;border-radius:10px;padding:10px;" id="sendContent"></textarea>
+        </div>
+      </div>
+      <div class="layui-col-xs4 layui-col-sm4 layui-col-md4">
+        <button class="layui-btn layui-btn-radius layui-btn-normal layui-btn-fluid" style="display:block;margin:5px 0px;" id="sendDataBtn">发送</button>         
+        <button class="layui-btn layui-btn-radius layui-btn-warm layui-btn-fluid" style="display:block;margin:5px 0px;" id="clearSendDataBtn">清空发送区</button>
+      </div>
+    </div>
+  </div>
+ </body>
+</html>
