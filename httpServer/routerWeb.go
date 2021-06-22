@@ -17,6 +17,7 @@ func RouterWeb() {
 	exeCurDir, _ := filepath.Abs(filepath.Dir(os.Args[0]))
 	router.Static("/static", exeCurDir+"/webroot/static")
 	router.Static("/plugin", exeCurDir+"/plugin/")
+	router.Static("/layui", exeCurDir+"/webroot/layui")
 
 	router.StaticFile("/", exeCurDir+"/webroot/index.html")
 	router.StaticFile("/favicon.ico", exeCurDir+"/webroot/favicon.ico")
