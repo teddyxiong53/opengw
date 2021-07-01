@@ -61,8 +61,8 @@ func (c *CommunicationManageTemplate) AnalysisRx() {
 		//阻塞读
 		rxBufCnt = c.CollInterface.CommInterface.ReadData(rxBuf)
 		if rxBufCnt > 0 {
-			//setting.Logger.Debugf("curRxBufCnt %v,", rxBufCnt)
-			//setting.Logger.Debugf("CurRxBuf %X\n", rxBuf[:rxBufCnt])
+			//setting.Logger.Debugf("%s:curRxBufCnt %v", c.CollInterface.CollInterfaceName, rxBufCnt)
+			//setting.Logger.Debugf("%s:CurRxBuf %X", c.CollInterface.CollInterfaceName, rxBuf[:rxBufCnt])
 
 			//rxTotalBufCnt += rxBufCnt
 			//追加接收的数据到接收缓冲区
@@ -73,7 +73,7 @@ func (c *CommunicationManageTemplate) AnalysisRx() {
 			//清除本次接收数据
 			rxBufCnt = 0
 		}
-		time.Sleep(10 * time.Millisecond)
+		time.Sleep(100 * time.Millisecond)
 	}
 }
 
@@ -84,7 +84,7 @@ func (c *CommunicationManageTemplate) CommunicationStateMachine(cmd Communicatio
 	startT := time.Now() //计算当前时间
 	for _, v := range c.CollInterface.DeviceNodeMap {
 		if v.Name == cmd.DeviceName {
-			setting.Logger.Debugf("%v:name %v\n", c.CollInterface.CollInterfaceName, v.Name)
+			setting.Logger.Debugf("%v:name %v", c.CollInterface.CollInterfaceName, v.Name)
 			step := 0
 			for {
 				//--------------组包---------------------------
@@ -106,7 +106,7 @@ func (c *CommunicationManageTemplate) CommunicationStateMachine(cmd Communicatio
 				}
 
 				step++
-				setting.Logger.Debugf("%v:txbuf %X\n", c.CollInterface.CollInterfaceName, txBuf)
+				setting.Logger.Debugf("%v:txbuf %X", c.CollInterface.CollInterfaceName, txBuf)
 
 				CommunicationMessage := CommunicationMessageTemplate{
 					CollName:  c.CollInterface.CollInterfaceName,
@@ -164,6 +164,12 @@ func (c *CommunicationManageTemplate) CommunicationStateMachine(cmd Communicatio
 							if v.CurCommFailCnt >= c.CollInterface.OfflinePeriod {
 								v.CurCommFailCnt = 0
 								//设备从上线变成离线
+								if v.CommStatus == "onLine" {
+									if len(c.CollInterface.OfflineReportChan) == 100 {
+										<-c.CollInterface.OfflineReportChan
+									}
+									c.CollInterface.OfflineReportChan <- v.Name
+								}
 								v.CommStatus = "offLine"
 							}
 							rxTotalBufCnt = 0
@@ -189,6 +195,14 @@ func (c *CommunicationManageTemplate) CommunicationStateMachine(cmd Communicatio
 							} else {
 								c.CollInterface.CommMessage = c.CollInterface.CommMessage[1:]
 								c.CollInterface.CommMessage = append(c.CollInterface.CommMessage, CommunicationMessage)
+							}
+
+							//设备从离线变成上线
+							if v.CommStatus == "offLine" {
+								if len(c.CollInterface.OnlineReportChan) == 100 {
+									<-c.CollInterface.OnlineReportChan
+								}
+								c.CollInterface.OnlineReportChan <- v.Name
 							}
 
 							//防止Chan阻塞
@@ -333,7 +347,7 @@ func (c *CommunicationManageTemplate) CommunicationManagePoll() {
 				cmd.FunName = "GetDeviceRealVariables"
 				c.CommunicationManageAddCommon(cmd)
 			}
-			setting.Logger.Debugf("commChanTotalLen %v\n", len(c.CommonRequestChan))
+			setting.Logger.Debugf("%s,commChanTotalLen %v", coll.CollInterfaceName, len(c.CommonRequestChan))
 		}
 	}
 }

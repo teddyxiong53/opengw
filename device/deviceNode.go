@@ -63,7 +63,7 @@ func (d *DeviceNodeTemplate) NewVariables() []VariableTemplate {
 	for k, v := range DeviceNodeTypeMap.DeviceNodeType {
 		if d.Type == v.TemplateType {
 			//调用NewVariables
-			setting.Logger.Debugf("TemplateType %v", v.TemplateType)
+			//setting.Logger.Debugf("TemplateType %v", v.TemplateType)
 			err := DeviceTypePluginMap[k].CallByParam(lua.P{
 				Fn:      DeviceTypePluginMap[k].GetGlobal("NewVariables"),
 				NRet:    1,
@@ -76,6 +76,7 @@ func (d *DeviceNodeTemplate) NewVariables() []VariableTemplate {
 			//获取返回结果
 			ret := DeviceTypePluginMap[k].Get(-1)
 			DeviceTypePluginMap[k].Pop(1)
+			//setting.Logger.Debugf("DeviceTypePluginMap Get,%v", ret)
 
 			LuaVariableMap := LuaVariableMapTemplate{}
 
@@ -141,10 +142,10 @@ func (d *DeviceNodeTemplate) GenerateGetRealVariables(sAddr string, step int) ([
 				for _, v := range LuaVariableMap.Variable {
 					nBytes = append(nBytes, *v)
 				}
-				if LuaVariableMap.Status == "1" {
-					con = true
-				} else {
+				if LuaVariableMap.Status == "0" {
 					con = false
+				} else {
+					con = true
 				}
 			} else {
 				ok = true
@@ -199,7 +200,7 @@ func (d *DeviceNodeTemplate) DeviceCustomCmd(sAddr string, cmdName string, cmdPa
 
 			ok := false
 			con := false //后续是否有报文
-			if LuaVariableMap.Status == "1" {
+			if LuaVariableMap.Status == "0" {
 				con = false
 			} else {
 				con = true
