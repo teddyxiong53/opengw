@@ -1358,9 +1358,8 @@ func apiInvokeService(context *gin.Context) {
 		CollInterfaceName string
 		DeviceName        string
 		ServiceName       string
-		ServiceParam      string
+		ServiceParam      map[string]interface{}
 	}{}
-
 	err := json.Unmarshal(bodyBuf[:n], &serviceInfo)
 	if err != nil {
 		fmt.Println("serviceInfo json unMarshall err,", err)
@@ -1380,7 +1379,8 @@ func apiInvokeService(context *gin.Context) {
 					cmd.CollInterfaceName = serviceInfo.CollInterfaceName
 					cmd.DeviceName = serviceInfo.DeviceName
 					cmd.FunName = serviceInfo.ServiceName
-					cmd.FunPara = serviceInfo.ServiceParam
+					paramStr, _ := json.Marshal(serviceInfo.ServiceParam)
+					cmd.FunPara = string(paramStr)
 					if n.CommunicationManageAddEmergency(cmd) == true {
 						aParam.Code = "0"
 						aParam.Message = ""

@@ -12,6 +12,6 @@ linux-386:
 linux-amd64:
 	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o openGW -ldflags "-s -w"
 windows-386:
-	CGO_ENABLED=0 GOOS=windows GOARCH=386 go build -o openGW -ldflags "-s -w"  
+	CGO_ENABLED=0 GOOS=windows GOARCH=386 go build -o openGW.exe -ldflags "-s -w"
 windows-amd64:
-	CGO_ENABLED=0 GOOS=windows GOARCH=amd64 go build -o openGW -ldflags "-s -w" 
+	CGO_ENABLED=0 GOOS=windows GOARCH=amd64 go build -o openGW.exe -ldflags "-s -w"
