@@ -18,6 +18,9 @@ func (r *ReportServiceParamAliyunTemplate) ProcessInvokeThingsService() {
 				if len(methodParam) != 3 {
 					continue
 				}
+				if reqFrame.Params["Name"] == nil {
+					continue
+				}
 				name := reqFrame.Params["Name"].(string)
 				for _, n := range r.NodeList {
 					if name == n.Param.DeviceName {

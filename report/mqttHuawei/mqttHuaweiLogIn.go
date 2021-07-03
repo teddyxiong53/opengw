@@ -97,6 +97,9 @@ func MQTTHuaweiGWLogin(param MQTTHuaweiRegisterTemplate, publishHandler MQTT.Mes
 		MQTTHuaweiSubscribeTopic(mqttClient, subTopic)
 
 	*/
+	//服务调用
+	subTopic = "$oc/devices/" + param.DeviceID + "/sys/commands/#"
+	MQTTHuaweiSubscribeTopic(mqttClient, subTopic)
 
 	return true, mqttClient
 }
