@@ -618,7 +618,102 @@ func apiGetNodeHistoryVariableFromCache(context *gin.Context) {
 	}
 
 	aParam.Code = "1"
-	aParam.Message = "node is noexist"
+	aParam.Message = "node is no exist"
+	sJson, _ := json.Marshal(aParam)
+	context.String(http.StatusOK, string(sJson))
+}
+
+func apiGetNodeReadVariable(context *gin.Context) {
+
+	type VariableTemplate struct {
+		Index     int         `json:"index"` // 变量偏移量
+		Name      string      `json:"name"`  // 变量名
+		Label     string      `json:"lable"` // 变量标签
+		Value     interface{} `json:"value"` // 变量值
+		Explain   interface{} `json:"explain"`
+		TimeStamp string      `json:"timestamp"` // 变量时间戳
+		Type      string      `json:"type"`      // 变量类型
+	}
+
+	sName := context.Query("CollInterfaceName")
+	sAddr := context.Query("Addr")
+
+	aParam := &struct {
+		Code    string
+		Message string
+		Data    []VariableTemplate
+	}{}
+
+	//查找设备是否存在
+	nodeIndex := -1
+	for _, c := range device.CollectInterfaceMap {
+		if c.CollInterfaceName == sName {
+			for k, v := range c.DeviceNodeMap {
+				if v.Addr == sAddr {
+					nodeIndex = k
+				}
+			}
+		}
+	}
+	if nodeIndex == -1 {
+		aParam.Code = "1"
+		aParam.Message = "node is no exist"
+		sJson, _ := json.Marshal(aParam)
+		context.String(http.StatusOK, string(sJson))
+	}
+
+	//发送命令到响应的采集接口
+	for _, c := range device.CollectInterfaceMap {
+		if c.CollInterfaceName == sName {
+			for _, n := range device.CommunicationManage {
+				if n.CollInterface.CollInterfaceName == sName {
+					cmd := device.CommunicationCmdTemplate{}
+					cmd.CollInterfaceName = sName
+					cmd.DeviceName = c.DeviceNodeMap[nodeIndex].Name
+					cmd.FunName = "GetRealVariables"
+					cmd.FunPara = ""
+					if n.CommunicationManageAddEmergency(cmd) == true {
+						aParam.Code = "0"
+						aParam.Message = ""
+						aParam.Data = make([]VariableTemplate, 0)
+						index := 0
+						variable := VariableTemplate{}
+						for _, v := range c.DeviceNodeMap[nodeIndex].VariableMap {
+							variable.Index = v.Index
+							variable.Name = v.Name
+							variable.Label = v.Label
+							// 取出切片中最后一个值
+							if len(v.Value) > 0 {
+								index = len(v.Value) - 1
+								variable.Value = v.Value[index].Value
+								variable.Explain = v.Value[index].Explain
+								variable.TimeStamp = v.Value[index].TimeStamp
+							} else {
+								variable.Value = ""
+								variable.Explain = ""
+								variable.TimeStamp = ""
+							}
+							variable.Type = v.Type
+							aParam.Data = append(aParam.Data, variable)
+						}
+
+						sJson, _ := json.Marshal(aParam)
+						context.String(http.StatusOK, string(sJson))
+						return
+					} else {
+						aParam.Code = "1"
+						aParam.Message = "device is not return"
+						sJson, _ := json.Marshal(aParam)
+						context.String(http.StatusOK, string(sJson))
+						return
+					}
+				}
+			}
+		}
+	}
+
+	aParam.Code = "1"
+	aParam.Message = "node is no exist"
 	sJson, _ := json.Marshal(aParam)
 	context.String(http.StatusOK, string(sJson))
 }
