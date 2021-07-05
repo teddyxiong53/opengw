@@ -331,6 +331,36 @@ func (r *ReportServiceParamHuaweiTemplate) ReportTimeOut() {
 	}
 }
 
+//查看上报服务中设备通信状态
+func (r *ReportServiceParamHuaweiTemplate) CommStatusTime() {
+
+	setting.Logger.Infof("service:%s,CheckCommStatus", r.GWParam.ServiceName)
+	for k, n := range r.NodeList {
+		name := make([]string, 0)
+		for _, c := range device.CollectInterfaceMap {
+			if c.CollInterfaceName == n.CollInterfaceName {
+				for _, d := range c.DeviceNodeMap {
+					if n.Name == d.Name {
+						//通信状态发生了改变
+						if d.CommStatus != n.CommStatus {
+							if d.CommStatus == "onLine" {
+								setting.Logger.Infof("DeviceOnline %v\n", n.Name)
+								name = append(name, n.Name)
+								r.LogInRequestFrameChan <- name
+							} else if d.CommStatus == "offLine" {
+								setting.Logger.Infof("DeviceOffline %v\n", n.Name)
+								name = append(name, n.Name)
+								r.LogOutRequestFrameChan <- name
+							}
+							r.NodeList[k].CommStatus = d.CommStatus
+						}
+					}
+				}
+			}
+		}
+	}
+}
+
 //查看上报服务中设备是否离线
 func (r *ReportServiceParamHuaweiTemplate) ReportOfflineTime() {
 
@@ -357,11 +387,17 @@ func ReportServiceHuaweiPoll(r *ReportServiceParamHuaweiTemplate) {
 	// 定义一个cron运行器
 	cronProcess := cron.New()
 
+	//每10s查看一下上报节点的通信状态
+	commStatusTime := fmt.Sprintf("@every %dm%ds", 10/60, 10%60)
+	setting.Logger.Infof("reportServiceHuawei commStatusTime%v", commStatusTime)
+
 	reportTime := fmt.Sprintf("@every %dm%ds", r.GWParam.ReportTime/60, r.GWParam.ReportTime%60)
 	setting.Logger.Infof("reportServiceHuawei reportTime%v", reportTime)
 
 	reportOfflineTime := fmt.Sprintf("@every %dm%ds", (3*r.GWParam.ReportTime)/60, (3*r.GWParam.ReportTime)%60)
 	setting.Logger.Infof("reportServiceHuawei reportOfflineTime%v", reportOfflineTime)
+
+	_ = cronProcess.AddFunc(commStatusTime, r.CommStatusTime)
 	_ = cronProcess.AddFunc(reportOfflineTime, r.ReportOfflineTime)
 	_ = cronProcess.AddFunc(reportTime, r.ReportTimeOut)
 
