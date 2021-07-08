@@ -306,7 +306,7 @@ func (r *ReportServiceParamHuaweiTemplate) LogOut(nodeName []string) {
 	r.NodeLogOut(nodeName)
 }
 
-func (r *ReportServiceParamHuaweiTemplate) ReportTimeOut() {
+func (r *ReportServiceParamHuaweiTemplate) ReportTimeFun() {
 
 	if r.GWParam.ReportStatus == "onLine" {
 		//网关上报
@@ -332,7 +332,7 @@ func (r *ReportServiceParamHuaweiTemplate) ReportTimeOut() {
 }
 
 //查看上报服务中设备通信状态
-func (r *ReportServiceParamHuaweiTemplate) CommStatusTime() {
+func (r *ReportServiceParamHuaweiTemplate) ReportCommStatusTimeFun() {
 
 	setting.Logger.Infof("service:%s,CheckCommStatus", r.GWParam.ServiceName)
 	for k, n := range r.NodeList {
@@ -362,7 +362,7 @@ func (r *ReportServiceParamHuaweiTemplate) CommStatusTime() {
 }
 
 //查看上报服务中设备是否离线
-func (r *ReportServiceParamHuaweiTemplate) ReportOfflineTime() {
+func (r *ReportServiceParamHuaweiTemplate) ReportOfflineTimeFun() {
 
 	setting.Logger.Infof("service:%s,CheckReportOffline", r.GWParam.ServiceName)
 	if r.GWParam.ReportErrCnt >= 3 {
@@ -388,8 +388,8 @@ func ReportServiceHuaweiPoll(r *ReportServiceParamHuaweiTemplate) {
 	cronProcess := cron.New()
 
 	//每10s查看一下上报节点的通信状态
-	commStatusTime := fmt.Sprintf("@every %dm%ds", 10/60, 10%60)
-	setting.Logger.Infof("reportServiceHuawei commStatusTime%v", commStatusTime)
+	reportCommStatusTime := fmt.Sprintf("@every %dm%ds", 10/60, 10%60)
+	setting.Logger.Infof("reportServiceHuawei reportCommStatusTime%v", reportCommStatusTime)
 
 	reportTime := fmt.Sprintf("@every %dm%ds", r.GWParam.ReportTime/60, r.GWParam.ReportTime%60)
 	setting.Logger.Infof("reportServiceHuawei reportTime%v", reportTime)
@@ -397,9 +397,9 @@ func ReportServiceHuaweiPoll(r *ReportServiceParamHuaweiTemplate) {
 	reportOfflineTime := fmt.Sprintf("@every %dm%ds", (3*r.GWParam.ReportTime)/60, (3*r.GWParam.ReportTime)%60)
 	setting.Logger.Infof("reportServiceHuawei reportOfflineTime%v", reportOfflineTime)
 
-	_ = cronProcess.AddFunc(commStatusTime, r.CommStatusTime)
-	_ = cronProcess.AddFunc(reportOfflineTime, r.ReportOfflineTime)
-	_ = cronProcess.AddFunc(reportTime, r.ReportTimeOut)
+	_ = cronProcess.AddFunc(reportCommStatusTime, r.ReportCommStatusTimeFun)
+	_ = cronProcess.AddFunc(reportOfflineTime, r.ReportOfflineTimeFun)
+	_ = cronProcess.AddFunc(reportTime, r.ReportTimeFun)
 
 	cronProcess.Start()
 	defer cronProcess.Stop()
@@ -408,7 +408,7 @@ func ReportServiceHuaweiPoll(r *ReportServiceParamHuaweiTemplate) {
 
 	go r.ProcessDownLinkFrame()
 
-	name := make([]string, 0)
+	//name := make([]string, 0)
 	for {
 		switch reportState {
 		case 0:
@@ -425,30 +425,6 @@ func ReportServiceHuaweiPoll(r *ReportServiceParamHuaweiTemplate) {
 				if r.GWParam.ReportStatus == "offLine" {
 					reportState = 0
 					r.GWParam.ReportErrCnt = 0
-				}
-
-				//节点发生了上线
-				for _, c := range device.CollectInterfaceMap {
-					for i := 0; i < len(c.OnlineReportChan); i++ {
-						name = append(name, <-c.OnlineReportChan)
-					}
-				}
-				if len(name) > 0 {
-					setting.Logger.Infof("DeviceOnline %v\n", name)
-					r.LogInRequestFrameChan <- name
-					name = name[0:0]
-				}
-
-				//节点发生了离线
-				for _, c := range device.CollectInterfaceMap {
-					for i := 0; i < len(c.OfflineReportChan); i++ {
-						name = append(name, <-c.OfflineReportChan)
-					}
-				}
-				if len(name) > 0 {
-					setting.Logger.Infof("DeviceOffline %v\n", name)
-					r.LogOutRequestFrameChan <- name
-					name = name[0:0]
 				}
 
 				//节点有属性变化

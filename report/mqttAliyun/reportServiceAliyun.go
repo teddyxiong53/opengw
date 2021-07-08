@@ -314,7 +314,37 @@ func (r *ReportServiceParamAliyunTemplate) LogOut(nodeName []string) {
 	r.NodeLogOut(nodeName)
 }
 
-func (r *ReportServiceParamAliyunTemplate) ReportTimeOut() {
+//查看上报服务中设备通信状态
+func (r *ReportServiceParamAliyunTemplate) ReportCommStatusTimeFun() {
+
+	setting.Logger.Infof("service:%s,CheckCommStatus", r.GWParam.ServiceName)
+	for k, n := range r.NodeList {
+		name := make([]string, 0)
+		for _, c := range device.CollectInterfaceMap {
+			if c.CollInterfaceName == n.CollInterfaceName {
+				for _, d := range c.DeviceNodeMap {
+					if n.Name == d.Name {
+						//通信状态发生了改变
+						if d.CommStatus != n.CommStatus {
+							if d.CommStatus == "onLine" {
+								setting.Logger.Infof("DeviceOnline %v\n", n.Name)
+								name = append(name, n.Name)
+								r.LogInRequestFrameChan <- name
+							} else if d.CommStatus == "offLine" {
+								setting.Logger.Infof("DeviceOffline %v\n", n.Name)
+								name = append(name, n.Name)
+								r.LogOutRequestFrameChan <- name
+							}
+							r.NodeList[k].CommStatus = d.CommStatus
+						}
+					}
+				}
+			}
+		}
+	}
+}
+
+func (r *ReportServiceParamAliyunTemplate) ReportTimeFun() {
 
 	if r.GWParam.ReportStatus == "onLine" {
 		//网关上报
@@ -340,7 +370,7 @@ func (r *ReportServiceParamAliyunTemplate) ReportTimeOut() {
 }
 
 //查看上报服务中设备是否离线
-func (r *ReportServiceParamAliyunTemplate) ReportOfflineTime() {
+func (r *ReportServiceParamAliyunTemplate) ReportOfflineTimeFun() {
 
 	setting.Logger.Infof("service:%s,CheckReportOffline", r.GWParam.ServiceName)
 	if r.GWParam.ReportErrCnt >= 3 {
@@ -365,13 +395,19 @@ func ReportServiceAliyunPoll(r *ReportServiceParamAliyunTemplate) {
 	// 定义一个cron运行器
 	cronProcess := cron.New()
 
+	//每10s查看一下上报节点的通信状态
+	reportCommStatusTime := fmt.Sprintf("@every %dm%ds", 10/60, 10%60)
+	setting.Logger.Infof("reportServiceAliyun reportCommStatusTime%v", reportCommStatusTime)
+
 	reportTime := fmt.Sprintf("@every %dm%ds", r.GWParam.ReportTime/60, r.GWParam.ReportTime%60)
 	setting.Logger.Infof("reportServiceAliyun reportTime%v", reportTime)
 
 	reportOfflineTime := fmt.Sprintf("@every %dm%ds", (3*r.GWParam.ReportTime)/60, (3*r.GWParam.ReportTime)%60)
 	setting.Logger.Infof("reportServiceAliyun reportOfflineTime%v", reportOfflineTime)
-	_ = cronProcess.AddFunc(reportOfflineTime, r.ReportOfflineTime)
-	_ = cronProcess.AddFunc(reportTime, r.ReportTimeOut)
+
+	_ = cronProcess.AddFunc(reportCommStatusTime, r.ReportCommStatusTimeFun)
+	_ = cronProcess.AddFunc(reportOfflineTime, r.ReportOfflineTimeFun)
+	_ = cronProcess.AddFunc(reportTime, r.ReportTimeFun)
 
 	cronProcess.Start()
 	defer cronProcess.Stop()
@@ -382,7 +418,7 @@ func ReportServiceAliyunPoll(r *ReportServiceParamAliyunTemplate) {
 
 	go r.ProcessInvokeThingsService()
 
-	name := make([]string, 0)
+	//name := make([]string, 0)
 	for {
 		switch reportState {
 		case 0:
@@ -402,35 +438,35 @@ func ReportServiceAliyunPoll(r *ReportServiceParamAliyunTemplate) {
 					r.GWParam.ReportErrCnt = 0
 				}
 
-				for k, v := range r.NodeList {
-					commStatus := "offLine"
-					for _, d := range device.CollectInterfaceMap {
-						if v.CollInterfaceName == v.CollInterfaceName {
-							for _, n := range d.DeviceNodeMap {
-								if v.Name == n.Name {
-									commStatus = n.CommStatus
-									break
-								}
-							}
-						}
-					}
-					if commStatus != v.CommStatus {
-						if commStatus == "onLine" {
-							//节点发生了上线
-							setting.Logger.Debugf("service %s,node %s onLine", v.ServiceName, v.Name)
-							name = append(name, v.Name)
-							r.LogInRequestFrameChan <- name
-							name = name[0:0]
-						} else if commStatus == "offLine" {
-							//节点发生了离线
-							setting.Logger.Debugf("service %s,node %s onLine", v.ServiceName, v.Name)
-							name = append(name, v.Name)
-							r.LogOutRequestFrameChan <- name
-							name = name[0:0]
-						}
-						r.NodeList[k].CommStatus = commStatus
-					}
-				}
+				//for k, v := range r.NodeList {
+				//	commStatus := "offLine"
+				//	for _, d := range device.CollectInterfaceMap {
+				//		if v.CollInterfaceName == v.CollInterfaceName {
+				//			for _, n := range d.DeviceNodeMap {
+				//				if v.Name == n.Name {
+				//					commStatus = n.CommStatus
+				//					break
+				//				}
+				//			}
+				//		}
+				//	}
+				//	if commStatus != v.CommStatus {
+				//		if commStatus == "onLine" {
+				//			//节点发生了上线
+				//			setting.Logger.Debugf("service %s,node %s onLine", v.ServiceName, v.Name)
+				//			name = append(name, v.Name)
+				//			r.LogInRequestFrameChan <- name
+				//			name = name[0:0]
+				//		} else if commStatus == "offLine" {
+				//			//节点发生了离线
+				//			setting.Logger.Debugf("service %s,node %s onLine", v.ServiceName, v.Name)
+				//			name = append(name, v.Name)
+				//			r.LogOutRequestFrameChan <- name
+				//			name = name[0:0]
+				//		}
+				//		r.NodeList[k].CommStatus = commStatus
+				//	}
+				//}
 
 				//节点有属性变化
 				//for _, c := range device.CollectInterfaceMap {
