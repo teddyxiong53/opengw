@@ -280,6 +280,25 @@ func (r *ReportServiceParamHuaweiTemplate) ProcessDownLinkFrame() {
 
 				} else if strings.Contains(frame.Topic, "/thing/service/property/set") { //设置属性请求
 
+				} else if strings.Contains(frame.Topic, "/sys/commands/") { //下发命令
+					writeCmdRequest := MQTTHuaweiWriteCmdRequestTemplate{}
+					err := json.Unmarshal(frame.Payload, &writeCmdRequest)
+					if err != nil {
+						setting.Logger.Errorf("writeCmdRequest json unmarshal err")
+						return
+					}
+					topicPara := strings.Split(frame.Topic, "/")
+					//setting.Logger.Debugf("topicPara %v", topicPara)
+					for _, v := range topicPara {
+						if strings.Contains(v, "request_id") {
+							idIndex := strings.Index(v, "=") + 1
+							if idIndex > 0 {
+								requestID := v[idIndex:]
+								//setting.Logger.Debugf("requestID %v", requestID)
+								ReportServiceHuaweiProcessWriteCmd(r, requestID, writeCmdRequest)
+							}
+						}
+					}
 				}
 			}
 		}
