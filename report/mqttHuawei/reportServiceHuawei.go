@@ -280,6 +280,25 @@ func (r *ReportServiceParamHuaweiTemplate) ProcessDownLinkFrame() {
 
 				} else if strings.Contains(frame.Topic, "/thing/service/property/set") { //设置属性请求
 
+				} else if strings.Contains(frame.Topic, "/sys/commands/") { //下发命令
+					writeCmdRequest := MQTTHuaweiWriteCmdRequestTemplate{}
+					err := json.Unmarshal(frame.Payload, &writeCmdRequest)
+					if err != nil {
+						setting.Logger.Errorf("writeCmdRequest json unmarshal err")
+						return
+					}
+					topicPara := strings.Split(frame.Topic, "/")
+					//setting.Logger.Debugf("topicPara %v", topicPara)
+					for _, v := range topicPara {
+						if strings.Contains(v, "request_id") {
+							idIndex := strings.Index(v, "=") + 1
+							if idIndex > 0 {
+								requestID := v[idIndex:]
+								//setting.Logger.Debugf("requestID %v", requestID)
+								ReportServiceHuaweiProcessWriteCmd(r, requestID, writeCmdRequest)
+							}
+						}
+					}
 				}
 			}
 		}
@@ -306,7 +325,7 @@ func (r *ReportServiceParamHuaweiTemplate) LogOut(nodeName []string) {
 	r.NodeLogOut(nodeName)
 }
 
-func (r *ReportServiceParamHuaweiTemplate) ReportTimeOut() {
+func (r *ReportServiceParamHuaweiTemplate) ReportTimeFun() {
 
 	if r.GWParam.ReportStatus == "onLine" {
 		//网关上报
@@ -331,8 +350,38 @@ func (r *ReportServiceParamHuaweiTemplate) ReportTimeOut() {
 	}
 }
 
+//查看上报服务中设备通信状态
+func (r *ReportServiceParamHuaweiTemplate) ReportCommStatusTimeFun() {
+
+	setting.Logger.Infof("service:%s,CheckCommStatus", r.GWParam.ServiceName)
+	for k, n := range r.NodeList {
+		name := make([]string, 0)
+		for _, c := range device.CollectInterfaceMap {
+			if c.CollInterfaceName == n.CollInterfaceName {
+				for _, d := range c.DeviceNodeMap {
+					if n.Name == d.Name {
+						//通信状态发生了改变
+						if d.CommStatus != n.CommStatus {
+							if d.CommStatus == "onLine" {
+								setting.Logger.Infof("DeviceOnline %v\n", n.Name)
+								name = append(name, n.Name)
+								r.LogInRequestFrameChan <- name
+							} else if d.CommStatus == "offLine" {
+								setting.Logger.Infof("DeviceOffline %v\n", n.Name)
+								name = append(name, n.Name)
+								r.LogOutRequestFrameChan <- name
+							}
+							r.NodeList[k].CommStatus = d.CommStatus
+						}
+					}
+				}
+			}
+		}
+	}
+}
+
 //查看上报服务中设备是否离线
-func (r *ReportServiceParamHuaweiTemplate) ReportOfflineTime() {
+func (r *ReportServiceParamHuaweiTemplate) ReportOfflineTimeFun() {
 
 	setting.Logger.Infof("service:%s,CheckReportOffline", r.GWParam.ServiceName)
 	if r.GWParam.ReportErrCnt >= 3 {
@@ -357,13 +406,19 @@ func ReportServiceHuaweiPoll(r *ReportServiceParamHuaweiTemplate) {
 	// 定义一个cron运行器
 	cronProcess := cron.New()
 
+	//每10s查看一下上报节点的通信状态
+	reportCommStatusTime := fmt.Sprintf("@every %dm%ds", 10/60, 10%60)
+	setting.Logger.Infof("reportServiceHuawei reportCommStatusTime%v", reportCommStatusTime)
+
 	reportTime := fmt.Sprintf("@every %dm%ds", r.GWParam.ReportTime/60, r.GWParam.ReportTime%60)
 	setting.Logger.Infof("reportServiceHuawei reportTime%v", reportTime)
 
 	reportOfflineTime := fmt.Sprintf("@every %dm%ds", (3*r.GWParam.ReportTime)/60, (3*r.GWParam.ReportTime)%60)
 	setting.Logger.Infof("reportServiceHuawei reportOfflineTime%v", reportOfflineTime)
-	_ = cronProcess.AddFunc(reportOfflineTime, r.ReportOfflineTime)
-	_ = cronProcess.AddFunc(reportTime, r.ReportTimeOut)
+
+	_ = cronProcess.AddFunc(reportCommStatusTime, r.ReportCommStatusTimeFun)
+	_ = cronProcess.AddFunc(reportOfflineTime, r.ReportOfflineTimeFun)
+	_ = cronProcess.AddFunc(reportTime, r.ReportTimeFun)
 
 	cronProcess.Start()
 	defer cronProcess.Stop()
@@ -372,7 +427,7 @@ func ReportServiceHuaweiPoll(r *ReportServiceParamHuaweiTemplate) {
 
 	go r.ProcessDownLinkFrame()
 
-	name := make([]string, 0)
+	//name := make([]string, 0)
 	for {
 		switch reportState {
 		case 0:
@@ -389,30 +444,6 @@ func ReportServiceHuaweiPoll(r *ReportServiceParamHuaweiTemplate) {
 				if r.GWParam.ReportStatus == "offLine" {
 					reportState = 0
 					r.GWParam.ReportErrCnt = 0
-				}
-
-				//节点发生了上线
-				for _, c := range device.CollectInterfaceMap {
-					for i := 0; i < len(c.OnlineReportChan); i++ {
-						name = append(name, <-c.OnlineReportChan)
-					}
-				}
-				if len(name) > 0 {
-					setting.Logger.Infof("DeviceOnline %v\n", name)
-					r.LogInRequestFrameChan <- name
-					name = name[0:0]
-				}
-
-				//节点发生了离线
-				for _, c := range device.CollectInterfaceMap {
-					for i := 0; i < len(c.OfflineReportChan); i++ {
-						name = append(name, <-c.OfflineReportChan)
-					}
-				}
-				if len(name) > 0 {
-					setting.Logger.Infof("DeviceOffline %v\n", name)
-					r.LogOutRequestFrameChan <- name
-					name = name[0:0]
 				}
 
 				//节点有属性变化
