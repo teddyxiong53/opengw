@@ -35,7 +35,7 @@ func apiGetCommMessage(context *gin.Context) {
 		}
 	}
 	context.JSON(http.StatusOK, ResponseData{
-		Code: "1",
+		Code: "0",
 		Data: commMessageMap,
 	})
 }
