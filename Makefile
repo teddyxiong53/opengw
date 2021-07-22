@@ -7,6 +7,8 @@ linux-armv5:
 	CGO_ENABLED=0 GOOS=linux GOARCH=arm GOARM=5 go build -o openGW -ldflags "-s -w"
 linux-armv7:
 	CGO_ENABLED=0 GOOS=linux GOARCH=arm GOARM=7 go build -o openGW -ldflags "-s -w"
+linux-arm64:
+	CGO_ENABLED=0 GOOS=linux GOARCH=arm64 go build -o openGW -ldflags "-s -w"
 linux-386:
 	CGO_ENABLED=0 GOOS=linux GOARCH=386 go build -o openGW -ldflags "-s -w"	
 linux-amd64:
