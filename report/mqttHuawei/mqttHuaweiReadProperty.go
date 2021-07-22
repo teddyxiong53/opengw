@@ -19,10 +19,10 @@ func MQTTHuaweiGetPropertiesAck(r *ReportServiceParamHuaweiTemplate, service MQT
 	deviceService.Services = append(deviceService.Services, service)
 
 	sJson, _ := json.Marshal(deviceService)
-	setting.Logger.Debugf("thingServiceAck post msg: %s\n", sJson)
+	setting.Logger.Debugf("thingServiceAck post msg: %s", sJson)
 
 	serviceTopic := "$oc/devices/" + r.GWParam.Param.DeviceID + "/sys/properties/get/response/" + service.ServiceID
-	setting.Logger.Infof("thingServiceAck post topic: %s\n", serviceTopic)
+	setting.Logger.Infof("thingServiceAck post topic: %s", serviceTopic)
 
 	if r.GWParam.MQTTClient != nil {
 		token := r.GWParam.MQTTClient.Publish(serviceTopic, 0, false, sJson)

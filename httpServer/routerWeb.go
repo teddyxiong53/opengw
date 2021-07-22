@@ -55,6 +55,19 @@ func RouterWeb() {
 			systemRouter.POST("/systemRTC", apiSystemSetSystemRTC)
 		}
 
+		logRouter := router.Group("/api/v1/log")
+		{
+			logRouter.GET("/param", apiGetLogParam)
+
+			logRouter.POST("/param", apiSetLogParam)
+
+			logRouter.GET("/filesInfo", apiGetLogFilesInfo)
+
+			logRouter.DELETE("/files", apiDeleteLogFile)
+
+			logRouter.GET("/file", apiGetLogFile)
+		}
+
 		ntpRouter := router.Group("/api/v1/system/ntp")
 		{
 			ntpRouter.POST("/hostAddr", apiSystemSetNTPHost)

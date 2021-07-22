@@ -45,7 +45,7 @@ func MQTTHuaweiGWPropertyPost(client MQTT.Client, gw MQTTHuaweiRegisterTemplate,
 	propertyPostTopic := "$oc/devices/" + gw.DeviceID + "/sys/properties/report"
 
 	setting.Logger.Infof("gw property post topic: %s", propertyPostTopic)
-	setting.Logger.Debugf("gw property post msg: %s", sJson)
+	setting.Logger.Debugf("gw property post msg: %v", sJson)
 	if client != nil {
 		token := client.Publish(propertyPostTopic, 1, false, sJson)
 		if token.WaitTimeout(2*time.Second) == true {
@@ -135,16 +135,16 @@ func (r *ReportServiceParamHuaweiTemplate) GWPropertyPost() {
 
 	//上报故障先加，收到正确回应后清0
 	r.GWParam.ReportErrCnt++
-	setting.Logger.Debugf("service %s,gw ReportErrCnt %d", r.GWParam.ServiceName, r.GWParam.ReportErrCnt)
+	setting.Logger.Debugf("service %s gw ReportErrCnt %d", r.GWParam.ServiceName, r.GWParam.ReportErrCnt)
 	//清空接收缓存
 	for i := 0; i < len(r.ReceiveReportPropertyAckFrameChan); i++ {
 		<-r.ReceiveReportPropertyAckFrameChan
 	}
 	if MQTTHuaweiGWPropertyPost(r.GWParam.MQTTClient, mqttHuaweiRegister, services) == 0 {
 		r.GWParam.ReportErrCnt--
-		setting.Logger.Debugf("%s,MQTTHuaweiGWPropertyPost OK", r.GWParam.ServiceName)
+		setting.Logger.Debugf("%s MQTTHuaweiGWPropertyPost OK", r.GWParam.ServiceName)
 	} else {
-		setting.Logger.Debugf("%s,MQTTHuaweiGWPropertyPost Err", r.GWParam.ServiceName)
+		setting.Logger.Debugf("%s MQTTHuaweiGWPropertyPost Err", r.GWParam.ServiceName)
 	}
 }
 
@@ -161,8 +161,8 @@ func MQTTHuaweiNodePropertyPost(client MQTT.Client, gw MQTTHuaweiRegisterTemplat
 	sJson, _ := json.Marshal(DevicesService)
 
 	propertyPostTopic := "$oc/devices/" + gw.DeviceID + "/sys/gateway/sub_devices/properties/report"
-	setting.Logger.Infof("node property post topic: %s\n", propertyPostTopic)
-	setting.Logger.Debugf("node property post msg: %s\n", sJson)
+	setting.Logger.Infof("node property post topic: %v", propertyPostTopic)
+	setting.Logger.Debugf("node property post msg: %v", sJson)
 
 	MsgID = 0
 	if client != nil {
@@ -231,7 +231,7 @@ func (r *ReportServiceParamHuaweiTemplate) NodePropertyPost(name []string) {
 			}
 
 			if MQTTHuaweiNodePropertyPost(r.GWParam.MQTTClient, mqttHuaweiRegister, DeviceServiceMap) == 0 {
-				setting.Logger.Debugf("%s,MQTTHuaweiNodePropertyPost OK", r.GWParam.ServiceName)
+				setting.Logger.Debugf("%s MQTTHuaweiNodePropertyPost OK", r.GWParam.ServiceName)
 				for _, n := range node {
 					for k, v := range r.NodeList {
 						if n.Name == v.Name {
@@ -241,7 +241,7 @@ func (r *ReportServiceParamHuaweiTemplate) NodePropertyPost(name []string) {
 					}
 				}
 			} else {
-				setting.Logger.Debugf("%s,MQTTHuaweiNodePropertyPost Err", r.GWParam.ServiceName)
+				setting.Logger.Debugf("%s MQTTHuaweiNodePropertyPost Err", r.GWParam.ServiceName)
 			}
 		} else { //最后一页
 			node := nodeList[20*pageIndex:]
@@ -278,7 +278,7 @@ func (r *ReportServiceParamHuaweiTemplate) NodePropertyPost(name []string) {
 				DeviceSecret: r.GWParam.Param.DeviceSecret,
 			}
 			if MQTTHuaweiNodePropertyPost(r.GWParam.MQTTClient, mqttHuaweiRegister, DeviceServiceMap) == 0 {
-				setting.Logger.Debugf("%s,MQTTHuaweiNodePropertyPost OK", r.GWParam.ServiceName)
+				setting.Logger.Debugf("%s MQTTHuaweiNodePropertyPost OK", r.GWParam.ServiceName)
 				for _, n := range node {
 					for k, v := range r.NodeList {
 						if n.Name == v.Name {
@@ -288,7 +288,7 @@ func (r *ReportServiceParamHuaweiTemplate) NodePropertyPost(name []string) {
 					}
 				}
 			} else {
-				setting.Logger.Debugf("%s,MQTTHuaweiNodePropertyPost Err", r.GWParam.ServiceName)
+				setting.Logger.Debugf("%s MQTTHuaweiNodePropertyPost Err", r.GWParam.ServiceName)
 			}
 		}
 	}

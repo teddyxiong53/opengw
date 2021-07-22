@@ -75,7 +75,7 @@ func (r *ReportServiceParamAliyunTemplate) GWPropertyPost() {
 
 	//上报故障先加，收到正确回应后清0
 	r.GWParam.ReportErrCnt++
-	setting.Logger.Debugf("service %s,gw ReportErrCnt %d", r.GWParam.Param.DeviceName, r.GWParam.ReportErrCnt)
+	setting.Logger.Debugf("service %s gw ReportErrCnt %d", r.GWParam.Param.DeviceName, r.GWParam.ReportErrCnt)
 	//清空接收缓存
 	for i := 0; i < len(r.ReceiveReportPropertyAckFrameChan); i++ {
 		<-r.ReceiveReportPropertyAckFrameChan
@@ -88,14 +88,14 @@ func (r *ReportServiceParamAliyunTemplate) GWPropertyPost() {
 			setting.Logger.Debugf("frameCode %v", frame.Code)
 			if frame.Code == 200 {
 				r.GWParam.ReportErrCnt--
-				setting.Logger.Debugf("%s,MQTTAliyunGWPropertyPost OK", r.GWParam.ServiceName)
+				setting.Logger.Debugf("%s MQTTAliyunGWPropertyPost OK", r.GWParam.ServiceName)
 			} else {
-				setting.Logger.Debugf("%s,MQTTAliyunGWPropertyPost Err", r.GWParam.ServiceName)
+				setting.Logger.Debugf("%s MQTTAliyunGWPropertyPost Err", r.GWParam.ServiceName)
 			}
 		}
 	case <-time.After(time.Millisecond * 2000):
 		{
-			setting.Logger.Debugf("%s,MQTTAliyunGWPropertyPost Err", r.GWParam.ServiceName)
+			setting.Logger.Debugf("%s MQTTAliyunGWPropertyPost Err", r.GWParam.ServiceName)
 		}
 	}
 }
@@ -161,14 +161,14 @@ func (r *ReportServiceParamAliyunTemplate) AllNodePropertyPost() {
 			case frame := <-r.ReceiveReportPropertyAckFrameChan:
 				{
 					if frame.Code == 200 {
-						setting.Logger.Debugf("%s,MQTTAliyunNodePropertyPost OK", r.GWParam.ServiceName)
+						setting.Logger.Debugf("%s MQTTAliyunNodePropertyPost OK", r.GWParam.ServiceName)
 					} else {
-						setting.Logger.Debugf("%s,MQTTAliyunNodePropertyPost Err", r.GWParam.ServiceName)
+						setting.Logger.Debugf("%s MQTTAliyunNodePropertyPost Err", r.GWParam.ServiceName)
 					}
 				}
 			case <-time.After(time.Millisecond * 2000):
 				{
-					setting.Logger.Debugf("%s,MQTTAliyunNodePropertyPost Err", r.GWParam.ServiceName)
+					setting.Logger.Debugf("%s MQTTAliyunNodePropertyPost Err", r.GWParam.ServiceName)
 				}
 			}
 		} else { //最后一页
@@ -218,14 +218,14 @@ func (r *ReportServiceParamAliyunTemplate) AllNodePropertyPost() {
 			case frame := <-r.ReceiveReportPropertyAckFrameChan:
 				{
 					if frame.Code == 200 {
-						setting.Logger.Debugf("%s,MQTTAliyunNodePropertyPost OK", r.GWParam.ServiceName)
+						setting.Logger.Debugf("%s MQTTAliyunNodePropertyPost OK", r.GWParam.ServiceName)
 					} else {
-						setting.Logger.Debugf("%s,MQTTAliyunNodePropertyPost Err", r.GWParam.ServiceName)
+						setting.Logger.Debugf("%s MQTTAliyunNodePropertyPost Err", r.GWParam.ServiceName)
 					}
 				}
 			case <-time.After(time.Millisecond * 2000):
 				{
-					setting.Logger.Debugf("%s,MQTTAliyunNodePropertyPost Err", r.GWParam.ServiceName)
+					setting.Logger.Debugf("%s MQTTAliyunNodePropertyPost Err", r.GWParam.ServiceName)
 				}
 			}
 		}
@@ -297,14 +297,14 @@ func (r *ReportServiceParamAliyunTemplate) NodePropertyPost(name []string) {
 			case frame := <-r.ReceiveReportPropertyAckFrameChan:
 				{
 					if frame.Code == 200 {
-						setting.Logger.Debugf("%s,MQTTAliyunNodePropertyPost OK", r.GWParam.ServiceName)
+						setting.Logger.Debugf("%s MQTTAliyunNodePropertyPost OK", r.GWParam.ServiceName)
 					} else {
-						setting.Logger.Debugf("%s,MQTTAliyunNodePropertyPost Err", r.GWParam.ServiceName)
+						setting.Logger.Debugf("%s MQTTAliyunNodePropertyPost Err", r.GWParam.ServiceName)
 					}
 				}
 			case <-time.After(time.Millisecond * 2000):
 				{
-					setting.Logger.Debugf("%s,MQTTAliyunNodePropertyPost Err", r.GWParam.ServiceName)
+					setting.Logger.Debugf("%s MQTTAliyunNodePropertyPost Err", r.GWParam.ServiceName)
 				}
 			}
 		} else { //最后一页
@@ -351,14 +351,14 @@ func (r *ReportServiceParamAliyunTemplate) NodePropertyPost(name []string) {
 			case frame := <-r.ReceiveReportPropertyAckFrameChan:
 				{
 					if frame.Code == 200 {
-						setting.Logger.Debugf("%s,MQTTAliyunNodePropertyPost OK", r.GWParam.ServiceName)
+						setting.Logger.Debugf("%s MQTTAliyunNodePropertyPost OK", r.GWParam.ServiceName)
 					} else {
-						setting.Logger.Debugf("%s,MQTTAliyunNodePropertyPost Err", r.GWParam.ServiceName)
+						setting.Logger.Debugf("%s MQTTAliyunNodePropertyPost Err", r.GWParam.ServiceName)
 					}
 				}
 			case <-time.After(time.Millisecond * 2000):
 				{
-					setting.Logger.Debugf("%s,MQTTAliyunNodePropertyPost Err", r.GWParam.ServiceName)
+					setting.Logger.Debugf("%s MQTTAliyunNodePropertyPost Err", r.GWParam.ServiceName)
 				}
 			}
 		}

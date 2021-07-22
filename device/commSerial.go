@@ -67,10 +67,10 @@ func (c *CommunicationSerialTemplate) Open() bool {
 	var err error
 	c.Port, err = serial.OpenPort(serialConfig)
 	if err != nil {
-		setting.Logger.Errorf("open serial err,%s", err)
+		setting.Logger.Errorf("open serial err %v", err)
 		return false
 	} else {
-		setting.Logger.Debugf("open serial %s ok\n", c.Param.Name)
+		setting.Logger.Debugf("open serial %s ok", c.Param.Name)
 	}
 
 	return true

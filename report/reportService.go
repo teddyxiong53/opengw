@@ -1,5 +1,10 @@
 package report
 
+import (
+	"goAdapter/report/mqttAliyun"
+	"goAdapter/report/mqttHuawei"
+)
+
 type ReportServiceAPI interface {
 	GWLogIn()
 	GWLogOut()
@@ -15,4 +20,7 @@ func init() {
 
 func ReportServiceInit() {
 
+	mqttAliyun.ReportServiceAliyunInit()
+
+	mqttHuawei.ReportServiceHuaweiInit()
 }

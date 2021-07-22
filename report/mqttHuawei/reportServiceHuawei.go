@@ -68,7 +68,7 @@ var ReportServiceParamListHuawei = &ReportServiceParamListHuaweiTemplate{
 	ServiceList: make([]*ReportServiceParamHuaweiTemplate, 0),
 }
 
-func init() {
+func ReportServiceHuaweiInit() {
 
 	ReportServiceParamListHuawei.ReadParamFromJson()
 
@@ -98,7 +98,7 @@ func (s *ReportServiceParamListHuaweiTemplate) ReadParamFromJson() bool {
 	if fileExist(fileDir) == true {
 		fp, err := os.OpenFile(fileDir, os.O_RDONLY, 0777)
 		if err != nil {
-			log.Println("open reportServiceParamListHuawei.json err,", err)
+			setting.Logger.Warnf("open reportServiceParamListHuawei.json err %v", err)
 			return false
 		}
 		defer fp.Close()
@@ -108,7 +108,7 @@ func (s *ReportServiceParamListHuaweiTemplate) ReadParamFromJson() bool {
 
 		err = json.Unmarshal(data[:dataCnt], s)
 		if err != nil {
-			log.Println("reportServiceParamListHuawei unmarshal err", err)
+			setting.Logger.Warnf("reportServiceParamListHuawei unmarshal err %v", err)
 			return false
 		}
 		setting.Logger.Info("read reportServiceParamListHuawei.json ok")
@@ -135,7 +135,7 @@ func (s *ReportServiceParamListHuaweiTemplate) WriteParamToJson() {
 
 	_, err = fp.Write(sJson)
 	if err != nil {
-		setting.Logger.Errorf("write reportServiceParamListHuawei.json err", err)
+		setting.Logger.Errorf("write reportServiceParamListHuawei.json err %v", err)
 	}
 	setting.Logger.Debugf("write reportServiceParamListHuawei.json success")
 }
@@ -189,7 +189,7 @@ func (r *ReportServiceParamHuaweiTemplate) AddReportNode(param ReportServiceNode
 	r.NodeList = append(r.NodeList, param)
 	ReportServiceParamListHuawei.WriteParamToJson()
 
-	setting.Logger.Debugf("param %v\n", ReportServiceParamListHuawei)
+	setting.Logger.Debugf("param %v", ReportServiceParamListHuawei)
 }
 
 func (r *ReportServiceParamHuaweiTemplate) DeleteReportNode(name string) int {
@@ -239,8 +239,8 @@ func (r *ReportServiceParamHuaweiTemplate) ProcessDownLinkFrame() {
 		select {
 		case frame := <-r.ReceiveFrameChan:
 			{
-				setting.Logger.Debugf("Recv TOPIC: %s\n", frame.Topic)
-				setting.Logger.Debugf("Recv MSG: %s\n", frame.Payload)
+				setting.Logger.Debugf("Recv TOPIC: %s", frame.Topic)
+				setting.Logger.Debugf("Recv MSG: %s", frame.Payload)
 
 				if strings.Contains(frame.Topic, "/thing/event/property/pack/post_reply") { //网关、子设备上报属性回应
 
@@ -353,7 +353,7 @@ func (r *ReportServiceParamHuaweiTemplate) ReportTimeFun() {
 //查看上报服务中设备通信状态
 func (r *ReportServiceParamHuaweiTemplate) ReportCommStatusTimeFun() {
 
-	setting.Logger.Infof("service:%s,CheckCommStatus", r.GWParam.ServiceName)
+	setting.Logger.Infof("service:%s CheckCommStatus", r.GWParam.ServiceName)
 	for k, n := range r.NodeList {
 		name := make([]string, 0)
 		for _, c := range device.CollectInterfaceMap {
@@ -363,11 +363,11 @@ func (r *ReportServiceParamHuaweiTemplate) ReportCommStatusTimeFun() {
 						//通信状态发生了改变
 						if d.CommStatus != n.CommStatus {
 							if d.CommStatus == "onLine" {
-								setting.Logger.Infof("DeviceOnline %v\n", n.Name)
+								setting.Logger.Infof("DeviceOnline %v", n.Name)
 								name = append(name, n.Name)
 								r.LogInRequestFrameChan <- name
 							} else if d.CommStatus == "offLine" {
-								setting.Logger.Infof("DeviceOffline %v\n", n.Name)
+								setting.Logger.Infof("DeviceOffline %v", n.Name)
 								name = append(name, n.Name)
 								r.LogOutRequestFrameChan <- name
 							}
@@ -383,18 +383,18 @@ func (r *ReportServiceParamHuaweiTemplate) ReportCommStatusTimeFun() {
 //查看上报服务中设备是否离线
 func (r *ReportServiceParamHuaweiTemplate) ReportOfflineTimeFun() {
 
-	setting.Logger.Infof("service:%s,CheckReportOffline", r.GWParam.ServiceName)
+	setting.Logger.Infof("service:%s CheckReportOffline", r.GWParam.ServiceName)
 	if r.GWParam.ReportErrCnt >= 3 {
 		r.GWParam.ReportStatus = "offLine"
 		r.GWParam.ReportErrCnt = 0
-		setting.Logger.Warningf("service:%s,gw offline", r.GWParam.ServiceName)
+		setting.Logger.Warningf("service:%s gw offline", r.GWParam.ServiceName)
 	}
 
 	for k, v := range r.NodeList {
 		if v.ReportErrCnt >= 3 {
 			r.NodeList[k].ReportStatus = "offLine"
 			r.NodeList[k].ReportErrCnt = 0
-			setting.Logger.Warningf("service:%s,%s offline", v.ServiceName, v.Name)
+			setting.Logger.Warningf("service:%s %s offline", v.ServiceName, v.Name)
 		}
 	}
 }

@@ -155,8 +155,8 @@ func (c *CommunicationManageTemplate) CommunicationStateMachine(cmd Communicatio
 								c.CollInterface.CommMessage = append(c.CollInterface.CommMessage, CommunicationMessage)
 							}
 
-							setting.Logger.Debugf("%v,rx timeout\n", c.CollInterface.CollInterfaceName)
-							setting.Logger.Debugf("%v:rxbuf %X\n", c.CollInterface.CollInterfaceName, rxTotalBuf)
+							setting.Logger.Debugf("%v rx timeout", c.CollInterface.CollInterfaceName)
+							setting.Logger.Debugf("%v:rxbuf %X", c.CollInterface.CollInterfaceName, rxTotalBuf)
 							//通信帧延时
 							//time.Sleep(time.Duration(interval) * time.Millisecond)
 
@@ -181,8 +181,8 @@ func (c *CommunicationManageTemplate) CommunicationStateMachine(cmd Communicatio
 					case <-v.AnalysisRx(v.Addr, v.VariableMap, rxTotalBuf, rxTotalBufCnt):
 						{
 							timerOut.Stop()
-							setting.Logger.Debugf("%v:rx ok\n", c.CollInterface.CollInterfaceName)
-							setting.Logger.Debugf("%v:rxbuf %X\n", c.CollInterface.CollInterfaceName, rxTotalBuf)
+							setting.Logger.Debugf("%v:rx ok", c.CollInterface.CollInterfaceName)
+							setting.Logger.Debugf("%v:rxbuf %X", c.CollInterface.CollInterfaceName, rxTotalBuf)
 
 							CommunicationMessage := CommunicationMessageTemplate{
 								CollName:  c.CollInterface.CollInterfaceName,
@@ -252,7 +252,7 @@ func (c *CommunicationManageTemplate) CommunicationStateMachine(cmd Communicatio
 		}
 	}
 	tc := time.Since(startT) //计算耗时
-	setting.Logger.Debugf("%v,time cost = %v", c.CollInterface.CollInterfaceName, tc)
+	setting.Logger.Debugf("%v time cost = %v", c.CollInterface.CollInterfaceName, tc)
 
 	//更新设备在线数量
 	c.CollInterface.DeviceNodeOnlineCnt = 0
@@ -271,7 +271,7 @@ func (c *CommunicationManageTemplate) CommunicationManageDel() {
 		select {
 		case cmd := <-c.EmergencyRequestChan:
 			{
-				setting.Logger.Infof("emergency chan,collName %v,nodeName %v,funName %v", c.CollInterface.CollInterfaceName, cmd.DeviceName, cmd.FunName)
+				setting.Logger.Infof("emergency chan collName %v nodeName %v funName %v", c.CollInterface.CollInterfaceName, cmd.DeviceName, cmd.FunName)
 				status := false
 				status = c.CommunicationStateMachine(cmd)
 
@@ -286,7 +286,7 @@ func (c *CommunicationManageTemplate) CommunicationManageDel() {
 				select {
 				case cmd := <-c.CommonRequestChan:
 					{
-						setting.Logger.Debugf("%v:commChanLen %v\n", c.CollInterface.CollInterfaceName, len(c.CommonRequestChan))
+						setting.Logger.Debugf("%v:commChanLen %v", c.CollInterface.CollInterfaceName, len(c.CommonRequestChan))
 						c.CommunicationStateMachine(cmd)
 
 						GetDeviceOnline()
@@ -347,7 +347,7 @@ func (c *CommunicationManageTemplate) CommunicationManagePoll() {
 				cmd.FunName = "GetDeviceRealVariables"
 				c.CommunicationManageAddCommon(cmd)
 			}
-			setting.Logger.Debugf("%s,commChanTotalLen %v", coll.CollInterfaceName, len(c.CommonRequestChan))
+			setting.Logger.Debugf("%s commChanTotalLen %v", coll.CollInterfaceName, len(c.CommonRequestChan))
 		}
 	}
 }

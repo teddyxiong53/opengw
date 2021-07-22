@@ -134,9 +134,9 @@ func ReadDeviceNodeTypeMap() bool {
 					if strings.Contains(f.Name(), v.Name()) == true { //lua文件和设备模版名字一样
 						template, err := setting.LuaOpenFile(fileFullName)
 						if err != nil {
-							setting.Logger.Errorf("openPlug %s err,%s\n", v.Name(), err)
+							setting.Logger.Errorf("openPlug %s err %v", v.Name(), err)
 						} else {
-							setting.Logger.Debugf("openPlug  %s ok\n", f.Name())
+							setting.Logger.Debugf("openPlug  %s ok", f.Name())
 						}
 						for k, d := range DeviceNodeTypeMap.DeviceNodeType {
 							if d.TemplateType == v.Name() {

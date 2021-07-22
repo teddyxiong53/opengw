@@ -43,8 +43,8 @@ func MQTTHuaweiNodeLogOut(client MQTT.Client, gw ReportServiceGWParamHuaweiTempl
 		//批量注册
 		logOutTopic := "$oc/devices/" + gw.Param.DeviceID + "/sys/events/up"
 
-		setting.Logger.Debugf("node publish logOutMsg: %s\n", sJson)
-		setting.Logger.Infof("node publish topic: %s\n", logOutTopic)
+		setting.Logger.Debugf("node publish logOutMsg: %s", sJson)
+		setting.Logger.Infof("node publish topic: %s", logOutTopic)
 		if client != nil {
 			token := client.Publish(logOutTopic, 0, false, sJson)
 			token.Wait()

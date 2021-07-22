@@ -22,10 +22,10 @@ type MQTTHuaweiWriteCmdAckTemplate struct {
 func MQTTHuaweiWriteCmdAck(r *ReportServiceParamHuaweiTemplate, requestID string, ack MQTTHuaweiWriteCmdAckTemplate) {
 
 	sJson, _ := json.Marshal(ack)
-	setting.Logger.Debugf("writeCmdAck post msg: %s\n", sJson)
+	setting.Logger.Debugf("writeCmdAck post msg: %s", sJson)
 
 	serviceTopic := "$oc/devices/" + r.GWParam.Param.DeviceID + "/sys/commands/response/request_id=" + requestID
-	setting.Logger.Infof("writeCmdAck post topic: %s\n", serviceTopic)
+	setting.Logger.Infof("writeCmdAck post topic: %s", serviceTopic)
 
 	if r.GWParam.MQTTClient != nil {
 		token := r.GWParam.MQTTClient.Publish(serviceTopic, 0, false, sJson)

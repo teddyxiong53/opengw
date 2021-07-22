@@ -46,7 +46,7 @@ func CommInterfaceInit() {
 	}
 
 	for _, v := range CommunicationInterfaceMap {
-		setting.Logger.Debugf("commName %v,", v.GetName())
+		setting.Logger.Debugf("commName %v", v.GetName())
 		v.Open()
 	}
 }

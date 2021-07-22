@@ -98,8 +98,8 @@ func MQTTAliyunNodeLoginIn(client MQTT.Client, gw MQTTAliyunRegisterTemplate, no
 	sJson, _ := json.Marshal(mqttPayload)
 	if len(NodeParamsList.DeviceList) > 0 {
 
-		setting.Logger.Debugf("node publish logInMsg: %s\n", sJson)
-		setting.Logger.Infof("node publish topic: %s\n", loginInTopic)
+		setting.Logger.Debugf("node publish logInMsg: %s", sJson)
+		setting.Logger.Infof("node publish topic: %s", loginInTopic)
 
 		if client != nil {
 			token := client.Publish(loginInTopic, 0, false, sJson)
@@ -139,8 +139,8 @@ func MQTTAliyunNodeLoginOut(client MQTT.Client, gw MQTTAliyunRegisterTemplate, n
 	}
 	sJson, _ := json.Marshal(mqttPayload)
 	if len(mqttPayload.Params) > 0 {
-		setting.Logger.Infof("node publish logOutMsg: %s\n", sJson)
-		setting.Logger.Debugf("node publish topic: %s\n", loginOutTopic)
+		setting.Logger.Infof("node publish logOutMsg: %s", sJson)
+		setting.Logger.Debugf("node publish topic: %s", loginOutTopic)
 
 		token := client.Publish(loginOutTopic, 0, false, sJson)
 		token.Wait()
@@ -189,7 +189,7 @@ func MQTTAliyunGWPropertyPost(client MQTT.Client, gw MQTTAliyunRegisterTemplate,
 	propertyPostTopic := "/sys/" + gw.ProductKey + "/" + gw.DeviceName + "/thing/event/property/pack/post"
 
 	setting.Logger.Infof("gw property post topic: %s", propertyPostTopic)
-	setting.Logger.Debugf("gw property post msg: %s", sJson)
+	setting.Logger.Debugf("gw property post msg: %v", sJson)
 	if client != nil {
 		token := client.Publish(propertyPostTopic, 0, false, sJson)
 		token.Wait()
@@ -257,8 +257,8 @@ func MQTTAliyunNodePropertyPost(client MQTT.Client, gw MQTTAliyunRegisterTemplat
 
 	//propertyPostTopic := "/sys/" + MQTTAliyunGWParam.GWParam.ProductKey + "/" + MQTTAliyunGWParam.GWParam.DeviceName + "/thing/event/property/post"
 	propertyPostTopic := "/sys/" + gw.ProductKey + "/" + gw.DeviceName + "/thing/event/property/pack/post"
-	setting.Logger.Infof("node property post topic: %s\n", propertyPostTopic)
-	setting.Logger.Debugf("node property post msg: %s\n", sJson)
+	setting.Logger.Infof("node property post topic: %s", propertyPostTopic)
+	setting.Logger.Debugf("node property post msg: %v", PropertyPayload)
 	if client != nil {
 		token := client.Publish(propertyPostTopic, 0, false, sJson)
 		token.Wait()
@@ -270,11 +270,11 @@ func MQTTAliyunNodePropertyPost(client MQTT.Client, gw MQTTAliyunRegisterTemplat
 func MQTTAliyunThingServiceAck(client MQTT.Client, gw ReportServiceGWParamAliyunTemplate, ackMessage MQTTAliyunInvokeThingsServiceAckTemplate, serviceName string) {
 
 	sJson, _ := json.Marshal(ackMessage)
-	setting.Logger.Debugf("thingServiceAck post msg: %s\n", sJson)
+	setting.Logger.Debugf("thingServiceAck post msg: %s", sJson)
 
 	thingServiceTopic := "/sys/" + gw.Param.ProductKey + "/" + gw.Param.DeviceName +
 		"/thing/service/" + serviceName + "_reply"
-	setting.Logger.Infof("thingServiceAck post topic: %s\n", thingServiceTopic)
+	setting.Logger.Infof("thingServiceAck post topic: %s", thingServiceTopic)
 
 	if client != nil {
 		token := client.Publish(thingServiceTopic, 0, false, sJson)
