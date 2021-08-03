@@ -64,7 +64,8 @@ func ReportServiceHuaweiProcessWriteCmd(r *ReportServiceParamHuaweiTemplate, req
 	cmd.FunPara = string(paramStr)
 
 	cmdAck := MQTTHuaweiWriteCmdAckTemplate{}
-	if device.CommunicationManage[y].CommunicationManageAddEmergency(cmd) == true {
+	cmdRX := device.CommunicationManage[y].CommunicationManageAddEmergency(cmd)
+	if cmdRX.Status == true {
 		setting.Logger.Debugf("WriteCmd ok")
 		cmdAck.ResultCode = 0
 		cmdAck.ResponseName = request.ServiceID

@@ -218,6 +218,7 @@ func NewCollectInterface(collInterfaceName, commInterfaceName string,
 		}
 	}
 
+	setting.Logger.Debugf("CommunicationInterfaceMap %v index %v", CommunicationInterfaceMap, index)
 	nodeManage := &CollectInterfaceTemplate{
 		CollInterfaceName:  collInterfaceName,
 		CommInterfaceName:  commInterfaceName,

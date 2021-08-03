@@ -61,7 +61,8 @@ func ReportServiceHuaweiProcessGetProperties(r *ReportServiceParamHuaweiTemplate
 	cmd.FunName = "GetRealVariables"
 	cmd.FunPara = ""
 
-	if device.CommunicationManage[y].CommunicationManageAddEmergency(cmd) == true {
+	cmdRX := device.CommunicationManage[y].CommunicationManageAddEmergency(cmd)
+	if cmdRX.Status == true {
 		setting.Logger.Debugf("GetRealVariables ok")
 		service := MQTTHuaweiServiceTemplate{}
 		for _, v := range device.CollectInterfaceMap[y].DeviceNodeMap[i].VariableMap {

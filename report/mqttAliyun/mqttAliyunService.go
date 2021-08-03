@@ -34,16 +34,15 @@ func (r *ReportServiceParamAliyunTemplate) ProcessInvokeThingsService() {
 								cmd.FunPara = string(paramStr)
 
 								ack := MQTTAliyunInvokeThingsServiceAckTemplate{}
-								if len(device.CommunicationManage) > 0 {
-									if device.CommunicationManage[0].CommunicationManageAddEmergency(cmd) == true {
-										ack.ID = reqFrame.ID
-										ack.Code = 200
-										MQTTAliyunThingServiceAck(r.GWParam.MQTTClient, r.GWParam, ack, cmd.FunName)
-									} else {
-										ack.ID = reqFrame.ID
-										ack.Code = 1000
-										MQTTAliyunThingServiceAck(r.GWParam.MQTTClient, r.GWParam, ack, cmd.FunName)
-									}
+								ackData := v.CommunicationManageAddEmergency(cmd)
+								if ackData.Status {
+									ack.ID = reqFrame.ID
+									ack.Code = 200
+									MQTTAliyunThingServiceAck(r.GWParam.MQTTClient, r.GWParam, ack, cmd.FunName)
+								} else {
+									ack.ID = reqFrame.ID
+									ack.Code = 1000
+									MQTTAliyunThingServiceAck(r.GWParam.MQTTClient, r.GWParam, ack, cmd.FunName)
 								}
 							}
 						}

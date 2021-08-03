@@ -14,10 +14,15 @@ type CommunicationCmdTemplate struct {
 	FunPara           string
 }
 
+type CommunicationRxTemplate struct {
+	Status bool
+	RxBuf  []byte
+}
+
 type CommunicationManageTemplate struct {
 	EmergencyRequestChan chan CommunicationCmdTemplate
 	CommonRequestChan    chan CommunicationCmdTemplate
-	EmergencyAckChan     chan bool
+	EmergencyAckChan     chan CommunicationRxTemplate
 	CollInterface        *CollectInterfaceTemplate
 	PacketChan           chan []byte
 }
@@ -29,7 +34,7 @@ func NewCommunicationManageTemplate(coll *CollectInterfaceTemplate) *Communicati
 	template := &CommunicationManageTemplate{
 		EmergencyRequestChan: make(chan CommunicationCmdTemplate, 1),
 		CommonRequestChan:    make(chan CommunicationCmdTemplate, 100),
-		EmergencyAckChan:     make(chan bool, 1),
+		EmergencyAckChan:     make(chan CommunicationRxTemplate, 1),
 		PacketChan:           make(chan []byte, 100), //最多连续接收100帧数据
 		CollInterface:        coll,
 	}
@@ -44,7 +49,7 @@ func (c *CommunicationManageTemplate) CommunicationManageAddCommon(cmd Communica
 	c.CommonRequestChan <- cmd
 }
 
-func (c *CommunicationManageTemplate) CommunicationManageAddEmergency(cmd CommunicationCmdTemplate) bool {
+func (c *CommunicationManageTemplate) CommunicationManageAddEmergency(cmd CommunicationCmdTemplate) CommunicationRxTemplate {
 
 	c.EmergencyRequestChan <- cmd
 
@@ -77,9 +82,11 @@ func (c *CommunicationManageTemplate) AnalysisRx() {
 	}
 }
 
-func (c *CommunicationManageTemplate) CommunicationStateMachine(cmd CommunicationCmdTemplate) bool {
+func (c *CommunicationManageTemplate) CommunicationStateMachine(cmd CommunicationCmdTemplate) CommunicationRxTemplate {
 
-	status := false
+	rxData := CommunicationRxTemplate{
+		Status: false,
+	}
 
 	startT := time.Now() //计算当前时间
 	for _, v := range c.CollInterface.DeviceNodeMap {
@@ -174,15 +181,18 @@ func (c *CommunicationManageTemplate) CommunicationStateMachine(cmd Communicatio
 							}
 							rxTotalBufCnt = 0
 							rxTotalBuf = rxTotalBuf[0:0]
-							status = false
+
 							goto LoopCommonStep
 						}
 					//是否正确收到数据包
-					case <-v.AnalysisRx(v.Addr, v.VariableMap, rxTotalBuf, rxTotalBufCnt):
+					case rxStatus := <-v.AnalysisRx(v.Addr, v.VariableMap, rxTotalBuf, rxTotalBufCnt):
 						{
 							timerOut.Stop()
 							setting.Logger.Debugf("%v:rx ok", c.CollInterface.CollInterfaceName)
 							setting.Logger.Debugf("%v:rxbuf %X", c.CollInterface.CollInterfaceName, rxTotalBuf)
+
+							rxData.Status = rxStatus
+							rxData.RxBuf = rxTotalBuf
 
 							CommunicationMessage := CommunicationMessageTemplate{
 								CollName:  c.CollInterface.CollInterfaceName,
@@ -219,7 +229,6 @@ func (c *CommunicationManageTemplate) CommunicationStateMachine(cmd Communicatio
 
 							rxTotalBufCnt = 0
 							rxTotalBuf = rxTotalBuf[0:0]
-							status = true
 							goto LoopCommonStep
 						}
 					//继续接收数据
@@ -262,7 +271,7 @@ func (c *CommunicationManageTemplate) CommunicationStateMachine(cmd Communicatio
 		}
 	}
 
-	return status
+	return rxData
 }
 
 func (c *CommunicationManageTemplate) CommunicationManageDel() {
@@ -272,14 +281,13 @@ func (c *CommunicationManageTemplate) CommunicationManageDel() {
 		case cmd := <-c.EmergencyRequestChan:
 			{
 				setting.Logger.Infof("emergency chan collName %v nodeName %v funName %v", c.CollInterface.CollInterfaceName, cmd.DeviceName, cmd.FunName)
-				status := false
-				status = c.CommunicationStateMachine(cmd)
+				rxData := c.CommunicationStateMachine(cmd)
 
 				GetDeviceOnline()
 				GetDevicePacketLoss()
 
-				setting.Logger.Debugf("emergency chan status %v", status)
-				c.EmergencyAckChan <- status
+				setting.Logger.Debugf("emergency chan rxData %v", rxData)
+				c.EmergencyAckChan <- rxData
 			}
 		default:
 			{

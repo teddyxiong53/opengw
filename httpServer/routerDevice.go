@@ -672,7 +672,8 @@ func apiGetNodeReadVariable(context *gin.Context) {
 					cmd.DeviceName = c.DeviceNodeMap[nodeIndex].Name
 					cmd.FunName = "GetRealVariables"
 					cmd.FunPara = ""
-					if n.CommunicationManageAddEmergency(cmd) == true {
+					cmdRX := n.CommunicationManageAddEmergency(cmd)
+					if cmdRX.Status == true {
 						aParam.Code = "0"
 						aParam.Message = ""
 						aParam.Data = make([]VariableTemplate, 0)
@@ -897,6 +898,7 @@ func apiAddCommInterface(context *gin.Context) {
 		}
 		device.CommunicationSerialMap = append(device.CommunicationSerialMap, SerialInterface)
 		device.WriteCommSerialInterfaceListToJson()
+		device.CommunicationInterfaceMap = append(device.CommunicationInterfaceMap, SerialInterface)
 	case "TcpClient":
 		TcpClient := device.TcpClientInterfaceParam{}
 		err = json.Unmarshal(Param, &TcpClient)
@@ -913,6 +915,7 @@ func apiAddCommInterface(context *gin.Context) {
 
 		device.CommunicationTcpClientMap = append(device.CommunicationTcpClientMap, TcpClientInterface)
 		device.WriteCommTcpClientInterfaceListToJson()
+		device.CommunicationInterfaceMap = append(device.CommunicationInterfaceMap, TcpClientInterface)
 	case "IoOut":
 		IoOut := device.IoOutInterfaceParam{}
 		err = json.Unmarshal(Param, &IoOut)
@@ -928,6 +931,7 @@ func apiAddCommInterface(context *gin.Context) {
 		}
 		device.CommunicationIoOutMap = append(device.CommunicationIoOutMap, IoOutInterface)
 		device.WriteCommIoOutInterfaceListToJson()
+		device.CommunicationInterfaceMap = append(device.CommunicationInterfaceMap, IoOutInterface)
 	case "IoIn":
 		IoIn := device.IoInInterfaceParam{}
 		err = json.Unmarshal(Param, &IoIn)
@@ -943,6 +947,7 @@ func apiAddCommInterface(context *gin.Context) {
 		}
 		device.CommunicationIoInMap = append(device.CommunicationIoInMap, IoInInterface)
 		device.WriteCommIoInInterfaceListToJson()
+		device.CommunicationInterfaceMap = append(device.CommunicationInterfaceMap, IoInInterface)
 	}
 
 	aParam.Code = "0"
@@ -1476,7 +1481,8 @@ func apiInvokeService(context *gin.Context) {
 					cmd.FunName = serviceInfo.ServiceName
 					paramStr, _ := json.Marshal(serviceInfo.ServiceParam)
 					cmd.FunPara = string(paramStr)
-					if n.CommunicationManageAddEmergency(cmd) == true {
+					cmdRX := n.CommunicationManageAddEmergency(cmd)
+					if cmdRX.Status == true {
 						aParam.Code = "0"
 						aParam.Message = ""
 						sJson, _ := json.Marshal(aParam)

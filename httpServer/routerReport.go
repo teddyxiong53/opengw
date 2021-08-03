@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"goAdapter/report/mqttAliyun"
+	mqttEmqx "goAdapter/report/mqttEMQX"
 	"goAdapter/report/mqttHuawei"
 	"goAdapter/setting"
 	"net/http"
@@ -63,6 +64,11 @@ func apiSetReportGWParam(context *gin.Context) {
 		}
 		mqttAliyun.ReportServiceParamListAliyun.AddReportService(ReportServiceGWParamAliyun)
 	case "EMQX.MQTT":
+		ReportServiceGWParamEmqx := mqttEmqx.ReportServiceGWParamEmqxTemplate{}
+		if err := json.Unmarshal(bodyBuf[:n], &ReportServiceGWParamEmqx); err != nil {
+			fmt.Println("ReportServiceGWParamEmqx json unMarshall err,", err)
+		}
+		mqttEmqx.ReportServiceParamListEmqx.AddReportService(ReportServiceGWParamEmqx)
 	case "Huawei.MQTT":
 		ReportServiceGWParamHuawei := mqttHuawei.ReportServiceGWParamHuaweiTemplate{}
 		if err := json.Unmarshal(bodyBuf[:n], &ReportServiceGWParamHuawei); err != nil {
@@ -112,6 +118,20 @@ func apiGetReportGWParam(context *gin.Context) {
 	aParam.Message = ""
 
 	for _, v := range mqttAliyun.ReportServiceParamListAliyun.ServiceList {
+
+		ReportService := ReportServiceTemplate{}
+		ReportService.ServiceName = v.GWParam.ServiceName
+		ReportService.IP = v.GWParam.IP
+		ReportService.Port = v.GWParam.Port
+		ReportService.ReportTime = v.GWParam.ReportTime
+		ReportService.Protocol = v.GWParam.Protocol
+		ReportService.Param = v.GWParam.Param
+		ReportService.CommStatus = v.GWParam.ReportStatus
+
+		aParam.Data = append(aParam.Data, ReportService)
+	}
+
+	for _, v := range mqttEmqx.ReportServiceParamListEmqx.ServiceList {
 
 		ReportService := ReportServiceTemplate{}
 		ReportService.ServiceName = v.GWParam.ServiceName
@@ -180,6 +200,21 @@ func apiDeleteReportGWParam(context *gin.Context) {
 	for _, v := range mqttAliyun.ReportServiceParamListAliyun.ServiceList {
 		if v.GWParam.ServiceName == param.ServiceName {
 			mqttAliyun.ReportServiceParamListAliyun.DeleteReportService(param.ServiceName)
+
+			aParam.Code = "0"
+			aParam.Message = ""
+			aParam.Data = ""
+			sJson, _ := json.Marshal(aParam)
+
+			context.String(http.StatusOK, string(sJson))
+			return
+		}
+	}
+
+	//查看Emqx
+	for _, v := range mqttEmqx.ReportServiceParamListEmqx.ServiceList {
+		if v.GWParam.ServiceName == param.ServiceName {
+			mqttEmqx.ReportServiceParamListEmqx.DeleteReportService(param.ServiceName)
 
 			aParam.Code = "0"
 			aParam.Message = ""
@@ -268,9 +303,18 @@ func apiSetReportNodeWParam(context *gin.Context) {
 				v.AddReportNode(ReportServiceNodeParamAliyun)
 			}
 		}
-		setting.Logger.Debugf("ParamListAliyun %v\n", mqttAliyun.ReportServiceParamListAliyun.ServiceList)
+		setting.Logger.Debugf("ParamListAliyun %v", mqttAliyun.ReportServiceParamListAliyun.ServiceList)
 	case "EMQX.MQTT":
-
+		ReportServiceNodeParamEmqx := mqttEmqx.ReportServiceNodeParamEmqxTemplate{}
+		if err := json.Unmarshal(bodyBuf[:n], &ReportServiceNodeParamEmqx); err != nil {
+			setting.Logger.Errorf("ReportServiceNodeParamEmqx json unMarshall err,", err)
+		}
+		for _, v := range mqttEmqx.ReportServiceParamListEmqx.ServiceList {
+			if v.GWParam.ServiceName == param.ServiceName {
+				v.AddReportNode(ReportServiceNodeParamEmqx)
+			}
+		}
+		setting.Logger.Debugf("ParamListAliyun %v", mqttAliyun.ReportServiceParamListAliyun.ServiceList)
 	case "Huawei.MQTT":
 		ReportServiceNodeParamHuawei := mqttHuawei.ReportServiceNodeParamHuaweiTemplate{}
 		if err := json.Unmarshal(bodyBuf[:n], &ReportServiceNodeParamHuawei); err != nil {
@@ -415,6 +459,28 @@ func apiGetReportNodeWParam(context *gin.Context) {
 		}
 	}
 
+	for _, v := range mqttEmqx.ReportServiceParamListEmqx.ServiceList {
+		if v.GWParam.ServiceName == ServiceName {
+			ReportServiceNode := ReportServiceNodeTemplate{}
+			for _, d := range v.NodeList {
+				ReportServiceNode.ServiceName = d.ServiceName
+				ReportServiceNode.CollInterfaceName = d.CollInterfaceName
+				ReportServiceNode.Name = d.Name
+				ReportServiceNode.Addr = d.Addr
+				ReportServiceNode.Protocol = d.Protocol
+				ReportServiceNode.CommStatus = d.CommStatus
+				ReportServiceNode.ReportStatus = d.ReportStatus
+				ReportServiceNode.Param = d.Param
+				aParam.Data = append(aParam.Data, ReportServiceNode)
+			}
+			aParam.Code = "0"
+			aParam.Message = ""
+			sJson, _ := json.Marshal(aParam)
+			context.String(http.StatusOK, string(sJson))
+			return
+		}
+	}
+
 	for _, v := range mqttHuawei.ReportServiceParamListHuawei.ServiceList {
 		if v.GWParam.ServiceName == ServiceName {
 			ReportServiceNode := ReportServiceNodeTemplate{}
@@ -479,6 +545,26 @@ func apiDeleteReportNodeWParam(context *gin.Context) {
 
 	//查看Aliyun
 	for _, v := range mqttAliyun.ReportServiceParamListAliyun.ServiceList {
+		for _, n := range v.NodeList {
+			if (n.ServiceName == param.ServiceName) &&
+				(n.CollInterfaceName == param.CollInterfaceName) &&
+				(n.Addr == param.Addr) {
+
+				v.DeleteReportNode(param.Addr)
+
+				aParam.Code = "0"
+				aParam.Message = ""
+				aParam.Data = ""
+				sJson, _ := json.Marshal(aParam)
+
+				context.String(http.StatusOK, string(sJson))
+				return
+			}
+		}
+	}
+
+	//查看Emqx
+	for _, v := range mqttEmqx.ReportServiceParamListEmqx.ServiceList {
 		for _, n := range v.NodeList {
 			if (n.ServiceName == param.ServiceName) &&
 				(n.CollInterfaceName == param.CollInterfaceName) &&

@@ -2,6 +2,7 @@ package report
 
 import (
 	"goAdapter/report/mqttAliyun"
+	mqttEmqx "goAdapter/report/mqttEMQX"
 	"goAdapter/report/mqttHuawei"
 )
 
@@ -22,5 +23,8 @@ func ReportServiceInit() {
 
 	mqttAliyun.ReportServiceAliyunInit()
 
+	mqttEmqx.ReportServiceEmqxInit()
+
 	mqttHuawei.ReportServiceHuaweiInit()
+
 }
