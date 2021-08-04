@@ -27,7 +27,7 @@ func MQTTEmqxGWLogin(param ReportServiceGWParamEmqxTemplate, publishHandler MQTT
 	opts := MQTT.NewClientOptions().AddBroker(param.IP + ":" + param.Port)
 
 	opts.SetClientID(param.Param.ClientID)
-	opts.SetUsername(param.Param.Username)
+	opts.SetUsername(param.Param.UserName)
 	//hs256 := sha256.New()
 	//hs256.Write([]byte("zhsHrx123456@"))
 	//password := hs256.Sum(nil)

@@ -44,14 +44,16 @@ func MQTTHuaweiGWPropertyPost(client MQTT.Client, gw MQTTHuaweiRegisterTemplate,
 
 	propertyPostTopic := "$oc/devices/" + gw.DeviceID + "/sys/properties/report"
 
-	setting.Logger.Infof("gw property post topic: %s", propertyPostTopic)
-	setting.Logger.Debugf("gw property post msg: %v", sJson)
+	setting.Logger.Infof("huawei gw property post topic: %s", propertyPostTopic)
+	setting.Logger.Debugf("huawei gw property post msg: %v", sJson)
 	if client != nil {
 		token := client.Publish(propertyPostTopic, 1, false, sJson)
 		if token.WaitTimeout(2*time.Second) == true {
 			MsgID = 0
+			setting.Logger.Debugf("huawei gw property post msg sucess")
 		} else {
 			MsgID = 1
+			setting.Logger.Debugf("huawei gw property post msg fail")
 		}
 	}
 

@@ -40,7 +40,7 @@ type ReportServiceGWParamEmqxTemplate struct {
 	ReportErrCnt int
 	Protocol     string
 	Param        struct {
-		Username string
+		UserName string
 		Password string
 		ClientID string
 	}

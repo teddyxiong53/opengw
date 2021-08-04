@@ -46,7 +46,7 @@ var SystemState = SystemStateTemplate{
 	Name:             "openGW",
 	SN:               "22005260001",
 	HardVer:          "openGW-V.A",
-	SoftVer:          "V0.2.0",
+	SoftVer:          "V0.3.1",
 	SystemRTC:        "2020-05-26 12:00:00",
 	RunTime:          "0",
 	DeviceOnline:     "0",
