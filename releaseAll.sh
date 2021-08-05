@@ -1,8 +1,8 @@
 make linux-armv5
-cp openGW ../Release/linux-armv5/
+cp openGW_armV5 ../Release/
 make linux-arm64
-cp openGW ../Release/linux-arm64/
+cp openGW_arm64 ../Release/
 make linux-amd64
-cp openGW ../Release/linux-amd64/
+cp openGW_linux64 ../Release/
 make windows-amd64
-cp openGW.exe ../Release/windows-amd64/
+cp openGW_win64.exe ../Release/

@@ -7,3 +7,7 @@ log/
 .DS_Store
 openGW
 openGW.exe
+openGW_arm64
+openGW_armV5
+openGW_linux64
+openGW_win64.exe
