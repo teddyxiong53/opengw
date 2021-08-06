@@ -265,7 +265,7 @@ func (r *ReportServiceParamEmqxTemplate) ProcessDownLinkFrame() {
 				//setting.Logger.Debugf("Recv TOPIC: %s", frame.Topic)
 				//setting.Logger.Debugf("Recv MSG: %v", frame.Payload)
 
-				if strings.Contains(frame.Topic, "/thing/event/property/pack/post_reply") { //网关、子设备上报属性回应
+				if strings.Contains(frame.Topic, "/sys/thing/event/property/post_reply") { //网关、子设备上报属性回应
 
 					ackFrame := MQTTEmqxReportPropertyAckTemplate{}
 					err := json.Unmarshal(frame.Payload, &ackFrame)
@@ -274,7 +274,7 @@ func (r *ReportServiceParamEmqxTemplate) ProcessDownLinkFrame() {
 						return
 					}
 					r.ReceiveReportPropertyAckFrameChan <- ackFrame
-				} else if strings.Contains(frame.Topic, "/combine/batch_login_reply") { //子设备上线回应
+				} else if strings.Contains(frame.Topic, "/sys/thing/event/login/post_reply") { //子设备上线回应
 
 					ackFrame := MQTTEmqxLogInAckTemplate{}
 					err := json.Unmarshal(frame.Payload, &ackFrame)
@@ -283,7 +283,7 @@ func (r *ReportServiceParamEmqxTemplate) ProcessDownLinkFrame() {
 						return
 					}
 					r.ReceiveLogInAckFrameChan <- ackFrame
-				} else if strings.Contains(frame.Topic, "/combine/batch_logout_reply") { //子设备下线回应
+				} else if strings.Contains(frame.Topic, "/sys/thing/event/logout/post_reply") { //子设备下线回应
 
 					ackFrame := MQTTEmqxLogOutAckTemplate{}
 					err := json.Unmarshal(frame.Payload, &ackFrame)
@@ -385,7 +385,9 @@ func (r *ReportServiceParamEmqxTemplate) ReportTimeFun() {
 		//全部末端设备上报
 		nodeName := make([]string, 0)
 		for _, v := range r.NodeList {
-			nodeName = append(nodeName, v.Name)
+			if v.CommStatus == "onLine" {
+				nodeName = append(nodeName, v.Name)
+			}
 		}
 		setting.Logger.Debugf("report Nodes %v", nodeName)
 		if len(nodeName) > 0 {
