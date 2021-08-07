@@ -35,7 +35,7 @@ func MQTTEmqxNodeLogOut(param ReportServiceGWParamEmqxTemplate, nodeMap []string
 	}
 
 	//批量注册
-	LogoutInTopic := "/sys/thing/event/Logout/post/" + param.Param.ClientID
+	LogoutInTopic := "/sys/thing/event/logout/post/" + param.Param.ClientID
 
 	sJson, _ := json.Marshal(nodeLogout)
 	if len(nodeLogout.Params) > 0 {
@@ -61,7 +61,7 @@ func (r *ReportServiceParamEmqxTemplate) NodeLogOut(name []string) bool {
 	for _, d := range name {
 		for _, v := range r.NodeList {
 			if d == v.Name {
-				nodeMap = append(nodeMap, v.Name)
+				nodeMap = append(nodeMap, v.Param.ClientID)
 
 				MQTTEmqxNodeLogOut(r.GWParam, nodeMap)
 				select {

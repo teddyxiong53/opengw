@@ -137,7 +137,7 @@ func (r *ReportServiceParamEmqxTemplate) NodeLogIn(name []string) bool {
 	for _, d := range name {
 		for _, v := range r.NodeList {
 			if d == v.Name {
-				nodeMap = append(nodeMap, v.Name)
+				nodeMap = append(nodeMap, v.Param.ClientID)
 
 				MQTTEmqxNodeLoginIn(r.GWParam, nodeMap)
 				select {
