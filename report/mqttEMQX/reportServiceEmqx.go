@@ -404,19 +404,19 @@ func (r *ReportServiceParamEmqxTemplate) ReportTimeFun() {
 func (r *ReportServiceParamEmqxTemplate) ReportOfflineTimeFun() {
 
 	setting.Logger.Infof("service:%s CheckReportOffline", r.GWParam.ServiceName)
-	if r.GWParam.ReportErrCnt >= 3 {
-		r.GWParam.ReportStatus = "offLine"
-		r.GWParam.ReportErrCnt = 0
-		setting.Logger.Warningf("service:%s gw offline", r.GWParam.ServiceName)
-	}
-
-	for k, v := range r.NodeList {
-		if v.ReportErrCnt >= 3 {
-			r.NodeList[k].ReportStatus = "offLine"
-			r.NodeList[k].ReportErrCnt = 0
-			setting.Logger.Warningf("service:%s %s offline", v.ServiceName, v.Name)
-		}
-	}
+	//if r.GWParam.ReportErrCnt >= 3 {
+	//	r.GWParam.ReportStatus = "offLine"
+	//	r.GWParam.ReportErrCnt = 0
+	//	setting.Logger.Warningf("service:%s gw offline", r.GWParam.ServiceName)
+	//}
+	//
+	//for k, v := range r.NodeList {
+	//	if v.ReportErrCnt >= 3 {
+	//		r.NodeList[k].ReportStatus = "offLine"
+	//		r.NodeList[k].ReportErrCnt = 0
+	//		setting.Logger.Warningf("service:%s %s offline", v.ServiceName, v.Name)
+	//	}
+	//}
 }
 
 func ReportServiceEmqxPoll(r *ReportServiceParamEmqxTemplate) {
