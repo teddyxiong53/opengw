@@ -290,7 +290,26 @@ func (d *DeviceNodeTemplate) AnalysisRx(sAddr string, variables []VariableTempla
 								variables[k].Label = lv.Label
 								variables[k].Type = lv.Type
 
-								value.Value = lv.Value
+								switch lv.Type {
+								case "uint8":
+									value.Value = (uint8)(lv.Value.(float64))
+								case "uint16":
+									value.Value = (uint16)(lv.Value.(float64))
+								case "uint32":
+									value.Value = (uint32)(lv.Value.(float64))
+								case "uint64":
+									value.Value = (uint64)(lv.Value.(float64))
+								case "int8":
+									value.Value = (int8)(lv.Value.(float64))
+								case "int16":
+									value.Value = (int16)(lv.Value.(float64))
+								case "int32":
+									value.Value = (int32)(lv.Value.(float64))
+								case "int64":
+									value.Value = (int64)(lv.Value.(float64))
+								case "string":
+									value.Value = lv.Value.(string)
+								}
 								value.Explain = lv.Explain
 								value.TimeStamp = timeNowStr
 

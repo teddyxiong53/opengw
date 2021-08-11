@@ -122,7 +122,7 @@ func (r *ReportServiceParamEmqxTemplate) ReportServiceEmqxProcessReadProperty(re
 											ReadStatus = false
 											for _, p := range v.Properties {
 												property.Name = p.Name
-												property.Value = 1
+												property.Value = -1
 												ackParam.Properties = append(ackParam.Properties, property)
 											}
 										}
