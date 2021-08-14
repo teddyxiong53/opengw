@@ -189,7 +189,7 @@ func MQTTAliyunGWPropertyPost(client MQTT.Client, gw MQTTAliyunRegisterTemplate,
 	propertyPostTopic := "/sys/" + gw.ProductKey + "/" + gw.DeviceName + "/thing/event/property/pack/post"
 
 	setting.Logger.Infof("gw property post topic: %s", propertyPostTopic)
-	setting.Logger.Debugf("gw property post msg: %v", sJson)
+	setting.Logger.Debugf("gw property post msg: %s", sJson)
 	if client != nil {
 		token := client.Publish(propertyPostTopic, 0, false, sJson)
 		token.Wait()

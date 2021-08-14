@@ -111,16 +111,16 @@ func MQTTEmqxNodeLoginIn(param ReportServiceGWParamEmqxTemplate, nodeMap []strin
 	}
 
 	//批量注册
-	loginInTopic := "/sys/thing/event/login/post/" + param.Param.ClientID
+	loginTopic := "/sys/thing/event/login/post/" + param.Param.ClientID
 
 	sJson, _ := json.Marshal(nodeLogin)
 	if len(nodeLogin.Params) > 0 {
 
 		setting.Logger.Debugf("node publish logInMsg: %s", sJson)
-		setting.Logger.Infof("node publish topic: %s", loginInTopic)
+		setting.Logger.Infof("node publish topic: %s", loginTopic)
 
 		if param.MQTTClient != nil {
-			token := param.MQTTClient.Publish(loginInTopic, 0, false, sJson)
+			token := param.MQTTClient.Publish(loginTopic, 0, false, sJson)
 			token.Wait()
 		}
 	}

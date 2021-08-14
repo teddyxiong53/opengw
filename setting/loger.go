@@ -52,7 +52,7 @@ func (df *DefaultFieldsHook) Fire(entry *logrus.Entry) error {
 			if entry.Caller != nil {
 				line = entry.Caller.Line
 			}
-			entry.Data["timeStamp"] = time.Now().Local().Format("01-02T15:04:05.000")
+			entry.Data["goTimeStamp"] = time.Now().Local().Format("01-02T15:04:05.000")
 			entry.Data["goRoutineID"] = getGoRoutineID()
 			entry.Data["fileLine"] = fmt.Sprintf("%d", line)
 		}

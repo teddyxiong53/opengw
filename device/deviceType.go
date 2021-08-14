@@ -9,6 +9,8 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/yuin/gluamapper"
+
 	lua "github.com/yuin/gopher-lua"
 )
 
@@ -30,43 +32,23 @@ type DeviceNodeTypeLuaState struct {
 	CollName string
 }
 
+type DeviceNodeTypeVariableTemplate struct {
+	Index int
+	Name  string
+	Label string
+	Type  string
+}
+
+type DeviceNodeTypeVariableMapTemplate struct {
+	TemplateType string
+	Variable     []DeviceNodeTypeVariableTemplate
+}
+
 var DeviceNodeTypeMap = DeviceNodeTypeMapStruct{
 	DeviceNodeType: make([]DeviceNodeTypeTemplate, 0),
 }
-
 var DeviceTypePluginMap = make(map[int]*lua.LState)
-
-func init() {
-
-}
-
-//func updataDeviceType(path string, fileName []string) ([]string, error) {
-//
-//	rd, err := ioutil.ReadDir(path)
-//	if err != nil {
-//		log.Println("readDir err,", err)
-//		return fileName, err
-//	}
-//
-//	for _, fi := range rd {
-//		setting.Logger.Debugf("fi %v", fi.Name())
-//		if fi.IsDir() {
-//			fullDir := path + "/" + fi.Name()
-//			fileName, _ = updataDeviceType(fullDir, fileName)
-//		} else {
-//			fullName := path + "/" + fi.Name()
-//			if strings.Contains(fi.Name(), ".json") {
-//				//log.Println("fullName ",fullName)
-//				fileName = append(fileName, fullName)
-//			} else if strings.Contains(fi.Name(), ".lua") {
-//				//log.Println("fullName ",fullName)
-//				fileName = append(fileName, fullName)
-//			}
-//		}
-//	}
-//
-//	return fileName, nil
-//}
+var DeviceNodeTypeVariableMap = make([]DeviceNodeTypeVariableMapTemplate, 0)
 
 func ReadDeviceNodeTypeMap() bool {
 
@@ -168,8 +150,63 @@ func ReadDeviceNodeTypeMap() bool {
 					}
 				}
 			}
+
+			for _, f := range fileMap {
+				if strings.Contains(f.Name(), ".lua") {
+					if strings.Contains(f.Name(), v.Name()) == false { //lua文件和设备模版名字不一样
+						//获取设备模板中的变量
+						ReadDeviceNodeTypeVariableMap(v.Name(), DeviceTypePluginMap[index])
+					}
+				}
+			}
 		}
 	}
 
 	return true
+}
+
+func ReadDeviceNodeTypeVariableMap(templateType string, l *lua.LState) {
+
+	type LuaVariableTemplate struct {
+		Index int
+		Name  string
+		Label string
+		Type  string
+	}
+
+	type LuaVariableMapTemplate struct {
+		Variable []*LuaVariableTemplate
+	}
+
+	//调用NewVariables
+	err := l.CallByParam(lua.P{
+		Fn:      l.GetGlobal("NewVariables"),
+		NRet:    1,
+		Protect: true,
+	})
+	if err != nil {
+		setting.Logger.Warning("NewVariables err,", err)
+	}
+
+	//获取返回结果
+	ret := l.Get(-1)
+	l.Pop(1)
+
+	LuaVariableMap := DeviceNodeTypeVariableMapTemplate{}
+
+	if err := gluamapper.Map(ret.(*lua.LTable), &LuaVariableMap); err != nil {
+		setting.Logger.Warning("NewVariables gluamapper.Map err,", err)
+	}
+
+	TypeVariableMap := DeviceNodeTypeVariableMapTemplate{}
+	TypeVariableMap.TemplateType = templateType
+	for _, v := range LuaVariableMap.Variable {
+		variable := DeviceNodeTypeVariableTemplate{}
+		variable.Index = v.Index
+		variable.Name = v.Name
+		variable.Label = v.Label
+		variable.Type = v.Type
+		TypeVariableMap.Variable = append(TypeVariableMap.Variable, variable)
+	}
+	DeviceNodeTypeVariableMap = append(DeviceNodeTypeVariableMap, TypeVariableMap)
 }

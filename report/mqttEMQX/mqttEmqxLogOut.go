@@ -35,16 +35,16 @@ func MQTTEmqxNodeLogOut(param ReportServiceGWParamEmqxTemplate, nodeMap []string
 	}
 
 	//批量注册
-	LogoutInTopic := "/sys/thing/event/logout/post/" + param.Param.ClientID
+	LogoutTopic := "/sys/thing/event/logout/post/" + param.Param.ClientID
 
 	sJson, _ := json.Marshal(nodeLogout)
 	if len(nodeLogout.Params) > 0 {
 
 		setting.Logger.Debugf("node publish LogoutMsg: %s", sJson)
-		setting.Logger.Infof("node publish topic: %s", LogoutInTopic)
+		setting.Logger.Infof("node publish topic: %s", LogoutTopic)
 
 		if param.MQTTClient != nil {
-			token := param.MQTTClient.Publish(LogoutInTopic, 0, false, sJson)
+			token := param.MQTTClient.Publish(LogoutTopic, 0, false, sJson)
 			token.Wait()
 		}
 	}

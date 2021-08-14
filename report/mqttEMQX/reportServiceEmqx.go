@@ -440,9 +440,6 @@ func ReportServiceEmqxPoll(r *ReportServiceParamEmqxTemplate) {
 	_ = cronProcess.AddFunc(reportOfflineTime, r.ReportOfflineTimeFun)
 	_ = cronProcess.AddFunc(reportTime, r.ReportTimeFun)
 
-	cronProcess.Start()
-	defer cronProcess.Stop()
-
 	go r.ProcessUpLinkFrame()
 
 	go r.ProcessDownLinkFrame()
@@ -454,7 +451,7 @@ func ReportServiceEmqxPoll(r *ReportServiceParamEmqxTemplate) {
 			{
 				if r.GWLogin() == true {
 					reportState = 1
-
+					cronProcess.Start()
 				} else {
 					time.Sleep(5 * time.Second)
 				}
@@ -465,6 +462,7 @@ func ReportServiceEmqxPoll(r *ReportServiceParamEmqxTemplate) {
 				if r.GWParam.ReportStatus == "offLine" {
 					reportState = 0
 					r.GWParam.ReportErrCnt = 0
+					cronProcess.Stop()
 				}
 
 				//for k, v := range r.NodeList {

@@ -142,6 +142,9 @@ func RouterWeb() {
 			//获取设备模板
 			deviceRouter.GET("/template", apiGetTemplate)
 
+			//获取设备模板变量
+			deviceRouter.GET("/templateVariable", apiGetTemplateVariable)
+
 			//获取通信接口
 			deviceRouter.GET("/commInterface", apiGetCommInterface)
 

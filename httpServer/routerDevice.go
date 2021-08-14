@@ -846,6 +846,35 @@ func apiGetTemplate(context *gin.Context) {
 	context.String(http.StatusOK, string(sJson))
 }
 
+func apiGetTemplateVariable(context *gin.Context) {
+
+	templateType := context.Query("TemplateType")
+
+	aParam := &struct {
+		Code    string
+		Message string
+		Data    device.DeviceNodeTypeVariableMapTemplate
+	}{}
+
+	for _, v := range device.DeviceNodeTypeVariableMap {
+		if v.TemplateType == templateType {
+			aParam.Code = "0"
+			aParam.Message = ""
+			aParam.Data = v
+
+			sJson, _ := json.Marshal(aParam)
+			context.String(http.StatusOK, string(sJson))
+			return
+		}
+	}
+
+	aParam.Code = "1"
+	aParam.Message = "TemplateType is not exist"
+	aParam.Data = device.DeviceNodeTypeVariableMapTemplate{}
+	sJson, _ := json.Marshal(aParam)
+	context.String(http.StatusOK, string(sJson))
+}
+
 func apiAddCommInterface(context *gin.Context) {
 
 	aParam := struct {
