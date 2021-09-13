@@ -1,12 +1,18 @@
+/*
+@Description: This is auto comment by koroFileHeader.
+@Author: Linn
+@Date: 2021-09-10 09:28:15
+@LastEditors: WalkMiao
+@LastEditTime: 2021-09-13 13:42:09
+@FilePath: /goAdapter-Raw/device/commIoIn.go
+*/
 package device
 
 import (
-	"encoding/json"
-	"goAdapter/setting"
-	"io"
-	"log"
+	"fmt"
 	"os"
-	"path/filepath"
+
+	"github.com/pkg/errors"
 )
 
 type IoInInterfaceParam struct {
@@ -15,76 +21,70 @@ type IoInInterfaceParam struct {
 }
 
 type CommunicationIoInTemplate struct {
-	Name  string             `json:"Name"`  //接口名称
-	Type  string             `json:"Type"`  //接口类型,比如serial,IoIn,udp,http
-	Param IoInInterfaceParam `json:"Param"` //接口参数
+	Name  string              `json:"Name"`  //接口名称
+	Type  string              `json:"Type"`  //接口类型,比如serial,IoIn,udp,http
+	Param *IoInInterfaceParam `json:"Param"` //接口参数
+	err   error               `json:"-"`
 }
 
-var CommunicationIoInMap = make([]*CommunicationIoInTemplate, 0)
+var _ CommunicationInterface = (*CommunicationIoInTemplate)(nil)
 
-func (c *CommunicationIoInTemplate) Open() bool {
+func (c *CommunicationIoInTemplate) Error() error {
+	return c.err
+}
+
+func (c *CommunicationIoInTemplate) Unique() string {
+	return fmt.Sprintf("type:%s ioin:%s", c.Type, c.Param.Name)
+}
+func (c *CommunicationIoInTemplate) Open() error {
 
 	fd, err := os.OpenFile(c.Param.Name, os.O_RDWR, 0777)
 	if err != nil {
-		setting.Logger.Errorf("IoIn open err,%v", err)
-		return false
+		c.err = err
+		return err
 	}
 	c.Param.FD = fd
 
-	return true
+	return nil
 }
 
-func (c *CommunicationIoInTemplate) Close() bool {
+func (c *CommunicationIoInTemplate) Close() error {
 
-	if c.Param.FD != nil {
-		err := c.Param.FD.Close()
-		if err != nil {
-			setting.Logger.Errorf("IoIn close err,%v", err)
-			return false
-		}
+	if c.Param.FD == nil {
+		return errors.New("tcp client conn is not initialized")
 	}
-
-	return true
+	return c.Param.FD.Close()
 }
 
-func (c *CommunicationIoInTemplate) WriteData(data []byte) int {
+func (c *CommunicationIoInTemplate) Write(data []byte) (i int, err error) {
 
-	if c.Param.FD != nil {
-		//setting.Logger.Debugf("IoIn write %v", data)
-		if len(data) > 0 {
-			_, err := c.Param.FD.Write(data)
-			if err != nil {
-				setting.Logger.Errorf("IoIn write err,%v", err)
-			}
-		}
-		return 0
+	if c.Param.FD == nil {
+		err = errors.New("tcp client conn is not initialized")
+		return
 	}
-	return 0
+	return c.Param.FD.Write(data)
 }
 
-func (c *CommunicationIoInTemplate) ReadData(data []byte) int {
+func (c *CommunicationIoInTemplate) Read(data []byte) (i int, err error) {
 
-	if c.Param.FD != nil {
-		_, err := c.Param.FD.Seek(0, 0)
-		if err != nil {
-			setting.Logger.Errorf("IoIn seek err,%v", err)
-		}
-		cnt, err := c.Param.FD.Read(data)
-		if err != nil {
-			if err != io.EOF {
-				setting.Logger.Errorf("IoIn read err,%v", err)
-			}
-		}
-		//if cnt > 0 {
-		//	setting.Logger.Errorf("IoIn read data,%v", data[:cnt])
-		//}
-		return cnt
+	if c.Param.FD == nil {
+		err = errors.New("tcp client conn is not initialized")
+		return
 	}
-	return 0
+
+	return c.Param.FD.Read(data)
+
 }
 
 func (c *CommunicationIoInTemplate) GetName() string {
 	return c.Name
+}
+
+func (c *CommunicationIoInTemplate) GetType() string {
+	return c.Type
+}
+func (c *CommunicationIoInTemplate) GetParam() interface{} {
+	return c.Param
 }
 
 func (c *CommunicationIoInTemplate) GetTimeOut() string {
@@ -93,65 +93,4 @@ func (c *CommunicationIoInTemplate) GetTimeOut() string {
 
 func (c *CommunicationIoInTemplate) GetInterval() string {
 	return ""
-}
-
-func ReadCommIoInInterfaceListFromJson() bool {
-
-	exeCurDir, _ := filepath.Abs(filepath.Dir(os.Args[0]))
-	fileDir := exeCurDir + "/selfpara/commIoInInterface.json"
-
-	if fileExist(fileDir) == true {
-		fp, err := os.OpenFile(fileDir, os.O_RDONLY, 0777)
-		if err != nil {
-			log.Println("open commIoInInterface.json err", err)
-			return false
-		}
-		defer func(fp *os.File) {
-			err = fp.Close()
-			if err != nil {
-
-			}
-		}(fp)
-
-		data := make([]byte, 20480)
-		dataCnt, err := fp.Read(data)
-
-		err = json.Unmarshal(data[:dataCnt], &CommunicationIoInMap)
-		if err != nil {
-			log.Println("commIoInInterface unmarshal err", err)
-			return false
-		}
-		return true
-	} else {
-		setting.Logger.Infof("commIoInInterface.json is not exist")
-
-		return false
-	}
-}
-
-func WriteCommIoInInterfaceListToJson() {
-
-	exeCurDir, _ := filepath.Abs(filepath.Dir(os.Args[0]))
-
-	fileDir := exeCurDir + "/selfpara/commIoInInterface.json"
-
-	fp, err := os.OpenFile(fileDir, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0777)
-	if err != nil {
-		log.Println("open commIoInInterface.json err", err)
-		return
-	}
-	defer func(fp *os.File) {
-		err = fp.Close()
-		if err != nil {
-
-		}
-	}(fp)
-
-	sJson, _ := json.Marshal(CommunicationIoInMap)
-
-	_, err = fp.Write(sJson)
-	if err != nil {
-		log.Println("write commIoInInterface.json err", err)
-	}
-	setting.Logger.Infof("write commIoInInterface.json sucess")
 }

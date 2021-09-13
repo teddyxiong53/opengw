@@ -1,11 +1,7 @@
 package device
 
 import (
-	"encoding/json"
-	"goAdapter/setting"
-	"log"
-	"os"
-	"path/filepath"
+	"fmt"
 	"strconv"
 	"time"
 
@@ -23,18 +19,22 @@ type SerialInterfaceParam struct {
 }
 
 type CommunicationSerialTemplate struct {
-	Name  string               `json:"Name"`  //接口名称
-	Type  string               `json:"Type"`  //接口类型,比如serial,tcp,udp,http
-	Param SerialInterfaceParam `json:"Param"` //接口参数
-	Port  *serial.Port         `json:"-"`     //通信句柄
+	Name  string                `json:"Name"`  //接口名称
+	Type  string                `json:"Type"`  //接口类型,比如serial,tcp,udp,http
+	Param *SerialInterfaceParam `json:"Param"` //接口参数
+	Port  *serial.Port          `json:"-"`     //通信句柄
+	err   error                 `json:"-"`
 }
 
-var CommunicationSerialMap = make([]*CommunicationSerialTemplate, 0)
+var _ CommunicationInterface = (*CommunicationSerialTemplate)(nil)
 
-func (c *CommunicationSerialTemplate) Open() bool {
+func (c *CommunicationSerialTemplate) Open() error {
 
 	serialParam := c.Param
-	serialBaud, _ := strconv.Atoi(serialParam.BaudRate)
+	serialBaud, err := strconv.Atoi(serialParam.BaudRate)
+	if err != nil {
+		return err
+	}
 
 	var serialParity serial.Parity
 	switch serialParam.Parity {
@@ -61,57 +61,49 @@ func (c *CommunicationSerialTemplate) Open() bool {
 		Baud:        serialBaud,
 		Parity:      serialParity,
 		StopBits:    serialStop,
-		ReadTimeout: time.Millisecond * 1,
+		ReadTimeout: time.Millisecond * 10,
 	}
 
-	var err error
 	c.Port, err = serial.OpenPort(serialConfig)
 	if err != nil {
-		setting.Logger.Errorf("open serial err %v", err)
-		return false
-	} else {
-		setting.Logger.Debugf("open serial %s ok", c.Param.Name)
+		c.err = err
+		return err
+	}
+	return nil
+}
+
+func (c *CommunicationSerialTemplate) Close() error {
+	return c.Port.Close()
+}
+
+func (c *CommunicationSerialTemplate) Write(data []byte) (i int, err error) {
+	if c.Port == nil {
+		err = fmt.Errorf("port %s is not initialized", c.Param.Name)
+		return
 	}
 
-	return true
+	return c.Port.Write(data)
 }
 
-func (c *CommunicationSerialTemplate) Close() bool {
-
-	return true
-}
-
-func (c *CommunicationSerialTemplate) WriteData(data []byte) int {
-
-	//log.Printf("len is %d\n",len(data))
-	//log.Printf("c %+v\n",c)
+func (c *CommunicationSerialTemplate) Read(data []byte) (i int, err error) {
 
 	if c.Port == nil {
-		setting.Logger.Errorf("serial writeData err")
-		return 0
+		err = fmt.Errorf("port %s is not initialized", c.Param.Name)
+		return
 	}
 
-	cnt, err := c.Port.Write(data)
-	if err != nil {
-		log.Println(err)
-	}
-
-	return cnt
-}
-
-func (c *CommunicationSerialTemplate) ReadData(data []byte) int {
-
-	if c.Port == nil {
-		return 0
-	}
-
-	cnt, _ := c.Port.Read(data)
-
-	return cnt
+	return c.Port.Read(data)
 }
 
 func (c *CommunicationSerialTemplate) GetName() string {
 	return c.Name
+}
+func (c *CommunicationSerialTemplate) GetType() string {
+	return c.Type
+}
+
+func (c *CommunicationSerialTemplate) GetParam() interface{} {
+	return c.Param
 }
 
 func (c *CommunicationSerialTemplate) GetTimeOut() string {
@@ -122,64 +114,10 @@ func (c *CommunicationSerialTemplate) GetInterval() string {
 	return c.Param.Interval
 }
 
-//func NewCommunicationSerialTemplate(commName, commType string, param SerialInterfaceParam) *CommunicationSerialTemplate {
-//
-//	return &CommunicationSerialTemplate{
-//		Param: param,
-//		CommunicationTemplate: CommunicationTemplate{
-//			Name: commName,
-//			Type: commType,
-//		},
-//	}
-//}
-
-func ReadCommSerialInterfaceListFromJson() bool {
-
-	exeCurDir, _ := filepath.Abs(filepath.Dir(os.Args[0]))
-	fileDir := exeCurDir + "/selfpara/commSerialInterface.json"
-
-	if fileExist(fileDir) == true {
-		fp, err := os.OpenFile(fileDir, os.O_RDONLY, 0777)
-		if err != nil {
-			log.Println("open commSerialInterface.json err", err)
-			return false
-		}
-		defer fp.Close()
-
-		data := make([]byte, 20480)
-		dataCnt, err := fp.Read(data)
-
-		err = json.Unmarshal(data[:dataCnt], &CommunicationSerialMap)
-		if err != nil {
-			log.Println("commSerialInterface unmarshal err", err)
-			return false
-		}
-		return true
-	} else {
-		log.Println("commSerialInterface.json is not exist")
-
-		return false
-	}
+func (c *CommunicationSerialTemplate) Error() error {
+	return c.err
 }
 
-func WriteCommSerialInterfaceListToJson() {
-
-	exeCurDir, _ := filepath.Abs(filepath.Dir(os.Args[0]))
-
-	fileDir := exeCurDir + "/selfpara/commSerialInterface.json"
-
-	fp, err := os.OpenFile(fileDir, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0777)
-	if err != nil {
-		log.Println("open commSerialInterface.json err", err)
-		return
-	}
-	defer fp.Close()
-
-	sJson, _ := json.Marshal(CommunicationSerialMap)
-
-	_, err = fp.Write(sJson)
-	if err != nil {
-		log.Println("write commSerialInterface.json err", err)
-	}
-	log.Println("write commSerialInterface.json sucess")
+func (c *CommunicationSerialTemplate) Unique() string {
+	return fmt.Sprintf("type:%s serial:%s", c.Type, c.Param.Name)
 }
