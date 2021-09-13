@@ -8,6 +8,17 @@ import (
 	"sync"
 )
 
+type LuaFuncMap map[string]lua.LGFunction
+type TemplateID string
+
+var (
+	CommonLuaFuncMap = LuaFuncMap{
+		"GetCRCModbus":   GetCRCModbus,
+		"CheckCRCModbus": CheckCRCModbus,
+		"ParseByte":      ParseByte,
+	}
+)
+
 type crc struct {
 	once  sync.Once
 	table []uint16
@@ -206,4 +217,23 @@ func LuaOpenFile(filePath string) (*lua.LState, error) {
 	err := lState.DoFile(filePath)
 
 	return lState, err
+}
+
+func ParseByte(L *lua.LState) int {
+	byteTemp := struct {
+		Value *byte
+	}{}
+	lv := L.ToTable(1)
+	if err := gluamapper.Map(lv, &byteTemp); err != nil {
+		Logger.Error("parseByte gluamapper Map error:%v", err)
+	}
+
+	var t = L.NewTable()
+	v := byteTemp.Value
+	for i := 0; i < 8; i++ {
+		n := lua.LNumber((*v) >> i & 0x1)
+		t.Append(n)
+	}
+	L.Push(t)
+	return 1
 }
