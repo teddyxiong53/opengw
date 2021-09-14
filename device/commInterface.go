@@ -3,7 +3,7 @@
 @Author: Linn
 @Date: 2021-09-10 09:28:15
 @LastEditors: WalkMiao
-@LastEditTime: 2021-09-13 13:35:47
+@LastEditTime: 2021-09-14 09:55:35
 @FilePath: /goAdapter-Raw/device/commInterface.go
 */
 package device
