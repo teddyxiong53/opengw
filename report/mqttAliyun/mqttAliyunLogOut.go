@@ -1,7 +1,7 @@
 package mqttAliyun
 
 import (
-	"goAdapter/setting"
+	"goAdapter/pkg/mylog"
 	"time"
 )
 
@@ -16,7 +16,7 @@ func (r *ReportServiceParamAliyunTemplate) NodeLogOut(name []string) bool {
 		for _, v := range r.NodeList {
 			if d == v.Name {
 				if v.ReportStatus == "offLine" {
-					setting.Logger.Infof("service:%s %s is already offLine", r.GWParam.ServiceName, v.Name)
+					mylog.Logger.Infof("service:%s %s is already offLine", r.GWParam.ServiceName, v.Name)
 				} else {
 					nodeParam.DeviceSecret = v.Param.DeviceSecret
 					nodeParam.DeviceName = v.Param.DeviceName

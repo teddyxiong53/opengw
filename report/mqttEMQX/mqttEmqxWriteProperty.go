@@ -3,7 +3,7 @@ package mqttEmqx
 import (
 	"encoding/json"
 	"goAdapter/device"
-	"goAdapter/setting"
+	"goAdapter/pkg/mylog"
 )
 
 type MQTTEmqxWritePropertyRequestParamPropertyTemplate struct {
@@ -42,8 +42,8 @@ func (r *ReportServiceParamEmqxTemplate) ReportServiceEmqxWritePropertyAck(reqFr
 	sJson, _ := json.Marshal(ackFrame)
 	propertyPostTopic := "/sys/thing/event/property/set_reply/" + r.GWParam.Param.ClientID
 
-	setting.Logger.Infof("property set_reply topic: %s", propertyPostTopic)
-	setting.Logger.Debugf("property set_reply: %v", string(sJson))
+	mylog.Logger.Infof("property set_reply topic: %s", propertyPostTopic)
+	mylog.Logger.Debugf("property set_reply: %v", string(sJson))
 	if r.GWParam.MQTTClient != nil {
 		token := r.GWParam.MQTTClient.Publish(propertyPostTopic, 0, false, sJson)
 		token.Wait()
@@ -62,7 +62,7 @@ func (r *ReportServiceParamEmqxTemplate) ReportServiceEmqxProcessWriteProperty(r
 				//从上报节点中找到相应节点
 				for _, coll := range device.CollectInterfaceMap {
 					if coll.CollInterfaceName == node.CollInterfaceName {
-						for _, n := range coll.DeviceNodeMap {
+						for _, n := range coll.DeviceNodes {
 							if n.Name == node.Name {
 								//从采集服务中找到相应节点
 								cmd := device.CommunicationCmdTemplate{}
@@ -79,10 +79,10 @@ func (r *ReportServiceParamEmqxTemplate) ReportServiceEmqxProcessWriteProperty(r
 									ClientID: node.Param.ClientID,
 								}
 								property := MQTTEmqxWritePropertyRequestParamPropertyTemplate{}
-								for _, comm := range device.CommunicationManage {
+								for _, comm := range device.CommunicationManage.ManagerTemp {
 									if comm.CollInterface == coll {
 										ackData := comm.CommunicationManageAddEmergency(cmd)
-										if ackData.Status {
+										if ackData.Err == nil {
 											writeStatus = true
 											for _, p := range v.Properties {
 												property.Name = p.Name

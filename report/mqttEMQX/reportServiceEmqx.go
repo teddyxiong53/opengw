@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"goAdapter/device"
-	"goAdapter/setting"
+	"goAdapter/pkg/mylog"
 	"log"
 	"os"
 	"path/filepath"
@@ -120,10 +120,10 @@ func (s *ReportServiceParamListEmqxTemplate) ReadParamFromJson() bool {
 			log.Println("reportServiceParamListEmqx unmarshal err", err)
 			return false
 		}
-		setting.Logger.Info("read reportServiceParamListEmqx.json ok")
+		mylog.Logger.Info("read reportServiceParamListEmqx.json ok")
 		return true
 	} else {
-		setting.Logger.Warn("reportServiceParamListEmqx.json is not exist")
+		mylog.Logger.Warn("reportServiceParamListEmqx.json is not exist")
 		return false
 	}
 }
@@ -144,9 +144,9 @@ func (s *ReportServiceParamListEmqxTemplate) WriteParamToJson() {
 
 	_, err = fp.Write(sJson)
 	if err != nil {
-		setting.Logger.Errorf("write reportServiceParamListEmqx.json err", err)
+		mylog.Logger.Errorf("write reportServiceParamListEmqx.json err", err)
 	}
-	setting.Logger.Debugf("write reportServiceParamListEmqx.json success")
+	mylog.Logger.Debugf("write reportServiceParamListEmqx.json success")
 }
 
 func (s *ReportServiceParamListEmqxTemplate) AddReportService(param ReportServiceGWParamEmqxTemplate) {
@@ -201,7 +201,7 @@ func (r *ReportServiceParamEmqxTemplate) AddReportNode(param ReportServiceNodePa
 	r.NodeList = append(r.NodeList, param)
 	ReportServiceParamListEmqx.WriteParamToJson()
 
-	setting.Logger.Debugf("param %v", ReportServiceParamListEmqx)
+	mylog.Logger.Debugf("param %v", ReportServiceParamListEmqx)
 }
 
 func (r *ReportServiceParamEmqxTemplate) DeleteReportNode(name string) int {
@@ -262,15 +262,15 @@ func (r *ReportServiceParamEmqxTemplate) ProcessDownLinkFrame() {
 		select {
 		case frame := <-r.ReceiveFrameChan:
 			{
-				//setting.Logger.Debugf("Recv TOPIC: %s", frame.Topic)
-				//setting.Logger.Debugf("Recv MSG: %v", frame.Payload)
+				//mylog.Logger.Debugf("Recv TOPIC: %s", frame.Topic)
+				//mylog.Logger.Debugf("Recv MSG: %v", frame.Payload)
 
 				if strings.Contains(frame.Topic, "/sys/thing/event/property/post_reply") { //网关、子设备上报属性回应
 
 					ackFrame := MQTTEmqxReportPropertyAckTemplate{}
 					err := json.Unmarshal(frame.Payload, &ackFrame)
 					if err != nil {
-						setting.Logger.Errorf("ReportPropertyAck json unmarshal err")
+						mylog.Logger.Errorf("ReportPropertyAck json unmarshal err")
 						return
 					}
 					r.ReceiveReportPropertyAckFrameChan <- ackFrame
@@ -279,7 +279,7 @@ func (r *ReportServiceParamEmqxTemplate) ProcessDownLinkFrame() {
 					ackFrame := MQTTEmqxLogInAckTemplate{}
 					err := json.Unmarshal(frame.Payload, &ackFrame)
 					if err != nil {
-						setting.Logger.Warningf("LogInAck json unmarshal err")
+						mylog.Logger.Warningf("LogInAck json unmarshal err")
 						return
 					}
 					r.ReceiveLogInAckFrameChan <- ackFrame
@@ -288,7 +288,7 @@ func (r *ReportServiceParamEmqxTemplate) ProcessDownLinkFrame() {
 					ackFrame := MQTTEmqxLogOutAckTemplate{}
 					err := json.Unmarshal(frame.Payload, &ackFrame)
 					if err != nil {
-						setting.Logger.Errorf("LogOutAck json unmarshal err")
+						mylog.Logger.Errorf("LogOutAck json unmarshal err")
 						return
 					}
 					r.ReceiveLogOutAckFrameChan <- ackFrame
@@ -296,7 +296,7 @@ func (r *ReportServiceParamEmqxTemplate) ProcessDownLinkFrame() {
 					serviceFrame := MQTTEmqxInvokeServiceRequestTemplate{}
 					err := json.Unmarshal(frame.Payload, &serviceFrame)
 					if err != nil {
-						setting.Logger.Errorf("serviceFrame json unmarshal err")
+						mylog.Logger.Errorf("serviceFrame json unmarshal err")
 						return
 					}
 					r.ReceiveInvokeServiceRequestFrameChan <- serviceFrame
@@ -304,7 +304,7 @@ func (r *ReportServiceParamEmqxTemplate) ProcessDownLinkFrame() {
 					writePropertyFrame := MQTTEmqxWritePropertyRequestTemplate{}
 					err := json.Unmarshal(frame.Payload, &writePropertyFrame)
 					if err != nil {
-						setting.Logger.Errorf("writePropertyFrame json unmarshal err")
+						mylog.Logger.Errorf("writePropertyFrame json unmarshal err")
 						return
 					}
 					r.ReceiveWritePropertyRequestFrameChan <- writePropertyFrame
@@ -312,7 +312,7 @@ func (r *ReportServiceParamEmqxTemplate) ProcessDownLinkFrame() {
 					readPropertyFrame := MQTTEmqxReadPropertyRequestTemplate{}
 					err := json.Unmarshal(frame.Payload, &readPropertyFrame)
 					if err != nil {
-						setting.Logger.Errorf("readPropertyFrame json unmarshal err")
+						mylog.Logger.Errorf("readPropertyFrame json unmarshal err")
 						return
 					}
 					r.ReceiveReadPropertyRequestFrameChan <- readPropertyFrame
@@ -346,21 +346,21 @@ func (r *ReportServiceParamEmqxTemplate) LogOut(nodeName []string) {
 //查看上报服务中设备通信状态
 func (r *ReportServiceParamEmqxTemplate) ReportCommStatusTimeFun() {
 
-	setting.Logger.Infof("service:%s CheckCommStatus", r.GWParam.ServiceName)
+	mylog.Logger.Infof("service:%s CheckCommStatus", r.GWParam.ServiceName)
 	for k, n := range r.NodeList {
 		name := make([]string, 0)
 		for _, c := range device.CollectInterfaceMap {
 			if c.CollInterfaceName == n.CollInterfaceName {
-				for _, d := range c.DeviceNodeMap {
+				for _, d := range c.DeviceNodes {
 					if n.Name == d.Name {
 						//通信状态发生了改变
 						if d.CommStatus != n.CommStatus {
 							if d.CommStatus == "onLine" {
-								setting.Logger.Infof("DeviceOnline %v", n.Name)
+								mylog.Logger.Infof("DeviceOnline %v", n.Name)
 								name = append(name, n.Name)
 								r.LogInRequestFrameChan <- name
 							} else if d.CommStatus == "offLine" {
-								setting.Logger.Infof("DeviceOffline %v", n.Name)
+								mylog.Logger.Infof("DeviceOffline %v", n.Name)
 								name = append(name, n.Name)
 								r.LogOutRequestFrameChan <- name
 							}
@@ -389,7 +389,7 @@ func (r *ReportServiceParamEmqxTemplate) ReportTimeFun() {
 				nodeName = append(nodeName, v.Name)
 			}
 		}
-		setting.Logger.Debugf("report Nodes %v", nodeName)
+		mylog.Logger.Debugf("report Nodes %v", nodeName)
 		if len(nodeName) > 0 {
 			reportNodeProperty := MQTTEmqxReportPropertyTemplate{
 				DeviceType: "node",
@@ -403,18 +403,18 @@ func (r *ReportServiceParamEmqxTemplate) ReportTimeFun() {
 //查看上报服务中设备是否离线
 func (r *ReportServiceParamEmqxTemplate) ReportOfflineTimeFun() {
 
-	setting.Logger.Infof("service:%s CheckReportOffline", r.GWParam.ServiceName)
+	mylog.Logger.Infof("service:%s CheckReportOffline", r.GWParam.ServiceName)
 	//if r.GWParam.ReportErrCnt >= 3 {
 	//	r.GWParam.ReportStatus = "offLine"
 	//	r.GWParam.ReportErrCnt = 0
-	//	setting.Logger.Warningf("service:%s gw offline", r.GWParam.ServiceName)
+	//	mylog.Logger.Warningf("service:%s gw offline", r.GWParam.ServiceName)
 	//}
 	//
 	//for k, v := range r.NodeList {
 	//	if v.ReportErrCnt >= 3 {
 	//		r.NodeList[k].ReportStatus = "offLine"
 	//		r.NodeList[k].ReportErrCnt = 0
-	//		setting.Logger.Warningf("service:%s %s offline", v.ServiceName, v.Name)
+	//		mylog.Logger.Warningf("service:%s %s offline", v.ServiceName, v.Name)
 	//	}
 	//}
 }
@@ -428,13 +428,13 @@ func ReportServiceEmqxPoll(r *ReportServiceParamEmqxTemplate) {
 
 	//每10s查看一下上报节点的通信状态
 	reportCommStatusTime := fmt.Sprintf("@every %dm%ds", 10/60, 10%60)
-	setting.Logger.Infof("reportServiceEmqx reportCommStatusTime%v", reportCommStatusTime)
+	mylog.Logger.Infof("reportServiceEmqx reportCommStatusTime%v", reportCommStatusTime)
 
 	reportTime := fmt.Sprintf("@every %dm%ds", r.GWParam.ReportTime/60, r.GWParam.ReportTime%60)
-	setting.Logger.Infof("reportServiceEmqx reportTime%v", reportTime)
+	mylog.Logger.Infof("reportServiceEmqx reportTime%v", reportTime)
 
 	reportOfflineTime := fmt.Sprintf("@every %dm%ds", (3*r.GWParam.ReportTime)/60, (3*r.GWParam.ReportTime)%60)
-	setting.Logger.Infof("reportServiceEmqx reportOfflineTime%v", reportOfflineTime)
+	mylog.Logger.Infof("reportServiceEmqx reportOfflineTime%v", reportOfflineTime)
 
 	_ = cronProcess.AddFunc(reportCommStatusTime, r.ReportCommStatusTimeFun)
 	_ = cronProcess.AddFunc(reportOfflineTime, r.ReportOfflineTimeFun)
@@ -480,13 +480,13 @@ func ReportServiceEmqxPoll(r *ReportServiceParamEmqxTemplate) {
 				//	if commStatus != v.CommStatus {
 				//		if commStatus == "onLine" {
 				//			//节点发生了上线
-				//			setting.Logger.Debugf("service %s,node %s onLine", v.ServiceName, v.Name)
+				//			mylog.Logger.Debugf("service %s,node %s onLine", v.ServiceName, v.Name)
 				//			name = append(name, v.Name)
 				//			r.LogInRequestFrameChan <- name
 				//			name = name[0:0]
 				//		} else if commStatus == "offLine" {
 				//			//节点发生了离线
-				//			setting.Logger.Debugf("service %s,node %s onLine", v.ServiceName, v.Name)
+				//			mylog.Logger.Debugf("service %s,node %s onLine", v.ServiceName, v.Name)
 				//			name = append(name, v.Name)
 				//			r.LogOutRequestFrameChan <- name
 				//			name = name[0:0]

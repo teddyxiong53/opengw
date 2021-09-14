@@ -1,7 +1,15 @@
+/*
+@Description: This is auto comment by koroFileHeader.
+@Author: Linn
+@Date: 2021-09-10 09:28:15
+@LastEditors: WalkMiao
+@LastEditTime: 2021-09-14 19:11:50
+@FilePath: /goAdapter-Raw/report/mqttHuawei/mqttHuaweinReceive.go
+*/
 package mqttHuawei
 
 import (
-	"goAdapter/setting"
+	"goAdapter/pkg/mylog"
 
 	MQTT "github.com/eclipse/paho.mqtt.golang"
 )
@@ -61,8 +69,8 @@ func ReceiveMessageHandler(client MQTT.Client, msg MQTT.Message) {
 				Payload: msg.Payload(),
 			}
 
-			setting.Logger.Debugf("Recv TOPIC: %s", receiveFrame.Topic)
-			setting.Logger.Debugf("Recv MSG: %s", receiveFrame.Payload)
+			mylog.Logger.Debugf("Recv TOPIC: %s", receiveFrame.Topic)
+			mylog.Logger.Debugf("Recv MSG: %s", receiveFrame.Payload)
 			ReportServiceParamListHuawei.ServiceList[k].ReceiveFrameChan <- receiveFrame
 		}
 	}

@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"goAdapter/device"
-	"goAdapter/setting"
+	"goAdapter/pkg/mylog"
 	"log"
 	"os"
 	"path/filepath"
@@ -98,7 +98,7 @@ func (s *ReportServiceParamListHuaweiTemplate) ReadParamFromJson() bool {
 	if fileExist(fileDir) == true {
 		fp, err := os.OpenFile(fileDir, os.O_RDONLY, 0777)
 		if err != nil {
-			setting.Logger.Warnf("open reportServiceParamListHuawei.json err %v", err)
+			mylog.Logger.Warnf("open reportServiceParamListHuawei.json err %v", err)
 			return false
 		}
 		defer fp.Close()
@@ -108,13 +108,13 @@ func (s *ReportServiceParamListHuaweiTemplate) ReadParamFromJson() bool {
 
 		err = json.Unmarshal(data[:dataCnt], s)
 		if err != nil {
-			setting.Logger.Warnf("reportServiceParamListHuawei unmarshal err %v", err)
+			mylog.Logger.Warnf("reportServiceParamListHuawei unmarshal err %v", err)
 			return false
 		}
-		setting.Logger.Info("read reportServiceParamListHuawei.json ok")
+		mylog.Logger.Info("read reportServiceParamListHuawei.json ok")
 		return true
 	} else {
-		setting.Logger.Warn("reportServiceParamListHuawei.json is not exist")
+		mylog.Logger.Warn("reportServiceParamListHuawei.json is not exist")
 		return false
 	}
 }
@@ -135,9 +135,9 @@ func (s *ReportServiceParamListHuaweiTemplate) WriteParamToJson() {
 
 	_, err = fp.Write(sJson)
 	if err != nil {
-		setting.Logger.Errorf("write reportServiceParamListHuawei.json err %v", err)
+		mylog.Logger.Errorf("write reportServiceParamListHuawei.json err %v", err)
 	}
-	setting.Logger.Debugf("write reportServiceParamListHuawei.json success")
+	mylog.Logger.Debugf("write reportServiceParamListHuawei.json success")
 }
 
 func (s *ReportServiceParamListHuaweiTemplate) AddReportService(param ReportServiceGWParamHuaweiTemplate) {
@@ -189,7 +189,7 @@ func (r *ReportServiceParamHuaweiTemplate) AddReportNode(param ReportServiceNode
 	r.NodeList = append(r.NodeList, param)
 	ReportServiceParamListHuawei.WriteParamToJson()
 
-	setting.Logger.Debugf("param %v", ReportServiceParamListHuawei)
+	mylog.Logger.Debugf("param %v", ReportServiceParamListHuawei)
 }
 
 func (r *ReportServiceParamHuaweiTemplate) DeleteReportNode(name string) int {
@@ -239,15 +239,15 @@ func (r *ReportServiceParamHuaweiTemplate) ProcessDownLinkFrame() {
 		select {
 		case frame := <-r.ReceiveFrameChan:
 			{
-				setting.Logger.Debugf("Recv TOPIC: %s", frame.Topic)
-				setting.Logger.Debugf("Recv MSG: %s", frame.Payload)
+				mylog.Logger.Debugf("Recv TOPIC: %s", frame.Topic)
+				mylog.Logger.Debugf("Recv MSG: %s", frame.Payload)
 
 				if strings.Contains(frame.Topic, "/thing/event/property/pack/post_reply") { //网关、子设备上报属性回应
 
 					ackFrame := MQTTHuaweiReportPropertyAckTemplate{}
 					err := json.Unmarshal(frame.Payload, &ackFrame)
 					if err != nil {
-						setting.Logger.Errorf("ReportPropertyAck json unmarshal err")
+						mylog.Logger.Errorf("ReportPropertyAck json unmarshal err")
 						return
 					}
 					r.ReceiveReportPropertyAckFrameChan <- ackFrame
@@ -256,7 +256,7 @@ func (r *ReportServiceParamHuaweiTemplate) ProcessDownLinkFrame() {
 					ackFrame := MQTTHuaweiLogInAckTemplate{}
 					err := json.Unmarshal(frame.Payload, &ackFrame)
 					if err != nil {
-						setting.Logger.Warningf("LogInAck json unmarshal err")
+						mylog.Logger.Warningf("LogInAck json unmarshal err")
 						return
 					}
 					r.ReceiveLogInAckFrameChan <- ackFrame
@@ -265,7 +265,7 @@ func (r *ReportServiceParamHuaweiTemplate) ProcessDownLinkFrame() {
 					ackFrame := MQTTHuaweiLogOutAckTemplate{}
 					err := json.Unmarshal(frame.Payload, &ackFrame)
 					if err != nil {
-						setting.Logger.Errorf("LogOutAck json unmarshal err")
+						mylog.Logger.Errorf("LogOutAck json unmarshal err")
 						return
 					}
 					r.ReceiveLogOutAckFrameChan <- ackFrame
@@ -273,7 +273,7 @@ func (r *ReportServiceParamHuaweiTemplate) ProcessDownLinkFrame() {
 					getPropertiesRequest := MQTTHuaweiGetPropertiesRequestTemplate{}
 					err := json.Unmarshal(frame.Payload, &getPropertiesRequest)
 					if err != nil {
-						setting.Logger.Errorf("getPropertiesRequest json unmarshal err")
+						mylog.Logger.Errorf("getPropertiesRequest json unmarshal err")
 						return
 					}
 					ReportServiceHuaweiProcessGetProperties(r, getPropertiesRequest)
@@ -284,17 +284,17 @@ func (r *ReportServiceParamHuaweiTemplate) ProcessDownLinkFrame() {
 					writeCmdRequest := MQTTHuaweiWriteCmdRequestTemplate{}
 					err := json.Unmarshal(frame.Payload, &writeCmdRequest)
 					if err != nil {
-						setting.Logger.Errorf("writeCmdRequest json unmarshal err")
+						mylog.Logger.Errorf("writeCmdRequest json unmarshal err")
 						return
 					}
 					topicPara := strings.Split(frame.Topic, "/")
-					//setting.Logger.Debugf("topicPara %v", topicPara)
+					//mylog.Logger.Debugf("topicPara %v", topicPara)
 					for _, v := range topicPara {
 						if strings.Contains(v, "request_id") {
 							idIndex := strings.Index(v, "=") + 1
 							if idIndex > 0 {
 								requestID := v[idIndex:]
-								//setting.Logger.Debugf("requestID %v", requestID)
+								//mylog.Logger.Debugf("requestID %v", requestID)
 								ReportServiceHuaweiProcessWriteCmd(r, requestID, writeCmdRequest)
 							}
 						}
@@ -339,7 +339,7 @@ func (r *ReportServiceParamHuaweiTemplate) ReportTimeFun() {
 		for _, v := range r.NodeList {
 			nodeName = append(nodeName, v.Name)
 		}
-		setting.Logger.Debugf("report Nodes %v", nodeName)
+		mylog.Logger.Debugf("report Nodes %v", nodeName)
 		if len(nodeName) > 0 {
 			reportNodeProperty := MQTTHuaweiReportPropertyTemplate{
 				DeviceType: "node",
@@ -353,21 +353,21 @@ func (r *ReportServiceParamHuaweiTemplate) ReportTimeFun() {
 //查看上报服务中设备通信状态
 func (r *ReportServiceParamHuaweiTemplate) ReportCommStatusTimeFun() {
 
-	setting.Logger.Infof("service:%s CheckCommStatus", r.GWParam.ServiceName)
+	mylog.Logger.Infof("service:%s CheckCommStatus", r.GWParam.ServiceName)
 	for k, n := range r.NodeList {
 		name := make([]string, 0)
 		for _, c := range device.CollectInterfaceMap {
 			if c.CollInterfaceName == n.CollInterfaceName {
-				for _, d := range c.DeviceNodeMap {
+				for _, d := range c.DeviceNodes {
 					if n.Name == d.Name {
 						//通信状态发生了改变
 						if d.CommStatus != n.CommStatus {
 							if d.CommStatus == "onLine" {
-								setting.Logger.Infof("DeviceOnline %v", n.Name)
+								mylog.Logger.Infof("DeviceOnline %v", n.Name)
 								name = append(name, n.Name)
 								r.LogInRequestFrameChan <- name
 							} else if d.CommStatus == "offLine" {
-								setting.Logger.Infof("DeviceOffline %v", n.Name)
+								mylog.Logger.Infof("DeviceOffline %v", n.Name)
 								name = append(name, n.Name)
 								r.LogOutRequestFrameChan <- name
 							}
@@ -383,18 +383,18 @@ func (r *ReportServiceParamHuaweiTemplate) ReportCommStatusTimeFun() {
 //查看上报服务中设备是否离线
 func (r *ReportServiceParamHuaweiTemplate) ReportOfflineTimeFun() {
 
-	setting.Logger.Infof("service:%s CheckReportOffline", r.GWParam.ServiceName)
+	mylog.Logger.Infof("service:%s CheckReportOffline", r.GWParam.ServiceName)
 	if r.GWParam.ReportErrCnt >= 3 {
 		r.GWParam.ReportStatus = "offLine"
 		r.GWParam.ReportErrCnt = 0
-		setting.Logger.Warningf("service:%s gw offline", r.GWParam.ServiceName)
+		mylog.Logger.Warningf("service:%s gw offline", r.GWParam.ServiceName)
 	}
 
 	for k, v := range r.NodeList {
 		if v.ReportErrCnt >= 3 {
 			r.NodeList[k].ReportStatus = "offLine"
 			r.NodeList[k].ReportErrCnt = 0
-			setting.Logger.Warningf("service:%s %s offline", v.ServiceName, v.Name)
+			mylog.Logger.Warningf("service:%s %s offline", v.ServiceName, v.Name)
 		}
 	}
 }
@@ -408,13 +408,13 @@ func ReportServiceHuaweiPoll(r *ReportServiceParamHuaweiTemplate) {
 
 	//每10s查看一下上报节点的通信状态
 	reportCommStatusTime := fmt.Sprintf("@every %dm%ds", 10/60, 10%60)
-	setting.Logger.Infof("reportServiceHuawei reportCommStatusTime%v", reportCommStatusTime)
+	mylog.Logger.Infof("reportServiceHuawei reportCommStatusTime%v", reportCommStatusTime)
 
 	reportTime := fmt.Sprintf("@every %dm%ds", r.GWParam.ReportTime/60, r.GWParam.ReportTime%60)
-	setting.Logger.Infof("reportServiceHuawei reportTime%v", reportTime)
+	mylog.Logger.Infof("reportServiceHuawei reportTime%v", reportTime)
 
 	reportOfflineTime := fmt.Sprintf("@every %dm%ds", (3*r.GWParam.ReportTime)/60, (3*r.GWParam.ReportTime)%60)
-	setting.Logger.Infof("reportServiceHuawei reportOfflineTime%v", reportOfflineTime)
+	mylog.Logger.Infof("reportServiceHuawei reportOfflineTime%v", reportOfflineTime)
 
 	_ = cronProcess.AddFunc(reportCommStatusTime, r.ReportCommStatusTimeFun)
 	_ = cronProcess.AddFunc(reportOfflineTime, r.ReportOfflineTimeFun)

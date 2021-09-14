@@ -5,7 +5,7 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
-	"goAdapter/setting"
+	"goAdapter/pkg/mylog"
 	"strings"
 	"time"
 
@@ -59,13 +59,13 @@ func MQTTHuaweiGWLogin(param MQTTHuaweiRegisterTemplate, publishHandler MQTT.Mes
 	opts.AddBroker(param.RemoteIP)
 
 	clientID := assembleClientId(param.DeviceID)
-	setting.Logger.Debugf("clientID %s", clientID)
+	mylog.Logger.Debugf("clientID %s", clientID)
 	opts.SetClientID(clientID)
 	opts.SetUsername(param.DeviceID)
-	setting.Logger.Debugf("DeviceSecret %s", param.DeviceSecret)
+	mylog.Logger.Debugf("DeviceSecret %s", param.DeviceSecret)
 	//passWord := hmacSha256(param.DeviceSecret, timeStamp())
 	passWord := hmacSha256(param.DeviceSecret, timeStapmStatic)
-	setting.Logger.Debugf("passWord %s", passWord)
+	mylog.Logger.Debugf("passWord %s", passWord)
 	opts.SetPassword(passWord)
 	opts.SetKeepAlive(250 * time.Second)
 	opts.SetDefaultPublishHandler(publishHandler)
@@ -74,10 +74,10 @@ func MQTTHuaweiGWLogin(param MQTTHuaweiRegisterTemplate, publishHandler MQTT.Mes
 	// create and start a client using the above ClientOptions
 	mqttClient := MQTT.NewClient(opts)
 	if token := mqttClient.Connect(); token.Wait() && token.Error() != nil {
-		setting.Logger.Errorf("Connect Huawei IoT Cloud fail %s", token.Error())
+		mylog.Logger.Errorf("Connect Huawei IoT Cloud fail %s", token.Error())
 		return false, nil
 	}
-	setting.Logger.Info("Connect Huawei IoT Cloud Sucess")
+	mylog.Logger.Info("Connect Huawei IoT Cloud Sucess")
 
 	subTopic := ""
 	//平台查询属性
@@ -107,9 +107,9 @@ func MQTTHuaweiGWLogin(param MQTTHuaweiRegisterTemplate, publishHandler MQTT.Mes
 func MQTTHuaweiSubscribeTopic(client MQTT.Client, topic string) {
 
 	if token := client.Subscribe(topic, 0, nil); token.Wait() && token.Error() != nil {
-		setting.Logger.Warningf("Subscribe topic %s fail %v", topic, token.Error())
+		mylog.Logger.Warningf("Subscribe topic %s fail %v", topic, token.Error())
 	}
-	setting.Logger.Info("Subscribe topic " + topic + " success")
+	mylog.Logger.Info("Subscribe topic " + topic + " success")
 }
 
 func (r *ReportServiceParamHuaweiTemplate) GWLogin() bool {
@@ -168,8 +168,8 @@ func MQTTHuaweiNodeLoginIn(client MQTT.Client, gw ReportServiceGWParamHuaweiTemp
 		//批量注册
 		loginInTopic := "$oc/devices/" + gw.Param.DeviceID + "/sys/events/up"
 
-		setting.Logger.Debugf("node publish logInMsg: %s", sJson)
-		setting.Logger.Infof("node publish topic: %s", loginInTopic)
+		mylog.Logger.Debugf("node publish logInMsg: %s", sJson)
+		mylog.Logger.Infof("node publish topic: %s", loginInTopic)
 		if client != nil {
 			token := client.Publish(loginInTopic, 0, false, sJson)
 			token.Wait()
@@ -186,7 +186,7 @@ func (r *ReportServiceParamHuaweiTemplate) NodeLogin(name []string) bool {
 	nodeList := make([]MQTTHuaweiNodeRegisterTemplate, 0)
 	nodeParam := MQTTHuaweiNodeRegisterTemplate{}
 
-	setting.Logger.Debugf("nodeLoginName %v", name)
+	mylog.Logger.Debugf("nodeLoginName %v", name)
 	for _, d := range name {
 		for k, v := range r.NodeList {
 			if d == v.Name {

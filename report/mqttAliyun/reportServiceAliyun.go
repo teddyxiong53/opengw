@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"goAdapter/device"
-	"goAdapter/setting"
+	"goAdapter/pkg/mylog"
 	"log"
 	"os"
 	"path/filepath"
@@ -118,10 +118,10 @@ func (s *ReportServiceParamListAliyunTemplate) ReadParamFromJson() bool {
 			log.Println("reportServiceParamListAliyun unmarshal err", err)
 			return false
 		}
-		setting.Logger.Info("read reportServiceParamListAliyun.json ok")
+		mylog.Logger.Info("read reportServiceParamListAliyun.json ok")
 		return true
 	} else {
-		setting.Logger.Warn("reportServiceParamListAliyun.json is not exist")
+		mylog.Logger.Warn("reportServiceParamListAliyun.json is not exist")
 		return false
 	}
 }
@@ -142,9 +142,9 @@ func (s *ReportServiceParamListAliyunTemplate) WriteParamToJson() {
 
 	_, err = fp.Write(sJson)
 	if err != nil {
-		setting.Logger.Errorf("write reportServiceParamListAliyun.json err", err)
+		mylog.Logger.Errorf("write reportServiceParamListAliyun.json err", err)
 	}
-	setting.Logger.Debugf("write reportServiceParamListAliyun.json success")
+	mylog.Logger.Debugf("write reportServiceParamListAliyun.json success")
 }
 
 func (s *ReportServiceParamListAliyunTemplate) AddReportService(param ReportServiceGWParamAliyunTemplate) {
@@ -199,7 +199,7 @@ func (r *ReportServiceParamAliyunTemplate) AddReportNode(param ReportServiceNode
 	r.NodeList = append(r.NodeList, param)
 	ReportServiceParamListAliyun.WriteParamToJson()
 
-	setting.Logger.Debugf("param %v", ReportServiceParamListAliyun)
+	mylog.Logger.Debugf("param %v", ReportServiceParamListAliyun)
 }
 
 func (r *ReportServiceParamAliyunTemplate) DeleteReportNode(name string) int {
@@ -248,15 +248,15 @@ func (r *ReportServiceParamAliyunTemplate) ProcessDownLinkFrame() {
 		select {
 		case frame := <-r.ReceiveFrameChan:
 			{
-				setting.Logger.Debugf("Recv TOPIC: %s", frame.Topic)
-				setting.Logger.Debugf("Recv MSG: %v", frame.Payload)
+				mylog.Logger.Debugf("Recv TOPIC: %s", frame.Topic)
+				mylog.Logger.Debugf("Recv MSG: %v", frame.Payload)
 
 				if strings.Contains(frame.Topic, "/thing/event/property/pack/post_reply") { //网关、子设备上报属性回应
 
 					ackFrame := MQTTAliyunReportPropertyAckTemplate{}
 					err := json.Unmarshal(frame.Payload, &ackFrame)
 					if err != nil {
-						setting.Logger.Errorf("ReportPropertyAck json unmarshal err")
+						mylog.Logger.Errorf("ReportPropertyAck json unmarshal err")
 						return
 					}
 					r.ReceiveReportPropertyAckFrameChan <- ackFrame
@@ -265,7 +265,7 @@ func (r *ReportServiceParamAliyunTemplate) ProcessDownLinkFrame() {
 					ackFrame := MQTTAliyunLogInAckTemplate{}
 					err := json.Unmarshal(frame.Payload, &ackFrame)
 					if err != nil {
-						setting.Logger.Warningf("LogInAck json unmarshal err")
+						mylog.Logger.Warningf("LogInAck json unmarshal err")
 						return
 					}
 					r.ReceiveLogInAckFrameChan <- ackFrame
@@ -274,7 +274,7 @@ func (r *ReportServiceParamAliyunTemplate) ProcessDownLinkFrame() {
 					ackFrame := MQTTAliyunLogOutAckTemplate{}
 					err := json.Unmarshal(frame.Payload, &ackFrame)
 					if err != nil {
-						setting.Logger.Errorf("LogOutAck json unmarshal err")
+						mylog.Logger.Errorf("LogOutAck json unmarshal err")
 						return
 					}
 					r.ReceiveLogOutAckFrameChan <- ackFrame
@@ -282,7 +282,7 @@ func (r *ReportServiceParamAliyunTemplate) ProcessDownLinkFrame() {
 					serviceFrame := MQTTAliyunInvokeThingsServiceRequestTemplate{}
 					err := json.Unmarshal(frame.Payload, &serviceFrame)
 					if err != nil {
-						setting.Logger.Errorf("serviceFrame json unmarshal err")
+						mylog.Logger.Errorf("serviceFrame json unmarshal err")
 						return
 					}
 					r.InvokeThingsServiceRequestFrameChan <- serviceFrame
@@ -317,21 +317,21 @@ func (r *ReportServiceParamAliyunTemplate) LogOut(nodeName []string) {
 //查看上报服务中设备通信状态
 func (r *ReportServiceParamAliyunTemplate) ReportCommStatusTimeFun() {
 
-	setting.Logger.Infof("service:%s CheckCommStatus", r.GWParam.ServiceName)
+	mylog.Logger.Infof("service:%s CheckCommStatus", r.GWParam.ServiceName)
 	for k, n := range r.NodeList {
 		name := make([]string, 0)
 		for _, c := range device.CollectInterfaceMap {
 			if c.CollInterfaceName == n.CollInterfaceName {
-				for _, d := range c.DeviceNodeMap {
+				for _, d := range c.DeviceNodes {
 					if n.Name == d.Name {
 						//通信状态发生了改变
 						if d.CommStatus != n.CommStatus {
 							if d.CommStatus == "onLine" {
-								setting.Logger.Infof("DeviceOnline %v", n.Name)
+								mylog.Logger.Infof("DeviceOnline %v", n.Name)
 								name = append(name, n.Name)
 								r.LogInRequestFrameChan <- name
 							} else if d.CommStatus == "offLine" {
-								setting.Logger.Infof("DeviceOffline %v", n.Name)
+								mylog.Logger.Infof("DeviceOffline %v", n.Name)
 								name = append(name, n.Name)
 								r.LogOutRequestFrameChan <- name
 							}
@@ -358,7 +358,7 @@ func (r *ReportServiceParamAliyunTemplate) ReportTimeFun() {
 		for _, v := range r.NodeList {
 			nodeName = append(nodeName, v.Name)
 		}
-		setting.Logger.Debugf("report Nodes %v", nodeName)
+		mylog.Logger.Debugf("report Nodes %v", nodeName)
 		if len(nodeName) > 0 {
 			reportNodeProperty := MQTTAliyunReportPropertyTemplate{
 				DeviceType: "node",
@@ -372,18 +372,18 @@ func (r *ReportServiceParamAliyunTemplate) ReportTimeFun() {
 //查看上报服务中设备是否离线
 func (r *ReportServiceParamAliyunTemplate) ReportOfflineTimeFun() {
 
-	setting.Logger.Infof("service:%s CheckReportOffline", r.GWParam.ServiceName)
+	mylog.Logger.Infof("service:%s CheckReportOffline", r.GWParam.ServiceName)
 	if r.GWParam.ReportErrCnt >= 3 {
 		r.GWParam.ReportStatus = "offLine"
 		r.GWParam.ReportErrCnt = 0
-		setting.Logger.Warningf("service:%s gw offline", r.GWParam.ServiceName)
+		mylog.Logger.Warningf("service:%s gw offline", r.GWParam.ServiceName)
 	}
 
 	for k, v := range r.NodeList {
 		if v.ReportErrCnt >= 3 {
 			r.NodeList[k].ReportStatus = "offLine"
 			r.NodeList[k].ReportErrCnt = 0
-			setting.Logger.Warningf("service:%s %s offline", v.ServiceName, v.Name)
+			mylog.Logger.Warningf("service:%s %s offline", v.ServiceName, v.Name)
 		}
 	}
 }
@@ -397,13 +397,13 @@ func ReportServiceAliyunPoll(r *ReportServiceParamAliyunTemplate) {
 
 	//每10s查看一下上报节点的通信状态
 	reportCommStatusTime := fmt.Sprintf("@every %dm%ds", 10/60, 10%60)
-	setting.Logger.Infof("reportServiceAliyun reportCommStatusTime%v", reportCommStatusTime)
+	mylog.Logger.Infof("reportServiceAliyun reportCommStatusTime%v", reportCommStatusTime)
 
 	reportTime := fmt.Sprintf("@every %dm%ds", r.GWParam.ReportTime/60, r.GWParam.ReportTime%60)
-	setting.Logger.Infof("reportServiceAliyun reportTime%v", reportTime)
+	mylog.Logger.Infof("reportServiceAliyun reportTime%v", reportTime)
 
 	reportOfflineTime := fmt.Sprintf("@every %dm%ds", (3*r.GWParam.ReportTime)/60, (3*r.GWParam.ReportTime)%60)
-	setting.Logger.Infof("reportServiceAliyun reportOfflineTime%v", reportOfflineTime)
+	mylog.Logger.Infof("reportServiceAliyun reportOfflineTime%v", reportOfflineTime)
 
 	_ = cronProcess.AddFunc(reportCommStatusTime, r.ReportCommStatusTimeFun)
 	_ = cronProcess.AddFunc(reportOfflineTime, r.ReportOfflineTimeFun)
@@ -453,13 +453,13 @@ func ReportServiceAliyunPoll(r *ReportServiceParamAliyunTemplate) {
 				//	if commStatus != v.CommStatus {
 				//		if commStatus == "onLine" {
 				//			//节点发生了上线
-				//			setting.Logger.Debugf("service %s,node %s onLine", v.ServiceName, v.Name)
+				//			mylog.Logger.Debugf("service %s,node %s onLine", v.ServiceName, v.Name)
 				//			name = append(name, v.Name)
 				//			r.LogInRequestFrameChan <- name
 				//			name = name[0:0]
 				//		} else if commStatus == "offLine" {
 				//			//节点发生了离线
-				//			setting.Logger.Debugf("service %s,node %s onLine", v.ServiceName, v.Name)
+				//			mylog.Logger.Debugf("service %s,node %s onLine", v.ServiceName, v.Name)
 				//			name = append(name, v.Name)
 				//			r.LogOutRequestFrameChan <- name
 				//			name = name[0:0]

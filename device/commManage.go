@@ -4,7 +4,8 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"goAdapter/setting"
+	"goAdapter/pkg/mylog"
+	"goAdapter/pkg/system"
 	"io"
 	"log"
 	"strconv"
@@ -341,7 +342,7 @@ func (c *CommunicationManageTemplate) CommunicationStateMachine(cmd Communicatio
 		rxData.Err = errors.New("interface or device nodes is nil")
 	}
 	tc := time.Since(startT) //计算耗时
-	setting.Logger.Debugf("%v time cost = %v", c.CollInterface.CollInterfaceName, tc)
+	mylog.Logger.Debugf("%v time cost = %v", c.CollInterface.CollInterfaceName, tc)
 	//更新设备在线数量
 	c.CollInterface.DeviceNodeOnlineCnt = 0
 	for _, v := range c.CollInterface.DeviceNodes {
@@ -359,7 +360,7 @@ func (c *CommunicationManageTemplate) CommunicationManageDel() {
 		select {
 		case cmd := <-c.EmergencyRequestChan:
 			{
-				setting.Logger.Infof("emergency chan collName %v nodeName %v funName %v", c.CollInterface.CollInterfaceName, cmd.DeviceName, cmd.FunName)
+				mylog.Logger.Infof("emergency chan collName %v nodeName %v funName %v", c.CollInterface.CollInterfaceName, cmd.DeviceName, cmd.FunName)
 				rxData := c.CommunicationStateMachine(cmd)
 
 				GetDeviceOnline()
@@ -375,7 +376,7 @@ func (c *CommunicationManageTemplate) CommunicationManageDel() {
 			GetDeviceOnline()
 			GetDevicePacketLoss()
 			if err := rxData.Err; err != nil {
-				setting.Logger.Debugf("get data from common request chan  error:%v", err)
+				mylog.Logger.Debugf("get data from common request chan  error:%v", err)
 			}
 
 		}
@@ -392,9 +393,9 @@ func GetDeviceOnline() {
 		deviceOnlineCnt += v.DeviceNodeOnlineCnt
 	}
 	if deviceOnlineCnt == 0 {
-		setting.SystemState.DeviceOnline = "0"
+		system.SystemState.DeviceOnline = "0"
 	} else {
-		setting.SystemState.DeviceOnline = fmt.Sprintf("%2.1f", float32(deviceOnlineCnt*100.0/deviceTotalCnt))
+		system.SystemState.DeviceOnline = fmt.Sprintf("%2.1f", float32(deviceOnlineCnt*100.0/deviceTotalCnt))
 	}
 }
 
@@ -410,9 +411,9 @@ func GetDevicePacketLoss() {
 		}
 	}
 	if deviceCommLossCnt == 0 {
-		setting.SystemState.DevicePacketLoss = "0"
+		system.SystemState.DevicePacketLoss = "0"
 	} else {
-		setting.SystemState.DevicePacketLoss = fmt.Sprintf("%2.1f", float32(deviceCommLossCnt*100.0/deviceCommTotalCnt))
+		system.SystemState.DevicePacketLoss = fmt.Sprintf("%2.1f", float32(deviceCommLossCnt*100.0/deviceCommTotalCnt))
 	}
 }
 

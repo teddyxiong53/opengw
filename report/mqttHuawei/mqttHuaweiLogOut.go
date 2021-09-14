@@ -1,8 +1,16 @@
+/*
+@Description: This is auto comment by koroFileHeader.
+@Author: Linn
+@Date: 2021-09-10 09:28:15
+@LastEditors: WalkMiao
+@LastEditTime: 2021-09-14 19:11:35
+@FilePath: /goAdapter-Raw/report/mqttHuawei/mqttHuaweiLogOut.go
+*/
 package mqttHuawei
 
 import (
 	"encoding/json"
-	"goAdapter/setting"
+	"goAdapter/pkg/mylog"
 	"time"
 
 	MQTT "github.com/eclipse/paho.mqtt.golang"
@@ -43,8 +51,8 @@ func MQTTHuaweiNodeLogOut(client MQTT.Client, gw ReportServiceGWParamHuaweiTempl
 		//批量注册
 		logOutTopic := "$oc/devices/" + gw.Param.DeviceID + "/sys/events/up"
 
-		setting.Logger.Debugf("node publish logOutMsg: %s", sJson)
-		setting.Logger.Infof("node publish topic: %s", logOutTopic)
+		mylog.Logger.Debugf("node publish logOutMsg: %s", sJson)
+		mylog.Logger.Infof("node publish topic: %s", logOutTopic)
 		if client != nil {
 			token := client.Publish(logOutTopic, 0, false, sJson)
 			token.Wait()
@@ -61,7 +69,7 @@ func (r *ReportServiceParamHuaweiTemplate) NodeLogOut(name []string) bool {
 	nodeList := make([]MQTTHuaweiNodeRegisterTemplate, 0)
 	nodeParam := MQTTHuaweiNodeRegisterTemplate{}
 
-	setting.Logger.Debugf("nodeLogOutName %v", name)
+	mylog.Logger.Debugf("nodeLogOutName %v", name)
 	for _, d := range name {
 		for k, v := range r.NodeList {
 			if d == v.Name {
