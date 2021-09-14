@@ -2,19 +2,39 @@ package device
 
 import (
 	"bytes"
-	"goAdapter/setting"
+	"errors"
+	"fmt"
+	"log"
+
 	"runtime"
 	"strconv"
 	"sync"
 	"time"
+
+	"github.com/5anthosh/chili/parser"
+	"github.com/fatih/color"
+	"github.com/shopspring/decimal"
+	"github.com/walkmiao/chili/environment"
+	"github.com/walkmiao/chili/evaluator"
 
 	"github.com/yuin/gluamapper"
 	lua "github.com/yuin/gopher-lua"
 	luar "layeh.com/gopher-luar"
 )
 
+var env *environment.Environment
+var eval *evaluator.Evaluator
+
 var MaxDeviceNodeCnt int = 50
 var lock sync.Mutex
+
+func initializeEval() {
+	log.Println("初始化表达式....")
+	env = environment.New()
+	env.SetDefaultFunctions()
+	env.SetDefaultVariables()
+	eval = evaluator.New(env)
+}
 
 type ValueTemplate struct {
 	Value     interface{} //变量值，不可以是字符串
@@ -24,28 +44,29 @@ type ValueTemplate struct {
 
 //变量标签模版
 type VariableTemplate struct {
-	Index int             `json:"index"` //变量偏移量
-	Name  string          `json:"name"`  //变量名
-	Label string          `json:"lable"` //变量标签
-	Value []ValueTemplate `json:"value"` //变量值
-	Type  string          `json:"type"`  //变量类型
+	Index  int             `json:"index"` //变量偏移量
+	Name   string          `json:"name"`  //变量名
+	Label  string          `json:"lable"` //变量标签
+	Values []ValueTemplate `json:"value"` //变量值
+	Type   string          `json:"type"`  //变量类型
 }
 
 //设备模板
 type DeviceNodeTemplate struct {
-	Index          int                `json:"Index"`          //设备偏移量
-	Name           string             `json:"Name"`           //设备名称
-	Addr           string             `json:"Addr"`           //设备地址
-	Type           string             `json:"Type"`           //设备类型
-	LastCommRTC    string             `json:"LastCommRTC"`    //最后一次通信时间戳
-	CommTotalCnt   int                `json:"CommTotalCnt"`   //通信总次数
-	CommSuccessCnt int                `json:"CommSuccessCnt"` //通信成功次数
-	CurCommFailCnt int                `json:"-"`              //当前通信失败次数
-	CommStatus     string             `json:"CommStatus"`     //通信状态
-	VariableMap    []VariableTemplate `json:"-"`              //变量列表
+	Index          int                 `json:"Index"`          //设备偏移量
+	Name           string              `json:"Name"`           //设备名称
+	Addr           string              `json:"Addr"`           //设备地址
+	Type           string              `json:"Type"`           //设备类型
+	LastCommRTC    string              `json:"LastCommRTC"`    //最后一次通信时间戳
+	CommTotalCnt   int                 `json:"CommTotalCnt"`   //通信总次数
+	CommSuccessCnt int                 `json:"CommSuccessCnt"` //通信成功次数
+	CurCommFailCnt int                 `json:"-"`              //当前通信失败次数
+	CommStatus     string              `json:"CommStatus"`     //通信状态
+	VariableMap    []*VariableTemplate `json:"-"`              //变量列表
+	Parser         Parser              `json:"-"`              //表达式解析器
 }
 
-func (d *DeviceNodeTemplate) NewVariables() []VariableTemplate {
+func (d *DeviceNodeTemplate) NewVariables() (variables []*VariableTemplate, err error) {
 
 	type LuaVariableTemplate struct {
 		Index int
@@ -59,106 +80,118 @@ func (d *DeviceNodeTemplate) NewVariables() []VariableTemplate {
 	}
 
 	lock.Lock()
-	//setting.Logger.Debugf("DeviceTypePluginMap %v", DeviceTypePluginMap)
-	for k, v := range DeviceNodeTypeMap.DeviceNodeType {
-		if d.Type == v.TemplateType {
-			//调用NewVariables
-			//setting.Logger.Debugf("TemplateType %v", v.TemplateType)
-			err := DeviceTypePluginMap[k].CallByParam(lua.P{
-				Fn:      DeviceTypePluginMap[k].GetGlobal("NewVariables"),
-				NRet:    1,
-				Protect: true,
-			})
-			if err != nil {
-				setting.Logger.Warning("NewVariables err,", err)
-			}
-
-			//获取返回结果
-			ret := DeviceTypePluginMap[k].Get(-1)
-			DeviceTypePluginMap[k].Pop(1)
-			//setting.Logger.Debugf("DeviceTypePluginMap Get,%v", ret)
-
-			LuaVariableMap := LuaVariableMapTemplate{}
-
-			if err := gluamapper.Map(ret.(*lua.LTable), &LuaVariableMap); err != nil {
-				setting.Logger.Warning("NewVariables gluamapper.Map err,", err)
-			}
-
-			variables := make([]VariableTemplate, 0)
-
-			for _, v := range LuaVariableMap.Variable {
-				variable := VariableTemplate{}
-				variable.Index = v.Index
-				variable.Name = v.Name
-				variable.Label = v.Label
-				variable.Type = v.Type
-
-				variable.Value = make([]ValueTemplate, 0)
-				variables = append(variables, variable)
-			}
-			lock.Unlock()
-			//log.Printf("variables %v\n",variables)
-			return variables
-		}
+	defer lock.Unlock()
+	template, ok := DeviceTemplateMap[d.Type]
+	if !ok {
+		err = fmt.Errorf("未发现设备模板: %s", d.Name)
+		return
 	}
-	lock.Unlock()
-	return nil
+	lState := template.LuaState
+	if lState == nil {
+		err = fmt.Errorf("device lua template is not initialized")
+		return
+	}
+
+	err = lState.CallByParam(lua.P{
+		Fn:      template.LuaState.GetGlobal(string(NewVariables)),
+		NRet:    1,
+		Protect: true,
+	})
+
+	if err != nil {
+		err = fmt.Errorf("NewVariables Err:%v", err)
+		return
+	}
+
+	//获取返回结果
+	ret := lState.Get(-1)
+	lState.Pop(1)
+	//setting.ZAPS.Debugf("DeviceTemplateLuaMap Get,%v", ret)
+
+	LuaVariableMap := LuaVariableMapTemplate{}
+
+	table, ok := ret.(*lua.LTable)
+	if !ok {
+		return nil, errors.New("ret is not lua LTable")
+	}
+
+	if err = gluamapper.Map(table, &LuaVariableMap); err != nil {
+		return
+	}
+
+	variables = make([]*VariableTemplate, 0, len(LuaVariableMap.Variable))
+
+	for _, v := range LuaVariableMap.Variable {
+		variable := &VariableTemplate{}
+		variable.Index = v.Index
+		variable.Name = v.Name
+		variable.Label = v.Label
+		variable.Type = v.Type
+
+		variable.Values = make([]ValueTemplate, 0, 100)
+		variables = append(variables, variable)
+	}
+	return
 }
 
-func (d *DeviceNodeTemplate) GenerateGetRealVariables(sAddr string, step int) ([]byte, bool, bool) {
+func (d *DeviceNodeTemplate) GenerateGetRealVariables(sAddr string, step int) (nBytes []byte, hasFrame bool, err error) {
 
 	type LuaVariableMapTemplate struct {
-		Status   string `json:"Status"`
+		HasFrame bool `json:"HasFrame"` //设备是否还有后续帧
 		Variable []*byte
 	}
 
 	lock.Lock()
-	for k, v := range DeviceNodeTypeMap.DeviceNodeType {
-		if d.Type == v.TemplateType {
-			//调用NewVariables
-			err := DeviceTypePluginMap[k].CallByParam(lua.P{
-				Fn:      DeviceTypePluginMap[k].GetGlobal("GenerateGetRealVariables"),
-				NRet:    1,
-				Protect: true,
-			}, lua.LString(sAddr), lua.LNumber(step))
-			if err != nil {
-				setting.Logger.Warning("GenerateGetRealVariables err,", err)
-			}
+	template, ok := DeviceTemplateMap[d.Type]
+	if !ok {
+		err = fmt.Errorf("设备模板【%s】未安装", d.Name)
+		return
+	}
+	lState := template.LuaState
+	if lState == nil {
+		err = fmt.Errorf("device lua template is not initialized")
+		return
+	}
 
-			//获取返回结果
-			ret := DeviceTypePluginMap[k].Get(-1)
-			DeviceTypePluginMap[k].Pop(1)
+	err = lState.CallByParam(lua.P{
+		Fn:      lState.GetGlobal(string(GENERATEREAL)),
+		NRet:    1,
+		Protect: true,
+	}, lua.LString(sAddr), lua.LNumber(step))
+	if err != nil {
+		err = fmt.Errorf("GenerateGetRealVariables Err:%v", err)
+		return
+	}
 
-			LuaVariableMap := LuaVariableMapTemplate{}
-			if err := gluamapper.Map(ret.(*lua.LTable), &LuaVariableMap); err != nil {
-				setting.Logger.Warning("GenerateGetRealVariables gluamapper.Map err,", err)
-			}
+	//获取返回结果
+	ret := lState.Get(-1)
+	lState.Pop(1)
 
-			ok := false
-			con := false //后续是否有报文
-			nBytes := make([]byte, 0)
-			if len(LuaVariableMap.Variable) > 0 {
-				ok = true
-				for _, v := range LuaVariableMap.Variable {
-					nBytes = append(nBytes, *v)
-				}
-				if LuaVariableMap.Status == "0" {
-					con = false
-				} else {
-					con = true
-				}
-			} else {
-				ok = true
-			}
-			lock.Unlock()
-			return nBytes, ok, con
+	LuaVariableMap := LuaVariableMapTemplate{}
+	table, ok := ret.(*lua.LTable)
+	if !ok {
+		err = fmt.Errorf("%v is not lua LTable", ret)
+		return
+	}
+	if err = gluamapper.Map(table, &LuaVariableMap); err != nil {
+		return
+	}
+
+	nBytes = make([]byte, 0, len(LuaVariableMap.Variable))
+	if len(LuaVariableMap.Variable) > 0 {
+		for _, v := range LuaVariableMap.Variable {
+			nBytes = append(nBytes, *v)
+		}
+		if LuaVariableMap.HasFrame {
+			hasFrame = true
 		}
 	}
 	lock.Unlock()
-	return nil, false, false
+	return
 }
 
-func (d *DeviceNodeTemplate) DeviceCustomCmd(sAddr string, cmdName string, cmdParam string, step int) ([]byte, bool, bool) {
+func (d *DeviceNodeTemplate) DeviceCustomCmd(
+	sAddr string, cmdName LUAFUNC, cmdParam string, step int) (nBytes []byte, isContinue bool, err error) {
 
 	type LuaVariableMapTemplate struct {
 		Status   string  `json:"Status"`
@@ -166,60 +199,61 @@ func (d *DeviceNodeTemplate) DeviceCustomCmd(sAddr string, cmdName string, cmdPa
 	}
 
 	lock.Lock()
-	//log.Printf("cmdParam %+v\n", cmdParam)
-	for k, v := range DeviceNodeTypeMap.DeviceNodeType {
-		if d.Type == v.TemplateType {
-			var err error
-			var ret lua.LValue
-
-			//调用DeviceCustomCmd
-			err = DeviceTypePluginMap[k].CallByParam(lua.P{
-				Fn:      DeviceTypePluginMap[k].GetGlobal("DeviceCustomCmd"),
-				NRet:    1,
-				Protect: true,
-			}, lua.LString(sAddr),
-				lua.LString(cmdName),
-				lua.LString(cmdParam),
-				lua.LNumber(step))
-			if err != nil {
-				setting.Logger.Warning("DeviceCustomCmd err,", err)
-				lock.Unlock()
-				return nil, false, false
-			}
-
-			//获取返回结果
-			ret = DeviceTypePluginMap[k].Get(-1)
-			DeviceTypePluginMap[k].Pop(1)
-
-			LuaVariableMap := LuaVariableMapTemplate{}
-			if err := gluamapper.Map(ret.(*lua.LTable), &LuaVariableMap); err != nil {
-				setting.Logger.Warning("DeviceCustomCmd gluamapper.Map err,", err)
-				lock.Unlock()
-				return nil, false, false
-			}
-
-			ok := false
-			con := false //后续是否有报文
-			if LuaVariableMap.Status == "0" {
-				con = false
-			} else {
-				con = true
-			}
-			nBytes := make([]byte, 0)
-			if len(LuaVariableMap.Variable) > 0 {
-				ok = true
-				for _, v := range LuaVariableMap.Variable {
-					nBytes = append(nBytes, *v)
-				}
-			} else {
-				ok = false
-			}
-			lock.Unlock()
-			return nBytes, ok, con
-		}
+	defer lock.Unlock()
+	template, ok := DeviceTemplateMap[d.Type]
+	if !ok {
+		err = fmt.Errorf("no such device template %s", d.Type)
+		return
 	}
-	lock.Unlock()
-	return nil, false, false
+	state := template.LuaState
+	if state == nil {
+		err = fmt.Errorf("template %s is not initialized lua file ", d.Type)
+		return
+	}
+
+	var ret lua.LValue
+
+	//调用DeviceCustomCmd
+	err = state.CallByParam(lua.P{
+		Fn:      state.GetGlobal(string(DEVICECUSTOMCMD)),
+		NRet:    1,
+		Protect: true,
+	}, lua.LString(sAddr),
+		lua.LString(cmdName),
+		lua.LString(cmdParam),
+		lua.LNumber(step))
+	if err != nil {
+		err = fmt.Errorf("DeviceCustomCmd Err:%v", err)
+		return
+	}
+
+	//获取返回结果
+	ret = state.Get(-1)
+	state.Pop(1)
+	table, ok := ret.(*lua.LTable)
+	if !ok {
+		err = fmt.Errorf("ret is not type of lua LTable")
+		return
+	}
+	LuaVariableMap := LuaVariableMapTemplate{}
+	if err = gluamapper.Map(table, &LuaVariableMap); err != nil {
+		return
+	}
+
+	if LuaVariableMap.Status != "0" {
+		isContinue = true
+	}
+
+	nBytes = make([]byte, 0, len(LuaVariableMap.Variable))
+	if len(LuaVariableMap.Variable) > 0 {
+		for _, v := range LuaVariableMap.Variable {
+			nBytes = append(nBytes, *v)
+		}
+	} else {
+		err = fmt.Errorf("LuaVariableMap's Variable less than 0")
+		return
+	}
+	return
 }
 
 func getGoroutineID() uint64 {
@@ -231,10 +265,7 @@ func getGoroutineID() uint64 {
 	return n
 }
 
-func (d *DeviceNodeTemplate) AnalysisRx(sAddr string, variables []VariableTemplate, rxBuf []byte, rxBufCnt int) chan bool {
-
-	status := make(chan bool, 1)
-
+func (d *DeviceNodeTemplate) AnalysisRx(sAddr string, variables []*VariableTemplate, rxBuf []byte, rxBufCnt int, txBuf []byte) (err error) {
 	type LuaVariableTemplate struct {
 		Index   int
 		Name    string
@@ -242,92 +273,186 @@ func (d *DeviceNodeTemplate) AnalysisRx(sAddr string, variables []VariableTempla
 		Type    string
 		Value   interface{}
 		Explain string
+		Formula string
 	}
 
 	type LuaVariableMapTemplate struct {
-		Status   string `json:"Status"`
-		Variable []*LuaVariableTemplate
+		Status    string `json:"Status"`              //状态是否正常
+		Formulaed bool   `json:"Formulaed,omitempty"` //是否有计算公式
+		Variable  []*LuaVariableTemplate
 	}
 
 	lock.Lock()
-	for k, v := range DeviceNodeTypeMap.DeviceNodeType {
-		if d.Type == v.TemplateType {
-			tbl := lua.LTable{}
-			for _, v := range rxBuf {
-				tbl.Append(lua.LNumber(v))
-			}
-			DeviceTypePluginMap[k].SetGlobal("rxBuf", luar.New(DeviceTypePluginMap[k], &tbl))
+	defer lock.Unlock()
+	template, ok := DeviceTemplateMap[d.Type]
+	if !ok {
+		err = fmt.Errorf("no such device template %s", d.Type)
+		return
+	}
+	state := template.LuaState
+	if state == nil {
+		err = errors.New("nil lua state")
+		return
+	}
+	tbl := lua.LTable{}
+	for _, v := range rxBuf {
+		tbl.Append(lua.LNumber(v))
+	}
+	state.SetGlobal(string(RXBUF), luar.New(state, &tbl))
+	tbl_tx := lua.LTable{}
+	for _, v := range txBuf {
+		tbl_tx.Append(lua.LNumber(v))
+	}
+	state.SetGlobal(string(TXBUF), luar.New(state, &tbl_tx))
+	//AnalysisRx
+	err = state.CallByParam(lua.P{
+		Fn:      state.GetGlobal(string(ANALYSISRX)),
+		NRet:    1,
+		Protect: true,
+	}, lua.LString(sAddr), lua.LNumber(rxBufCnt))
 
-			//AnalysisRx
-			err := DeviceTypePluginMap[k].CallByParam(lua.P{
-				Fn:      DeviceTypePluginMap[k].GetGlobal("AnalysisRx"),
-				NRet:    1,
-				Protect: true,
-			}, lua.LString(sAddr), lua.LNumber(rxBufCnt))
-			if err != nil {
-				setting.Logger.Warning("AnalysisRx err,", err)
-			}
+	if err != nil {
+		return
 
-			//获取返回结果
-			ret := DeviceTypePluginMap[k].Get(-1)
-			DeviceTypePluginMap[k].Pop(1)
+	}
 
-			LuaVariableMap := LuaVariableMapTemplate{}
+	//获取返回结果
+	ret := state.Get(-1)
+	state.Pop(1)
 
-			if err := gluamapper.Map(ret.(*lua.LTable), &LuaVariableMap); err != nil {
-				setting.Logger.Warning("AnalysisRx gluamapper.Map err,", err)
-			}
+	LuaVariableMap := LuaVariableMapTemplate{}
+	table, ok := ret.(*lua.LTable)
+	if !ok {
+		err = errors.New("ret is not lua LTable")
+		return
 
-			timeNowStr := time.Now().Format("2006-01-02 15:04:05")
-			value := ValueTemplate{}
-			if LuaVariableMap.Status == "0" {
-				if len(LuaVariableMap.Variable) > 0 {
-					for _, lv := range LuaVariableMap.Variable {
-						for k, v := range variables {
-							if lv.Index == v.Index {
-								variables[k].Index = lv.Index
-								variables[k].Name = lv.Name
-								variables[k].Label = lv.Label
-								variables[k].Type = lv.Type
+	}
+	if err = gluamapper.Map(table, &LuaVariableMap); err != nil {
+		err = fmt.Errorf("AnalysisRx gluamapper.Map error:%v", err)
+		return
+	}
 
-								switch lv.Type {
-								case "uint8":
-									value.Value = (uint8)(lv.Value.(float64))
-								case "uint16":
-									value.Value = (uint16)(lv.Value.(float64))
-								case "uint32":
-									value.Value = (uint32)(lv.Value.(float64))
-								case "uint64":
-									value.Value = (uint64)(lv.Value.(float64))
-								case "int8":
-									value.Value = (int8)(lv.Value.(float64))
-								case "int16":
-									value.Value = (int16)(lv.Value.(float64))
-								case "int32":
-									value.Value = (int32)(lv.Value.(float64))
-								case "int64":
-									value.Value = (int64)(lv.Value.(float64))
-								case "string":
-									value.Value = lv.Value.(string)
-								}
-								value.Explain = lv.Explain
-								value.TimeStamp = timeNowStr
-
-								if len(variables[k].Value) < 100 {
-									variables[k].Value = append(variables[k].Value, value)
-								} else {
-									variables[k].Value = variables[k].Value[1:]
-									variables[k].Value = append(variables[k].Value, value)
-								}
-								//log.Printf("LuaVariables %+v\n", variables[k])
-							}
-						}
-					}
-				}
-				status <- true
-			}
+	//如果有公式的话
+	if LuaVariableMap.Formulaed {
+		if env == nil || eval == nil {
+			initializeEval()
 		}
 	}
-	lock.Unlock()
-	return status
+
+	timeNowStr := time.Now().Format("2006-01-02 15:04:05")
+	value := ValueTemplate{}
+	//正常
+	if LuaVariableMap.Status == "0" {
+		if len(LuaVariableMap.Variable) > 0 {
+			var item float64
+		VLOOP:
+			for _, lv := range LuaVariableMap.Variable {
+				if lv != nil {
+
+					v := variables[lv.Index]
+					switch v.Type {
+					case "uint8":
+						item = lv.Value.(float64)
+						value.Value = uint8(item)
+
+					case "uint16":
+						item = lv.Value.(float64)
+						value.Value = uint16(item)
+
+					case "uint32":
+						item = lv.Value.(float64)
+						value.Value = uint32(item)
+
+					case "uint64":
+						item = lv.Value.(float64)
+						value.Value = uint64(item)
+
+					case "int8":
+						item = lv.Value.(float64)
+						value.Value = int8(item)
+
+					case "int16":
+						item = lv.Value.(float64)
+						value.Value = int16(item)
+					case "int32":
+						item = lv.Value.(float64)
+						value.Value = int32(item)
+					case "int64":
+						item = lv.Value.(float64)
+						value.Value = int64(item)
+					case "float32":
+						item = lv.Value.(float64)
+						value.Value = float32(item)
+					case "float64":
+						item = lv.Value.(float64)
+						value.Value = item
+					case "string":
+						value.Value = lv.Value.(string)
+					}
+
+					//如果有表达式
+					if lv.Formula != "" {
+						//log.Printf("formula:%s\n", lv.Formula)
+						if d.Parser == nil {
+							d.Parser = &IndexParser{
+								env: env,
+							}
+						}
+						d.Parser.SetFormula(lv.Formula)
+						if err := d.Parser.PreVarSet(variables); err != nil {
+							log.Println(color.RedString("基础变量设置失败:%v", err))
+							goto VLOOP
+						}
+						if err := d.Parser.VarSet(item); err != nil {
+							log.Println(color.RedString("设置表达式val值错误:%v", err))
+							goto VLOOP
+						}
+
+						parser := parser.New(lv.Formula)
+						exp, err := parser.Parse()
+						if err != nil {
+							log.Println(color.RedString("解析表达式%s错误:%v", lv.Formula, err))
+							goto VLOOP
+						}
+						ret, err := eval.Run(exp)
+						if err != nil {
+							log.Println(color.RedString("运行表达式%s错误:%v", lv.Formula, err))
+							goto VLOOP
+						}
+						var endValue interface{}
+						if d, ok := ret.(decimal.Decimal); ok {
+							v, exact := d.Float64()
+							if exact {
+								endValue = v
+							} else {
+								endValue = d.String()
+							}
+						} else {
+							log.Printf("不能转换%s\n", lv.Label)
+						}
+						//log.Printf("label:%s 表达式值:%v val:%v\n", lv.Label, endValue, item)
+						value.Value = endValue
+
+					}
+
+					value.Explain = lv.Explain
+					value.TimeStamp = timeNowStr
+
+					if len(v.Values) < 100 {
+						v.Values = append(v.Values, value)
+					} else {
+						v.Values = v.Values[1:]
+						v.Values = append(v.Values, value)
+					}
+				}
+
+			}
+			return
+		} else {
+			err = fmt.Errorf("variable len:%d", len(LuaVariableMap.Variable))
+			return
+
+		}
+	}
+	return fmt.Errorf("ret status is %s", LuaVariableMap.Status)
 }
