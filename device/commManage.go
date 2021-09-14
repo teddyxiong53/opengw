@@ -1,22 +1,30 @@
 package device
 
 import (
+	"context"
+	"errors"
 	"fmt"
 	"goAdapter/setting"
+	"io"
+	"log"
 	"strconv"
 	"time"
+
+	"github.com/fatih/color"
+	"github.com/jasonlvhit/gocron"
 )
 
 type CommunicationCmdTemplate struct {
 	CollInterfaceName string //采集接口名称
 	DeviceName        string //采集接口下设备名称
-	FunName           string
+	DeviceIndex       int
+	FunName           LUAFUNC
 	FunPara           string
 }
 
 type CommunicationRxTemplate struct {
-	Status bool
-	RxBuf  []byte
+	Err   error
+	RxBuf []byte
 }
 
 type CommunicationManageTemplate struct {
@@ -25,11 +33,25 @@ type CommunicationManageTemplate struct {
 	EmergencyAckChan     chan CommunicationRxTemplate
 	CollInterface        *CollectInterfaceTemplate
 	PacketChan           chan []byte
+	Context              context.Context
+	Cancel               context.CancelFunc
+	Delay                time.Duration
+	Waiting              bool
 }
 
-var CommunicationManage = make([]*CommunicationManageTemplate, 0)
+var CommunicationManage = CommManger{
+	ManagerTemp: make(map[string]*CommunicationManageTemplate),
+	Collectors:  make(chan *CollectInterfaceStatus, 20),
+}
+
+type CommManger struct {
+	ManagerTemp map[string]*CommunicationManageTemplate
+	Collectors  chan *CollectInterfaceStatus
+}
 
 func NewCommunicationManageTemplate(coll *CollectInterfaceTemplate) *CommunicationManageTemplate {
+
+	ctx, cancel := context.WithCancel(context.Background())
 
 	template := &CommunicationManageTemplate{
 		EmergencyRequestChan: make(chan CommunicationCmdTemplate, 1),
@@ -37,241 +59,298 @@ func NewCommunicationManageTemplate(coll *CollectInterfaceTemplate) *Communicati
 		EmergencyAckChan:     make(chan CommunicationRxTemplate, 1),
 		PacketChan:           make(chan []byte, 100), //最多连续接收100帧数据
 		CollInterface:        coll,
+		Context:              ctx,
+		Cancel:               cancel,
+		Delay:                time.Millisecond * 100,
 	}
-	//启动接收协程
-	go template.AnalysisRx()
-
+	if coll.CommInterface.Error() == nil {
+		//启动接收协程
+		log.Println(color.CyanString("采集接口【%s】打开成功，启动接收协程！", coll.CollInterfaceName))
+		go template.ReadRx(ctx)
+	}
 	return template
 }
+func addHandler(scheduler *gocron.Scheduler, collect *CollectInterfaceStatus) {
+	comm := collect.Tmp.CommInterface
+	if comm == nil {
+		log.Println(color.YellowString("通讯口【%s】未绑定到接口【%s】",
+			collect.Tmp.CommInterfaceName, collect.Tmp.CollInterfaceName))
+		return
+	}
+	if err := comm.Open(); err != nil {
+		log.Println(color.YellowString("通讯口【%s】打开错误", comm.GetName()))
+		return
+	}
+	manager := NewCommunicationManageTemplate(collect.Tmp)
+	CommunicationManage.ManagerTemp[collect.Tmp.CollInterfaceName] = manager
 
-func (c *CommunicationManageTemplate) CommunicationManageAddCommon(cmd CommunicationCmdTemplate) {
+	scheduler.Every(uint64(collect.Tmp.PollPeriod)).Seconds().Do(manager.CommunicationManagePoll)
+	go manager.CommunicationManageDel()
+	log.Println(color.CyanString("添加采集【%s】到定时任务,Addr:%p", collect.Tmp.CollInterfaceName, manager))
+}
 
-	c.CommonRequestChan <- cmd
+func delHandler(scheduler *gocron.Scheduler, collect *CollectInterfaceStatus) {
+	managerRemove := CommunicationManage.ManagerTemp[collect.Tmp.CollInterfaceName]
+	if managerRemove != nil {
+		scheduler.Remove(managerRemove.CommunicationManagePoll)
+		managerRemove.Cancel()
+		managerRemove.CollInterface.CommInterface.Close()
+		log.Println(color.CyanString("取消采集【%s】定时任务,Addr:%p", collect.Tmp.CollInterfaceName, managerRemove))
+	}
+}
+
+func ScheduleJob(scheduler *gocron.Scheduler, quitChan chan struct{}) {
+	go func() {
+		for {
+			select {
+			case collect := <-CommunicationManage.Collectors:
+				switch collect.ACT {
+				case ADD:
+					addHandler(scheduler, collect)
+				case DELETE:
+					delHandler(scheduler, collect)
+
+				case UPDATE:
+					//TODO 更新要稍微考虑一下，目前更新是先DELETE然后Add来实现
+
+				}
+			case <-quitChan:
+				return
+			default:
+				time.Sleep(100 * time.Millisecond)
+			}
+		}
+	}()
+
 }
 
 func (c *CommunicationManageTemplate) CommunicationManageAddEmergency(cmd CommunicationCmdTemplate) CommunicationRxTemplate {
 
+	//TODO 这里会不会阻塞住得看下超时的判断
 	c.EmergencyRequestChan <- cmd
 
 	return <-c.EmergencyAckChan
 }
 
-func (c *CommunicationManageTemplate) AnalysisRx() {
-
-	//阻塞读
-	rxBuf := make([]byte, 1024)
-	rxBufCnt := 0
+func (c *CommunicationManageTemplate) ReadRx(ctx context.Context) {
 
 	for {
-		//阻塞读
-		rxBufCnt = c.CollInterface.CommInterface.ReadData(rxBuf)
-		if rxBufCnt > 0 {
-			//setting.Logger.Debugf("%s:curRxBufCnt %v", c.CollInterface.CollInterfaceName, rxBufCnt)
-			//setting.Logger.Debugf("%s:CurRxBuf %X", c.CollInterface.CollInterfaceName, rxBuf[:rxBufCnt])
-
-			//rxTotalBufCnt += rxBufCnt
-			//追加接收的数据到接收缓冲区
-			//rxTotalBuf = append(rxTotalBuf, rxBuf[:rxBufCnt]...)
-			c.PacketChan <- rxBuf[:rxBufCnt]
-			//log.Printf("chanLen %v\n", len(c.PacketChan))
-
-			//清除本次接收数据
-			rxBufCnt = 0
+		select {
+		case <-ctx.Done():
+			return
+		default:
+			//阻塞读
+			data, err := io.ReadAll(c.CollInterface.CommInterface)
+			if err != nil {
+				time.Sleep(100 * time.Millisecond)
+				continue
+			}
+			c.PacketChan <- data
+			log.Println(color.GreenString(" 接口%s RECV:% X", c.CollInterface.CollInterfaceName, data))
+			//每次读休眠100毫秒
+			time.Sleep(100 * time.Millisecond)
 		}
-		time.Sleep(100 * time.Millisecond)
+
 	}
 }
 
-func (c *CommunicationManageTemplate) CommunicationStateMachine(cmd CommunicationCmdTemplate) CommunicationRxTemplate {
-
-	rxData := CommunicationRxTemplate{
-		Status: false,
-	}
+func (c *CommunicationManageTemplate) CommunicationStateMachine(cmd CommunicationCmdTemplate) (rxData CommunicationRxTemplate) {
+	var timeout int
+	var interval int
+	timeout, _ = strconv.Atoi(c.CollInterface.CommInterface.GetTimeOut())
+	interval, _ = strconv.Atoi(c.CollInterface.CommInterface.GetInterval())
+	//通讯接口的超时
+	ticker := time.NewTicker(time.Duration(timeout) * time.Millisecond)
+	defer ticker.Stop()
+	defer time.Sleep(time.Duration(interval) * time.Millisecond)
 
 	startT := time.Now() //计算当前时间
-	for _, v := range c.CollInterface.DeviceNodeMap {
-		if v.Name == cmd.DeviceName {
-			setting.Logger.Debugf("%v:name %v", c.CollInterface.CollInterfaceName, v.Name)
-			step := 0
+	if c.CollInterface != nil && c.CollInterface.DeviceNodes != nil {
+		node := c.CollInterface.DeviceNodes[cmd.DeviceIndex]
+		step := 0
+		var txBuf []byte
+		var hasFrame = true
+		var err error
+	OUT:
+		//是否有后续帧
+		for hasFrame {
+			if cmd.FunName == GETREAL {
+				txBuf, hasFrame, err = node.GenerateGetRealVariables(node.Addr, step)
+				if err != nil {
+					log.Printf("genterate get real error:%v\n", err)
+					rxData.Err = err
+					return
+				}
+
+			} else {
+				txBuf, hasFrame, err = node.DeviceCustomCmd(node.Addr, cmd.FunName, cmd.FunPara, step)
+				if err != nil {
+					log.Printf("device custom  cmd error:%v\n", err)
+					rxData.Err = err
+					return
+				}
+
+			}
+			step++
+			log.Println(color.BlueString("设备【%s】SEND:% X", cmd.DeviceName, txBuf))
+			//setting.ZAPS.Debugf("interfaceName %s:txbuf %X", c.CollInterface.CollInterfaceName, txBuf)
+
+			CommunicationMessage := CommunicationMessageTemplate{
+				CollName:  c.CollInterface.CollInterfaceName,
+				TimeStamp: time.Now().Format("2006-01-02 15:04:05"),
+				Direction: "send",
+				Content:   fmt.Sprintf("%X", txBuf),
+			}
+			if len(c.CollInterface.CommMessage) < 1024 {
+				c.CollInterface.CommMessage = append(c.CollInterface.CommMessage, &CommunicationMessage)
+			} else {
+				c.CollInterface.CommMessage = c.CollInterface.CommMessage[1:]
+				c.CollInterface.CommMessage = append(c.CollInterface.CommMessage, &CommunicationMessage)
+			}
+
+			//---------------发送-------------------------
+			//判断是否是串口采集
+			c.CollInterface.CommInterface.Write(txBuf)
+			node.CommTotalCnt++
+			//---------------等待接收----------------------
+			//阻塞读
+			var (
+				rxBuf         []byte
+				rxTotalBuf    []byte
+				rxBufCnt      int
+				rxTotalBufCnt int
+			)
+
 			for {
-				//--------------组包---------------------------
-				txBuf := make([]byte, 0)
-				ok := false
-				con := false
-				if cmd.FunName == "GetDeviceRealVariables" {
-					txBuf, ok, con = v.GenerateGetRealVariables(v.Addr, step)
-					if ok == false {
-						setting.Logger.Errorf("%v:GetRealVariables fail", c.CollInterface.CollInterfaceName)
-						goto LoopCommon
-					}
-				} else {
-					txBuf, ok, con = v.DeviceCustomCmd(v.Addr, cmd.FunName, cmd.FunPara, step)
-					if ok == false {
-						setting.Logger.Errorf("%v:DeviceCustomCmd fail", c.CollInterface.CollInterfaceName)
-						goto LoopCommon
-					}
-				}
+				select {
+				//是否接收超时
+				case <-ticker.C:
+					{
+						CommunicationMessage := CommunicationMessageTemplate{
+							CollName:  c.CollInterface.CollInterfaceName,
+							TimeStamp: time.Now().Format("2006-01-02 15:04:05"),
+							Direction: "receive",
+							Content:   fmt.Sprintf("接收数据超时了,超时阈值:%s ms", c.CollInterface.CommInterface.GetTimeOut()),
+						}
+						if len(c.CollInterface.CommMessage) < 1024 {
+							c.CollInterface.CommMessage = append(c.CollInterface.CommMessage, &CommunicationMessage)
+						} else {
+							c.CollInterface.CommMessage = c.CollInterface.CommMessage[1:]
+							c.CollInterface.CommMessage = append(c.CollInterface.CommMessage, &CommunicationMessage)
+						}
 
-				step++
-				setting.Logger.Debugf("%v:txbuf %X", c.CollInterface.CollInterfaceName, txBuf)
+						//通信帧延时
+						//time.Sleep(time.Duration(interval) * time.Millisecond)
 
-				CommunicationMessage := CommunicationMessageTemplate{
-					CollName:  c.CollInterface.CollInterfaceName,
-					TimeStamp: time.Now().Format("2006-01-02 15:04:05"),
-					Direction: "send",
-					Content:   fmt.Sprintf("%X", txBuf),
-				}
-				if len(c.CollInterface.CommMessage) < 1024 {
-					c.CollInterface.CommMessage = append(c.CollInterface.CommMessage, CommunicationMessage)
-				} else {
-					c.CollInterface.CommMessage = c.CollInterface.CommMessage[1:]
-					c.CollInterface.CommMessage = append(c.CollInterface.CommMessage, CommunicationMessage)
-				}
-
-				//---------------发送-------------------------
-				var timeout int
-				var interval int
-				//判断是否是串口采集
-				c.CollInterface.CommInterface.WriteData(txBuf)
-				timeout, _ = strconv.Atoi(c.CollInterface.CommInterface.GetTimeOut())
-				interval, _ = strconv.Atoi(c.CollInterface.CommInterface.GetInterval())
-				timerOut := time.NewTimer(time.Duration(timeout) * time.Millisecond)
-				v.CommTotalCnt++
-				//---------------等待接收----------------------
-				//阻塞读
-				rxBuf := make([]byte, 256)
-				rxTotalBuf := make([]byte, 0)
-				rxBufCnt := 0
-				rxTotalBufCnt := 0
-				for {
-					select {
-					//是否接收超时
-					case <-timerOut.C:
-						{
-							timerOut.Stop()
-							CommunicationMessage := CommunicationMessageTemplate{
-								CollName:  c.CollInterface.CollInterfaceName,
-								TimeStamp: time.Now().Format("2006-01-02 15:04:05"),
-								Direction: "receive",
-								Content:   fmt.Sprintf("%X", rxTotalBuf),
+						node.CurCommFailCnt++
+						rxTotalBufCnt = 0
+						rxTotalBuf = []byte{}
+						if node.CurCommFailCnt >= c.CollInterface.OfflinePeriod {
+							node.CurCommFailCnt = 0
+							//设备从上线变成离线
+							if node.CommStatus == ONLINE {
+								if len(c.CollInterface.OfflineReportChan) == 100 {
+									<-c.CollInterface.OfflineReportChan
+								}
+								c.CollInterface.OfflineReportChan <- node.Name
+								node.CommStatus = OFFLINE
+								c.CollInterface.DeviceNodeOnlineCnt--
 							}
-							if len(c.CollInterface.CommMessage) < 1024 {
-								c.CollInterface.CommMessage = append(c.CollInterface.CommMessage, CommunicationMessage)
-							} else {
-								c.CollInterface.CommMessage = c.CollInterface.CommMessage[1:]
-								c.CollInterface.CommMessage = append(c.CollInterface.CommMessage, CommunicationMessage)
-							}
+							return
+						}
+						log.Println(color.MagentaString("采集器【%v】-设备【%s】接收数据超时，失败次数:%d 总次数:%d", c.CollInterface.CollInterfaceName, node.Name, node.CurCommFailCnt, c.CollInterface.OfflinePeriod))
+					}
 
-							setting.Logger.Debugf("%v rx timeout", c.CollInterface.CollInterfaceName)
-							setting.Logger.Debugf("%v:rxbuf %X", c.CollInterface.CollInterfaceName, rxTotalBuf)
-							//通信帧延时
-							//time.Sleep(time.Duration(interval) * time.Millisecond)
+				//继续接收数据
+				case rxBuf = <-c.PacketChan:
+					{
+						rxBufCnt = len(rxBuf)
+						if rxBufCnt > 0 {
+							rxTotalBufCnt += rxBufCnt
+							//追加接收的数据到接收缓冲区
+							rxTotalBuf = append(rxTotalBuf, rxBuf[:rxBufCnt]...)
+							err := node.AnalysisRx(node.Addr, node.VariableMap, rxTotalBuf, rxTotalBufCnt, txBuf)
+							{
+								ticker.Stop()
+								if err != nil {
+									log.Printf("analysisrx error:%v\n", err)
+									rxData.Err = err
+									return
+								}
 
-							v.CurCommFailCnt++
-							if v.CurCommFailCnt >= c.CollInterface.OfflinePeriod {
-								v.CurCommFailCnt = 0
-								//设备从上线变成离线
-								if v.CommStatus == "onLine" {
-									if len(c.CollInterface.OfflineReportChan) == 100 {
-										<-c.CollInterface.OfflineReportChan
+								rxData.RxBuf = rxTotalBuf
+
+								CommunicationMessage := CommunicationMessageTemplate{
+									CollName:  c.CollInterface.CollInterfaceName,
+									TimeStamp: time.Now().Format("2006-01-02 15:04:05"),
+									Direction: "receive",
+									Content:   fmt.Sprintf("%X", rxTotalBuf),
+								}
+								if len(c.CollInterface.CommMessage) < 1024 {
+									c.CollInterface.CommMessage = append(c.CollInterface.CommMessage, &CommunicationMessage)
+								} else {
+									c.CollInterface.CommMessage = c.CollInterface.CommMessage[1:]
+									c.CollInterface.CommMessage = append(c.CollInterface.CommMessage, &CommunicationMessage)
+								}
+
+								//设备从离线变成上线
+								if node.CommStatus == OFFLINE {
+									if len(c.CollInterface.OnlineReportChan) == 100 {
+										<-c.CollInterface.OnlineReportChan
 									}
-									c.CollInterface.OfflineReportChan <- v.Name
+									c.CollInterface.OnlineReportChan <- node.Name
+									c.CollInterface.DeviceNodeOnlineCnt++
+									node.CommStatus = ONLINE
 								}
-								v.CommStatus = "offLine"
-							}
-							rxTotalBufCnt = 0
-							rxTotalBuf = rxTotalBuf[0:0]
 
-							goto LoopCommonStep
-						}
-					//是否正确收到数据包
-					case rxStatus := <-v.AnalysisRx(v.Addr, v.VariableMap, rxTotalBuf, rxTotalBufCnt):
-						{
-							timerOut.Stop()
-							setting.Logger.Debugf("%v:rx ok", c.CollInterface.CollInterfaceName)
-							setting.Logger.Debugf("%v:rxbuf %X", c.CollInterface.CollInterfaceName, rxTotalBuf)
-
-							rxData.Status = rxStatus
-							rxData.RxBuf = rxTotalBuf
-
-							CommunicationMessage := CommunicationMessageTemplate{
-								CollName:  c.CollInterface.CollInterfaceName,
-								TimeStamp: time.Now().Format("2006-01-02 15:04:05"),
-								Direction: "receive",
-								Content:   fmt.Sprintf("%X", rxTotalBuf),
-							}
-							if len(c.CollInterface.CommMessage) < 1024 {
-								c.CollInterface.CommMessage = append(c.CollInterface.CommMessage, CommunicationMessage)
-							} else {
-								c.CollInterface.CommMessage = c.CollInterface.CommMessage[1:]
-								c.CollInterface.CommMessage = append(c.CollInterface.CommMessage, CommunicationMessage)
-							}
-
-							//设备从离线变成上线
-							if v.CommStatus == "offLine" {
-								if len(c.CollInterface.OnlineReportChan) == 100 {
-									<-c.CollInterface.OnlineReportChan
+								//防止Chan阻塞
+								if len(c.CollInterface.PropertyReportChan) >= 100 {
+									<-c.CollInterface.PropertyReportChan
 								}
-								c.CollInterface.OnlineReportChan <- v.Name
+								c.CollInterface.PropertyReportChan <- node.Addr
+								//log.Printf("reportChan %v\n", len(c.CollInterface.PropertyReportChan))
+
+								node.CommSuccessCnt++
+								node.CurCommFailCnt = 0
+								node.LastCommRTC = time.Now().Format("2006-01-02 15:04:05")
+
+								rxTotalBufCnt = 0
+								rxTotalBuf = rxTotalBuf[0:0]
+								//通信帧延时
+								if hasFrame {
+									log.Println(color.CyanString("采集接口【%s】还有后续帧,等待%d毫秒", c.CollInterface.CollInterfaceName, interval))
+									time.Sleep(time.Duration(interval) * time.Millisecond)
+									goto OUT
+								} else {
+									//清除本次接收数据
+									rxBufCnt = 0
+									rxBuf = rxBuf[0:0]
+									return
+								}
+
 							}
 
-							//防止Chan阻塞
-							if len(c.CollInterface.PropertyReportChan) >= 100 {
-								<-c.CollInterface.PropertyReportChan
-							}
-							c.CollInterface.PropertyReportChan <- v.Addr
-							//log.Printf("reportChan %v\n", len(c.CollInterface.PropertyReportChan))
-
-							v.CommSuccessCnt++
-							v.CurCommFailCnt = 0
-							v.CommStatus = "onLine"
-							v.LastCommRTC = time.Now().Format("2006-01-02 15:04:05")
-
-							rxTotalBufCnt = 0
-							rxTotalBuf = rxTotalBuf[0:0]
-							goto LoopCommonStep
-						}
-					//继续接收数据
-					case rxBuf = <-c.PacketChan:
-						{
-							rxBufCnt = len(rxBuf)
-							if rxBufCnt > 0 {
-								rxTotalBufCnt += rxBufCnt
-								//追加接收的数据到接收缓冲区
-								rxTotalBuf = append(rxTotalBuf, rxBuf[:rxBufCnt]...)
-								//清除本次接收数据
-								rxBufCnt = 0
-								rxBuf = rxBuf[0:0]
-								//log.Printf("rxTotalBuf %X\n", rxTotalBuf)
-							}
+							//log.Printf("rxTotalBuf %X\n", rxTotalBuf)
 						}
 					}
-				}
-			LoopCommonStep:
-				//是否后续有通信帧
-				if con == false {
-					setting.Logger.Errorf("%v:comm complete", c.CollInterface.CollInterfaceName)
-					goto LoopCommon
-				} else {
-					//通信帧延时
-					time.Sleep(time.Duration(interval) * time.Millisecond)
 				}
 			}
-		LoopCommon:
+
 		}
+	} else {
+		rxData.Err = errors.New("interface or device nodes is nil")
 	}
 	tc := time.Since(startT) //计算耗时
 	setting.Logger.Debugf("%v time cost = %v", c.CollInterface.CollInterfaceName, tc)
-
 	//更新设备在线数量
 	c.CollInterface.DeviceNodeOnlineCnt = 0
-	for _, v := range c.CollInterface.DeviceNodeMap {
+	for _, v := range c.CollInterface.DeviceNodes {
 		if v.CommStatus == "onLine" {
 			c.CollInterface.DeviceNodeOnlineCnt++
 		}
 	}
 
-	return rxData
+	return
 }
 
 func (c *CommunicationManageTemplate) CommunicationManageDel() {
@@ -285,25 +364,20 @@ func (c *CommunicationManageTemplate) CommunicationManageDel() {
 
 				GetDeviceOnline()
 				GetDevicePacketLoss()
-
-				setting.Logger.Debugf("emergency chan rxData %v", rxData)
 				c.EmergencyAckChan <- rxData
 			}
-		default:
-			{
-				select {
-				case cmd := <-c.CommonRequestChan:
-					{
-						setting.Logger.Debugf("%v:commChanLen %v", c.CollInterface.CollInterfaceName, len(c.CommonRequestChan))
-						c.CommunicationStateMachine(cmd)
+		case <-c.Context.Done():
+			log.Println(color.RedString("停止接口【%s】采集协程", c.CollInterface.CollInterfaceName))
+			return
 
-						GetDeviceOnline()
-						GetDevicePacketLoss()
-					}
-				default:
-					time.Sleep(100 * time.Millisecond)
-				}
+		case cmd := <-c.CommonRequestChan:
+			rxData := c.CommunicationStateMachine(cmd)
+			GetDeviceOnline()
+			GetDevicePacketLoss()
+			if err := rxData.Err; err != nil {
+				setting.Logger.Debugf("get data from common request chan  error:%v", err)
 			}
+
 		}
 	}
 }
@@ -330,7 +404,7 @@ func GetDevicePacketLoss() {
 	deviceCommTotalCnt := 0
 	deviceCommLossCnt := 0
 	for _, v := range CollectInterfaceMap {
-		for _, v := range v.DeviceNodeMap {
+		for _, v := range v.DeviceNodes {
 			deviceCommTotalCnt += v.CommTotalCnt
 			deviceCommLossCnt += v.CommTotalCnt - v.CommSuccessCnt
 		}
@@ -344,18 +418,27 @@ func GetDevicePacketLoss() {
 
 func (c *CommunicationManageTemplate) CommunicationManagePoll() {
 
-	cmd := CommunicationCmdTemplate{}
-	//对采集接口进行遍历
-	for _, coll := range CollectInterfaceMap {
-		if coll.CollInterfaceName == c.CollInterface.CollInterfaceName {
-			//对采集接口下设备进行遍历
-			for _, v := range coll.DeviceNodeMap {
-				cmd.CollInterfaceName = coll.CollInterfaceName
-				cmd.DeviceName = v.Name
-				cmd.FunName = "GetDeviceRealVariables"
-				c.CommunicationManageAddCommon(cmd)
-			}
-			setting.Logger.Debugf("%s commChanTotalLen %v", coll.CollInterfaceName, len(c.CommonRequestChan))
+	if c.Waiting {
+		time.Sleep(c.Delay)
+	}
+	if c.CollInterface.DeviceNodeCnt <= 0 {
+		log.Println(color.YellowString("采集接口【%s】目前还未下挂设备", c.CollInterface.CollInterfaceName))
+		c.Waiting = true
+		c.Delay *= 2
+		return
+	} else {
+		c.Waiting = false
+		c.Delay = time.Millisecond * 100
+	}
+
+	//对采集接口下设备进行遍历进行发送
+	for index, node := range c.CollInterface.DeviceNodes {
+		cmd := CommunicationCmdTemplate{
+			CollInterfaceName: c.CollInterface.CollInterfaceName,
+			DeviceName:        node.Name,
+			FunName:           GETREAL,
+			DeviceIndex:       index,
 		}
+		c.CommonRequestChan <- cmd
 	}
 }
