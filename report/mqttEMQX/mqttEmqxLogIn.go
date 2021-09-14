@@ -2,7 +2,7 @@ package mqttEmqx
 
 import (
 	"encoding/json"
-	"goAdapter/setting"
+	"goAdapter/pkg/mylog"
 	"strconv"
 	"time"
 
@@ -32,7 +32,7 @@ func MQTTEmqxGWLogin(param ReportServiceGWParamEmqxTemplate, publishHandler MQTT
 	//hs256.Write([]byte("zhsHrx123456@"))
 	//password := hs256.Sum(nil)
 	//param.Password = string(hex.EncodeToString(password))
-	//setting.Logger.Debugf("Emqx password %v", param.Password)
+	//mylog.Logger.Debugf("Emqx password %v", param.Password)
 	//param.Password = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VybmFtZSI6InpocyIsImNsaWVudGlkIjoiIiwiaWF0IjoxNjI2NzAwMzE1fQ.EICw6uVoP-_X2iKcdkmBTJevFspm7Nz9ipHjJpr8eHg"
 	opts.SetPassword(param.Param.Password)
 	opts.SetKeepAlive(60 * 2 * time.Second)
@@ -42,10 +42,10 @@ func MQTTEmqxGWLogin(param ReportServiceGWParamEmqxTemplate, publishHandler MQTT
 	// create and start a client using the above ClientOptions
 	mqttClient := MQTT.NewClient(opts)
 	if token := mqttClient.Connect(); token.Wait() && token.Error() != nil {
-		setting.Logger.Errorf("Connect Emqx IoT Cloud fail %s", token.Error())
+		mylog.Logger.Errorf("Connect Emqx IoT Cloud fail %s", token.Error())
 		return false, nil
 	}
-	setting.Logger.Info("Connect Emqx IoT Cloud Sucess")
+	mylog.Logger.Info("Connect Emqx IoT Cloud Sucess")
 
 	subTopic := ""
 	//子设备上线回应
@@ -79,9 +79,9 @@ func MQTTEmqxGWLogin(param ReportServiceGWParamEmqxTemplate, publishHandler MQTT
 func MQTTEmqxSubscribeTopic(client MQTT.Client, topic string) {
 
 	if token := client.Subscribe(topic, 0, nil); token.Wait() && token.Error() != nil {
-		setting.Logger.Warningf("Subscribe topic %s fail %v", topic, token.Error())
+		mylog.Logger.Warningf("Subscribe topic %s fail %v", topic, token.Error())
 	}
-	setting.Logger.Info("Subscribe topic " + topic + " success")
+	mylog.Logger.Info("Subscribe topic " + topic + " success")
 }
 
 func (r *ReportServiceParamEmqxTemplate) GWLogin() bool {
@@ -116,8 +116,8 @@ func MQTTEmqxNodeLoginIn(param ReportServiceGWParamEmqxTemplate, nodeMap []strin
 	sJson, _ := json.Marshal(nodeLogin)
 	if len(nodeLogin.Params) > 0 {
 
-		setting.Logger.Debugf("node publish logInMsg: %s", sJson)
-		setting.Logger.Infof("node publish topic: %s", loginTopic)
+		mylog.Logger.Debugf("node publish logInMsg: %s", sJson)
+		mylog.Logger.Infof("node publish topic: %s", loginTopic)
 
 		if param.MQTTClient != nil {
 			token := param.MQTTClient.Publish(loginTopic, 0, false, sJson)
@@ -133,7 +133,7 @@ func (r *ReportServiceParamEmqxTemplate) NodeLogIn(name []string) bool {
 	nodeMap := make([]string, 0)
 	status := false
 
-	setting.Logger.Debugf("nodeLoginName %v", name)
+	mylog.Logger.Debugf("nodeLoginName %v", name)
 	for _, d := range name {
 		for _, v := range r.NodeList {
 			if d == v.Name {

@@ -1,3 +1,11 @@
+/*
+@Description: This is auto comment by koroFileHeader.
+@Author: Linn
+@Date: 2021-09-10 09:28:15
+@LastEditors: WalkMiao
+@LastEditTime: 2021-09-14 15:16:34
+@FilePath: /goAdapter-Raw/report/mqttAliyun/mqttAliyunSign.go
+*/
 package mqttAliyun
 
 import (

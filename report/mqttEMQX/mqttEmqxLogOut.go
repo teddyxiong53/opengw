@@ -1,8 +1,16 @@
+/*
+@Description: This is auto comment by koroFileHeader.
+@Author: Linn
+@Date: 2021-09-10 09:28:15
+@LastEditors: WalkMiao
+@LastEditTime: 2021-09-14 15:17:27
+@FilePath: /goAdapter-Raw/report/mqttEMQX/mqttEmqxLogOut.go
+*/
 package mqttEmqx
 
 import (
 	"encoding/json"
-	"goAdapter/setting"
+	"goAdapter/pkg/mylog"
 	"strconv"
 	"time"
 )
@@ -40,8 +48,8 @@ func MQTTEmqxNodeLogOut(param ReportServiceGWParamEmqxTemplate, nodeMap []string
 	sJson, _ := json.Marshal(nodeLogout)
 	if len(nodeLogout.Params) > 0 {
 
-		setting.Logger.Debugf("node publish LogoutMsg: %s", sJson)
-		setting.Logger.Infof("node publish topic: %s", LogoutTopic)
+		mylog.Logger.Debugf("node publish LogoutMsg: %s", sJson)
+		mylog.Logger.Infof("node publish topic: %s", LogoutTopic)
 
 		if param.MQTTClient != nil {
 			token := param.MQTTClient.Publish(LogoutTopic, 0, false, sJson)
@@ -57,7 +65,7 @@ func (r *ReportServiceParamEmqxTemplate) NodeLogOut(name []string) bool {
 	nodeMap := make([]string, 0)
 	status := false
 
-	setting.Logger.Debugf("nodeLogoutName %v", name)
+	mylog.Logger.Debugf("nodeLogoutName %v", name)
 	for _, d := range name {
 		for _, v := range r.NodeList {
 			if d == v.Name {

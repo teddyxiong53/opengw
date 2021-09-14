@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"goAdapter/device"
-	"goAdapter/setting"
+	"goAdapter/pkg/mylog"
 	"time"
 )
 
@@ -54,8 +54,8 @@ func (r *ReportServiceParamEmqxTemplate) ReportServiceEmqxReadPropertyAck(reqFra
 	sJson, _ := json.Marshal(ackFrame)
 	propertyPostTopic := "/sys/thing/event/property/get_reply/" + r.GWParam.Param.ClientID
 
-	setting.Logger.Infof("property get_reply topic: %s", propertyPostTopic)
-	setting.Logger.Debugf("property get_reply: %v", string(sJson))
+	mylog.Logger.Infof("property get_reply topic: %s", propertyPostTopic)
+	mylog.Logger.Debugf("property get_reply: %v", string(sJson))
 	if r.GWParam.MQTTClient != nil {
 		token := r.GWParam.MQTTClient.Publish(propertyPostTopic, 0, false, sJson)
 		token.Wait()
@@ -74,7 +74,7 @@ func (r *ReportServiceParamEmqxTemplate) ReportServiceEmqxProcessReadProperty(re
 				//从上报节点中找到相应节点
 				for _, coll := range device.CollectInterfaceMap {
 					if coll.CollInterfaceName == node.CollInterfaceName {
-						for _, n := range coll.DeviceNodeMap {
+						for _, n := range coll.DeviceNodes {
 							if n.Name == node.Name {
 								//从采集服务中找到相应节点
 								cmd := device.CommunicationCmdTemplate{}
@@ -93,25 +93,25 @@ func (r *ReportServiceParamEmqxTemplate) ReportServiceEmqxProcessReadProperty(re
 								property := MQTTEmqxReadPropertyAckParamPropertyTemplate{}
 								timeStamp := time.Now().Unix()
 								//从采集队列中找到
-								for _, comm := range device.CommunicationManage {
+								for _, comm := range device.CommunicationManage.ManagerTemp {
 									if comm.CollInterface == coll {
 										ackData := comm.CommunicationManageAddEmergency(cmd)
-										if ackData.Status {
+										if ackData.Err == nil {
 											ReadStatus = true
 											for _, p := range v.Properties {
 												for _, variable := range n.VariableMap {
 													if p.Name == variable.Name {
-														if len(variable.Value) >= 1 {
-															index := len(variable.Value) - 1
+														if len(variable.Values) >= 1 {
+															index := len(variable.Values) - 1
 															property.Name = variable.Name
 															property.Timestamp = timeStamp
-															switch t := variable.Value[index].Value.(type) {
+															switch t := variable.Values[index].Value.(type) {
 															case uint8, uint16, int16, uint32, uint64:
-																property.Value = fmt.Sprintf("%d", variable.Value[index].Value)
+																property.Value = fmt.Sprintf("%d", variable.Values[index].Value)
 															case string:
-																property.Value = variable.Value[index].Value.(string)
+																property.Value = variable.Values[index].Value.(string)
 															default:
-																setting.Logger.Debugf("valueType %T", t)
+																mylog.Logger.Debugf("valueType %T", t)
 															}
 															ackParam.Properties = append(ackParam.Properties, property)
 														}

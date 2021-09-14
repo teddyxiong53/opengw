@@ -3,7 +3,7 @@ package mqttEmqx
 import (
 	"encoding/json"
 	"goAdapter/device"
-	"goAdapter/setting"
+	"goAdapter/pkg/mylog"
 )
 
 type MQTTEmqxInvokeServiceAckParamTemplate struct {
@@ -44,8 +44,8 @@ func (r *ReportServiceParamEmqxTemplate) ReportServiceEmqxInvokeServiceAck(reqFr
 	sJson, _ := json.Marshal(ackFrame)
 	serviceInvokeTopic := "/sys/thing/event/service/invoke_reply/" + r.GWParam.Param.ClientID
 
-	setting.Logger.Infof("service invoke_reply topic: %s", serviceInvokeTopic)
-	setting.Logger.Debugf("service invoke_reply: %v", string(sJson))
+	mylog.Logger.Infof("service invoke_reply topic: %s", serviceInvokeTopic)
+	mylog.Logger.Debugf("service invoke_reply: %v", string(sJson))
 	if r.GWParam.MQTTClient != nil {
 		token := r.GWParam.MQTTClient.Publish(serviceInvokeTopic, 0, false, sJson)
 		token.Wait()
@@ -64,13 +64,13 @@ func (r *ReportServiceParamEmqxTemplate) ReportServiceEmqxProcessInvokeService(r
 				//从上报节点中找到相应节点
 				for _, coll := range device.CollectInterfaceMap {
 					if coll.CollInterfaceName == node.CollInterfaceName {
-						for _, n := range coll.DeviceNodeMap {
+						for _, n := range coll.DeviceNodes {
 							if n.Name == node.Name {
 								//从采集服务中找到相应节点
 								cmd := device.CommunicationCmdTemplate{}
 								cmd.CollInterfaceName = node.CollInterfaceName
 								cmd.DeviceName = node.Name
-								cmd.FunName = v.CmdName
+								cmd.FunName = device.LUAFUNC(v.CmdName)
 								paramStr, _ := json.Marshal(v.CmdParams)
 								cmd.FunPara = string(paramStr)
 								ackParam := MQTTEmqxInvokeServiceAckParamTemplate{
@@ -78,10 +78,10 @@ func (r *ReportServiceParamEmqxTemplate) ReportServiceEmqxProcessInvokeService(r
 									CmdName:  v.CmdName,
 								}
 								//从采集队列中找到
-								for _, comm := range device.CommunicationManage {
+								for _, comm := range device.CommunicationManage.ManagerTemp {
 									if comm.CollInterface == coll {
 										ackData := comm.CommunicationManageAddEmergency(cmd)
-										if ackData.Status {
+										if ackData.Err == nil {
 											ReadStatus = true
 											ackParam.CmdStatus = 0
 										} else {

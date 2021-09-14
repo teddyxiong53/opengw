@@ -1,18 +1,18 @@
 package httpServer
 
 import (
-	"goAdapter/setting"
+	"goAdapter/httpServer/controller"
+	"goAdapter/httpServer/middleware"
 	"os"
 	"path/filepath"
 
 	"github.com/gin-gonic/gin"
 )
 
-func RouterWeb() {
+func Router() *gin.Engine {
 
 	gin.SetMode(gin.ReleaseMode)
 	router := gin.Default()
-	//router := gin.New()
 
 	exeCurDir, _ := filepath.Abs(filepath.Dir(os.Args[0]))
 	router.Static("/static", exeCurDir+"/webroot/static")
@@ -25,181 +25,176 @@ func RouterWeb() {
 
 	loginRouter := router.Group("/api/v1/system/")
 	{
-		loginRouter.POST("/login", apiLogin)
+		loginRouter.POST("/login", controller.Login)
 	}
 
-	router.Use(JWTAuth())
+	router.Use(middleware.JWTAuth())
 	{
 		systemRouter := router.Group("/api/v1/system")
 		{
-			systemRouter.POST("/reboot", apiSystemReboot)
+			systemRouter.POST("/reboot", controller.SystemReboot)
 
-			systemRouter.GET("/status", apiGetSystemStatus)
+			systemRouter.GET("/status", controller.GetSystemStatus)
 
-			systemRouter.GET("/backup", apiBackupFiles)
+			systemRouter.GET("/backup", controller.BackupFiles)
 
-			systemRouter.POST("/recover", apiRecoverFiles)
+			systemRouter.POST("/recover", controller.RecoverFiles)
 
-			systemRouter.POST("/update", apiSystemUpdate)
+			systemRouter.POST("/update", controller.SystemUpdate)
 
-			systemRouter.GET("/loginParam", apiSystemLoginParam)
+			systemRouter.GET("/loginParam", controller.SystemLoginParam)
 
-			systemRouter.GET("/MemUseList", apiSystemMemoryUseList)
+			systemRouter.GET("/MemUseList", controller.SystemMemoryUseList)
 
-			systemRouter.GET("/DiskUseList", apiSystemDiskUseList)
+			systemRouter.GET("/DiskUseList", controller.SystemDiskUseList)
 
-			systemRouter.GET("/DeviceOnlineList", apiSystemDeviceOnlineList)
+			systemRouter.GET("/DeviceOnlineList", controller.SystemDeviceOnlineList)
 
-			systemRouter.GET("/DevicePacketLossList", apiSystemDevicePacketLossList)
+			systemRouter.GET("/DevicePacketLossList", controller.SystemDevicePacketLossList)
 
-			systemRouter.POST("/systemRTC", apiSystemSetSystemRTC)
+			systemRouter.POST("/systemRTC", controller.SystemSetSystemRTC)
 		}
 
 		logRouter := router.Group("/api/v1/log")
 		{
-			logRouter.GET("/param", apiGetLogParam)
+			logRouter.GET("/param", controller.GetLogParam)
 
-			logRouter.POST("/param", apiSetLogParam)
+			logRouter.POST("/param", controller.SetLogParam)
 
-			logRouter.GET("/filesInfo", apiGetLogFilesInfo)
+			logRouter.GET("/filesInfo", controller.GetLogFilesInfo)
 
-			logRouter.DELETE("/files", apiDeleteLogFile)
+			logRouter.DELETE("/files", controller.DeleteLogFile)
 
-			logRouter.GET("/file", apiGetLogFile)
+			logRouter.GET("/file", controller.GetLogFile)
 		}
 
 		ntpRouter := router.Group("/api/v1/system/ntp")
 		{
-			ntpRouter.POST("/hostAddr", apiSystemSetNTPHost)
+			ntpRouter.POST("/hostAddr", controller.SystemSetNTPHost)
 
-			ntpRouter.GET("/hostAddr", apiSystemGetNTPHost)
+			ntpRouter.GET("/hostAddr", controller.SystemGetNTPHost)
 		}
 
 		networkRouter := router.Group("/api/v1/network")
 		{
-			networkRouter.POST("/param", apiAddNetwork)
+			networkRouter.POST("/param", controller.AddNetwork)
 
-			networkRouter.PUT("/param", apiModifyNetwork)
+			networkRouter.PUT("/param", controller.ModifyNetwork)
 
-			networkRouter.DELETE("/param", apiDeleteNetwork)
+			networkRouter.DELETE("/param", controller.DeleteNetwork)
 
-			networkRouter.GET("/param", apiGetNetwork)
+			networkRouter.GET("/param", controller.GetNetwork)
 
-			networkRouter.GET("/linkstate", apiGetNetworkLinkState)
+			networkRouter.GET("/linkstate", controller.GetNetworkLinkState)
 
 		}
 
 		serialRouter := router.Group("/api/v1/serial")
 		{
 
-			serialRouter.GET("/param", apiGetSerial)
+			serialRouter.GET("/param", controller.GetSerial)
 		}
 
 		deviceRouter := router.Group("/api/v1/device")
 		{
-			//增加采集接口
-			deviceRouter.POST("/interface", apiAddInterface)
-
-			//修改采集接口
-			deviceRouter.PUT("/interface", apiModifyInterface)
-
-			//删除采集接口
-			deviceRouter.DELETE("/interface", apiDeleteInterface)
-
-			//获取接口信息
-			deviceRouter.GET("/interface", apiGetInterfaceInfo)
-
 			//获取所有接口信息
-			deviceRouter.GET("/allInterface", apiGetAllInterfaceInfo)
+			deviceRouter.GET("/allInterface", controller.GetAllInterfaceInfo)
+			//采集接口
+			collInterfaceGroup := deviceRouter.Group("/interface")
+			{
+				//增加采集接口
+				collInterfaceGroup.POST("", controller.AddInterface)
 
-			//增加节点
-			deviceRouter.POST("/node", apiAddNode)
+				//修改采集接口
+				collInterfaceGroup.PUT("", controller.ModifyInterface)
 
-			//修改单个节点
-			deviceRouter.PUT("/node", apiModifyNode)
+				//删除采集接口
+				collInterfaceGroup.DELETE("", controller.DeleteInterface)
 
-			//修改多个节点
-			deviceRouter.PUT("/nodes", apiModifyNodes)
+				//获取接口信息
+				collInterfaceGroup.GET("", controller.GetInterfaceInfo)
 
-			//查看节点
-			deviceRouter.GET("/node", apiGetNode)
+			}
+
+			// 节点
+			nodeGroup := deviceRouter.Group("/node")
+			{ //增加节点
+				nodeGroup.POST("", controller.AddNode)
+				//修改单个节点
+				nodeGroup.PUT("", controller.ModifyNode)
+				//查看节点
+				nodeGroup.GET("", controller.GetNode)
+				//删除节点
+				nodeGroup.DELETE("", controller.DeleteNode)
+
+			}
 
 			//查看节点变量
-			deviceRouter.GET("/nodeVariable", apiGetNodeVariableFromCache)
+			deviceRouter.GET("/nodeVariable", controller.GetNodeVariableFromCache)
 
 			//查看节点历史变量
-			deviceRouter.GET("/nodeHistoryVariable", apiGetNodeHistoryVariableFromCache)
+			deviceRouter.GET("/nodeHistoryVariable", controller.GetNodeHistoryVariable)
 
 			//查看节点变量实时值
-			deviceRouter.GET("/nodeRealVariable", apiGetNodeReadVariable)
+			deviceRouter.GET("/nodeRealVariable", controller.GetNodeReadVariable)
 
-			//删除节点
-			deviceRouter.DELETE("/node", apiDeleteNode)
+			//模板
+			tmpGroup := deviceRouter.Group("/template")
+			{
+				//增加设备模板
+				tmpGroup.POST("", controller.AddTemplate)
 
-			//增加设备模板
-			deviceRouter.POST("/template", apiAddTemplate)
+				//获取设备模板
+				tmpGroup.GET("", controller.GetTemplate)
+			}
 
-			//获取设备模板
-			deviceRouter.GET("/template", apiGetTemplate)
+			commInterfaceGroup := deviceRouter.Group("/commInterface")
+			{
+				//获取通信接口
+				commInterfaceGroup.GET("", controller.GetCommInterface)
 
-			//获取设备模板变量
-			deviceRouter.GET("/templateVariable", apiGetTemplateVariable)
+				//增加通信接口
+				commInterfaceGroup.POST("", controller.AddCommInterface)
 
-			//获取通信接口
-			deviceRouter.GET("/commInterface", apiGetCommInterface)
+				//修改通信接口
+				commInterfaceGroup.PUT("", controller.ModifyCommInterface)
 
-			//增加通信接口
-			deviceRouter.POST("/commInterface", apiAddCommInterface)
-
-			//修改通信接口
-			deviceRouter.PUT("/commInterface", apiModifyCommInterface)
-
-			//删除通信接口
-			deviceRouter.DELETE("/commInterface", apiDeleteCommInterface)
-
-			//增加串口通信接口
-			deviceRouter.POST("/commSerialInterface", apiAddCommSerialInterface)
-
-			//修改串口通信接口
-			deviceRouter.PUT("/commSerialInterface", apiModifyCommSerialInterface)
-
-			//删除串口通信接口
-			deviceRouter.DELETE("/commSerialInterface", apiDeleteCommSerialInterface)
+				//删除通信接口
+				commInterfaceGroup.DELETE("", controller.DeleteCommInterface)
+			}
 
 			//调用设备服务
-			deviceRouter.POST("/service", apiInvokeService)
+			//	deviceRouter.POST("/service", apiInvokeService)
 		}
 
 		toolRouter := router.Group("/api/v1/tool")
 		{
 			//获取通信报文
-			toolRouter.POST("/commMessage", apiGetCommMessage)
+			toolRouter.POST("/commMessage", controller.GetCommMessage)
 		}
 
 		pluginRouter := router.Group("/api/v1/update")
 		{
-			pluginRouter.POST("/plugin", apiUpdatePlugin)
+			pluginRouter.POST("/plugin", controller.UpdatePlugin)
 		}
 
 		ReportRouter := router.Group("/api/v1/report")
 		{
-			ReportRouter.POST("/param", apiSetReportGWParam)
+			ReportRouter.POST("/param", controller.SetReportGWParam)
 
-			ReportRouter.GET("/param", apiGetReportGWParam)
+			ReportRouter.GET("/param", controller.GetReportGWParam)
 
-			ReportRouter.DELETE("/param", apiDeleteReportGWParam)
+			ReportRouter.DELETE("/param", controller.DeleteReportGWParam)
 
-			ReportRouter.POST("/node/param", apiSetReportNodeWParam)
+			ReportRouter.POST("/node/param", controller.SetReportNodeWParam)
 
-			ReportRouter.POST("/nodes/param", apiBatchAddReportNodeParam)
+			ReportRouter.POST("/nodes/param", controller.BatchAddReportNodeParam)
 
-			ReportRouter.GET("/node/param", apiGetReportNodeWParam)
+			ReportRouter.GET("/node/param", controller.GetReportNodeWParam)
 
-			ReportRouter.DELETE("/node/param", apiDeleteReportNodeWParam)
+			ReportRouter.DELETE("/node/param", controller.DeleteReportNodeWParam)
 		}
 	}
 
-	if err := router.Run(":8080"); err != nil {
-		setting.Logger.Errorf("gin run err,%v", err)
-	}
+	return router
 }

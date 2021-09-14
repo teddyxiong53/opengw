@@ -2,7 +2,7 @@ package mqttAliyun
 
 import (
 	"bytes"
-	"goAdapter/setting"
+	"goAdapter/pkg/mylog"
 	"time"
 
 	MQTT "github.com/eclipse/paho.mqtt.golang"
@@ -39,10 +39,10 @@ func MQTTAliyunGWLogin(param MQTTAliyunRegisterTemplate, publishHandler MQTT.Mes
 	// create and start a client using the above ClientOptions
 	mqttClient := MQTT.NewClient(opts)
 	if token := mqttClient.Connect(); token.Wait() && token.Error() != nil {
-		setting.Logger.Errorf("Connect aliyun IoT Cloud fail %s", token.Error())
+		mylog.Logger.Errorf("Connect aliyun IoT Cloud fail %s", token.Error())
 		return false, nil
 	}
-	setting.Logger.Info("Connect aliyun IoT Cloud Sucess")
+	mylog.Logger.Info("Connect aliyun IoT Cloud Sucess")
 
 	subTopic := ""
 	//属性上报回应
@@ -71,9 +71,9 @@ func MQTTAliyunGWLogin(param MQTTAliyunRegisterTemplate, publishHandler MQTT.Mes
 func MQTTAliyunSubscribeTopic(client MQTT.Client, topic string) {
 
 	if token := client.Subscribe(topic, 0, nil); token.Wait() && token.Error() != nil {
-		setting.Logger.Warningf("Subscribe topic %s fail %v", topic, token.Error())
+		mylog.Logger.Warningf("Subscribe topic %s fail %v", topic, token.Error())
 	}
-	setting.Logger.Info("Subscribe topic " + topic + " success")
+	mylog.Logger.Info("Subscribe topic " + topic + " success")
 }
 
 func (r *ReportServiceParamAliyunTemplate) GWLogin() bool {
@@ -101,7 +101,7 @@ func (r *ReportServiceParamAliyunTemplate) NodeLogin(name []string) bool {
 	nodeParam := MQTTAliyunNodeRegisterTemplate{}
 	status := false
 
-	setting.Logger.Debugf("nodeLoginName %v", name)
+	mylog.Logger.Debugf("nodeLoginName %v", name)
 	for _, d := range name {
 		for _, v := range r.NodeList {
 			if d == v.Name {

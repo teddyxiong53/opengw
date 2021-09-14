@@ -1,9 +1,17 @@
+/*
+@Description: This is auto comment by koroFileHeader.
+@Author: Linn
+@Date: 2021-09-10 09:28:15
+@LastEditors: WalkMiao
+@LastEditTime: 2021-09-14 19:13:56
+@FilePath: /goAdapter-Raw/report/mqttHuawei/mqttHuaweiReadProperty.go
+*/
 package mqttHuawei
 
 import (
 	"encoding/json"
 	"goAdapter/device"
-	"goAdapter/setting"
+	"goAdapter/pkg/mylog"
 )
 
 func MQTTHuaweiGetPropertiesAck(r *ReportServiceParamHuaweiTemplate, service MQTTHuaweiServiceTemplate) {
@@ -19,10 +27,10 @@ func MQTTHuaweiGetPropertiesAck(r *ReportServiceParamHuaweiTemplate, service MQT
 	deviceService.Services = append(deviceService.Services, service)
 
 	sJson, _ := json.Marshal(deviceService)
-	setting.Logger.Debugf("thingServiceAck post msg: %s", sJson)
+	mylog.Logger.Debugf("thingServiceAck post msg: %s", sJson)
 
 	serviceTopic := "$oc/devices/" + r.GWParam.Param.DeviceID + "/sys/properties/get/response/" + service.ServiceID
-	setting.Logger.Infof("thingServiceAck post topic: %s", serviceTopic)
+	mylog.Logger.Infof("thingServiceAck post topic: %s", serviceTopic)
 
 	if r.GWParam.MQTTClient != nil {
 		token := r.GWParam.MQTTClient.Publish(serviceTopic, 0, false, sJson)
@@ -40,15 +48,15 @@ func ReportServiceHuaweiProcessGetProperties(r *ReportServiceParamHuaweiTemplate
 			break
 		}
 	}
-	y := 0
+	var name string
 	for k, v := range device.CollectInterfaceMap {
 		if v.CollInterfaceName == r.NodeList[x].CollInterfaceName {
-			y = k
+			name = k
 			break
 		}
 	}
 	i := 0
-	for k, v := range device.CollectInterfaceMap[y].DeviceNodeMap {
+	for k, v := range device.CollectInterfaceMap[name].DeviceNodes {
 		if v.Name == r.NodeList[x].Name {
 			i = k
 			break
@@ -56,22 +64,22 @@ func ReportServiceHuaweiProcessGetProperties(r *ReportServiceParamHuaweiTemplate
 	}
 
 	cmd := device.CommunicationCmdTemplate{}
-	cmd.CollInterfaceName = device.CollectInterfaceMap[y].CollInterfaceName
-	cmd.DeviceName = device.CollectInterfaceMap[y].DeviceNodeMap[i].Name
+	cmd.CollInterfaceName = device.CollectInterfaceMap[name].CollInterfaceName
+	cmd.DeviceName = device.CollectInterfaceMap[name].DeviceNodes[i].Name
 	cmd.FunName = "GetRealVariables"
 	cmd.FunPara = ""
 
-	cmdRX := device.CommunicationManage[y].CommunicationManageAddEmergency(cmd)
-	if cmdRX.Status == true {
-		setting.Logger.Debugf("GetRealVariables ok")
+	cmdRX := device.CommunicationManage.ManagerTemp[name].CommunicationManageAddEmergency(cmd)
+	if cmdRX.Err == nil {
+		mylog.Logger.Debugf("GetRealVariables ok")
 		service := MQTTHuaweiServiceTemplate{}
-		for _, v := range device.CollectInterfaceMap[y].DeviceNodeMap[i].VariableMap {
+		for _, v := range device.CollectInterfaceMap[name].DeviceNodes[i].VariableMap {
 			if v.Name == request.ServiceID {
-				if len(v.Value) >= 1 {
-					index := len(v.Value) - 1
+				if len(v.Values) >= 1 {
+					index := len(v.Values) - 1
 					service := MQTTHuaweiServiceTemplate{}
 					service.ServiceID = v.Name
-					service.Properties.Value = v.Value[index].Value
+					service.Properties.Value = v.Values[index].Value
 				}
 			}
 		}

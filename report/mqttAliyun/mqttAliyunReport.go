@@ -2,7 +2,8 @@ package mqttAliyun
 
 import (
 	"goAdapter/device"
-	"goAdapter/setting"
+	"goAdapter/pkg/mylog"
+	"goAdapter/pkg/system"
 	"time"
 )
 
@@ -18,51 +19,51 @@ func (r *ReportServiceParamAliyunTemplate) GWPropertyPost() {
 	mqttAliyunValue := MQTTAliyunValueTemplate{}
 
 	mqttAliyunValue.Name = "MemTotal"
-	mqttAliyunValue.Value = setting.SystemState.MemTotal
+	mqttAliyunValue.Value = system.SystemState.MemTotal
 	valueMap = append(valueMap, mqttAliyunValue)
 
 	mqttAliyunValue.Name = "MemUse"
-	mqttAliyunValue.Value = setting.SystemState.MemUse
+	mqttAliyunValue.Value = system.SystemState.MemUse
 	valueMap = append(valueMap, mqttAliyunValue)
 
 	mqttAliyunValue.Name = "DiskTotal"
-	mqttAliyunValue.Value = setting.SystemState.DiskTotal
+	mqttAliyunValue.Value = system.SystemState.DiskTotal
 	valueMap = append(valueMap, mqttAliyunValue)
 
 	mqttAliyunValue.Name = "DiskUse"
-	mqttAliyunValue.Value = setting.SystemState.DiskUse
+	mqttAliyunValue.Value = system.SystemState.DiskUse
 	valueMap = append(valueMap, mqttAliyunValue)
 
 	mqttAliyunValue.Name = "Name"
-	mqttAliyunValue.Value = setting.SystemState.Name
+	mqttAliyunValue.Value = system.SystemState.Name
 	valueMap = append(valueMap, mqttAliyunValue)
 
 	mqttAliyunValue.Name = "SN"
-	mqttAliyunValue.Value = setting.SystemState.SN
+	mqttAliyunValue.Value = system.SystemState.SN
 	valueMap = append(valueMap, mqttAliyunValue)
 
 	mqttAliyunValue.Name = "HardVer"
-	mqttAliyunValue.Value = setting.SystemState.HardVer
+	mqttAliyunValue.Value = system.SystemState.HardVer
 	valueMap = append(valueMap, mqttAliyunValue)
 
 	mqttAliyunValue.Name = "SoftVer"
-	mqttAliyunValue.Value = setting.SystemState.SoftVer
+	mqttAliyunValue.Value = system.SystemState.SoftVer
 	valueMap = append(valueMap, mqttAliyunValue)
 
 	mqttAliyunValue.Name = "SystemRTC"
-	mqttAliyunValue.Value = setting.SystemState.SystemRTC
+	mqttAliyunValue.Value = system.SystemState.SystemRTC
 	valueMap = append(valueMap, mqttAliyunValue)
 
 	mqttAliyunValue.Name = "RunTime"
-	mqttAliyunValue.Value = setting.SystemState.RunTime
+	mqttAliyunValue.Value = system.SystemState.RunTime
 	valueMap = append(valueMap, mqttAliyunValue)
 
 	mqttAliyunValue.Name = "DeviceOnline"
-	mqttAliyunValue.Value = setting.SystemState.DeviceOnline
+	mqttAliyunValue.Value = system.SystemState.DeviceOnline
 	valueMap = append(valueMap, mqttAliyunValue)
 
 	mqttAliyunValue.Name = "DevicePacketLoss"
-	mqttAliyunValue.Value = setting.SystemState.DevicePacketLoss
+	mqttAliyunValue.Value = system.SystemState.DevicePacketLoss
 	valueMap = append(valueMap, mqttAliyunValue)
 
 	mqttAliyunRegister := MQTTAliyunRegisterTemplate{
@@ -75,7 +76,7 @@ func (r *ReportServiceParamAliyunTemplate) GWPropertyPost() {
 
 	//上报故障先加，收到正确回应后清0
 	r.GWParam.ReportErrCnt++
-	setting.Logger.Debugf("service %s gw ReportErrCnt %d", r.GWParam.Param.DeviceName, r.GWParam.ReportErrCnt)
+	mylog.Logger.Debugf("service %s gw ReportErrCnt %d", r.GWParam.Param.DeviceName, r.GWParam.ReportErrCnt)
 	//清空接收缓存
 	for i := 0; i < len(r.ReceiveReportPropertyAckFrameChan); i++ {
 		<-r.ReceiveReportPropertyAckFrameChan
@@ -85,17 +86,17 @@ func (r *ReportServiceParamAliyunTemplate) GWPropertyPost() {
 	select {
 	case frame := <-r.ReceiveReportPropertyAckFrameChan:
 		{
-			setting.Logger.Debugf("frameCode %v", frame.Code)
+			mylog.Logger.Debugf("frameCode %v", frame.Code)
 			if frame.Code == 200 {
 				r.GWParam.ReportErrCnt--
-				setting.Logger.Debugf("%s MQTTAliyunGWPropertyPost OK", r.GWParam.ServiceName)
+				mylog.Logger.Debugf("%s MQTTAliyunGWPropertyPost OK", r.GWParam.ServiceName)
 			} else {
-				setting.Logger.Debugf("%s MQTTAliyunGWPropertyPost Err", r.GWParam.ServiceName)
+				mylog.Logger.Debugf("%s MQTTAliyunGWPropertyPost Err", r.GWParam.ServiceName)
 			}
 		}
 	case <-time.After(time.Millisecond * 2000):
 		{
-			setting.Logger.Debugf("%s MQTTAliyunGWPropertyPost Err", r.GWParam.ServiceName)
+			mylog.Logger.Debugf("%s MQTTAliyunGWPropertyPost Err", r.GWParam.ServiceName)
 		}
 	}
 }
@@ -121,25 +122,23 @@ func (r *ReportServiceParamAliyunTemplate) AllNodePropertyPost() {
 			node := r.NodeList[20*pageIndex : 20*pageIndex+20]
 			//log.Printf("nodeList %v\n", node)
 			for _, n := range node {
-				for _, c := range device.CollectInterfaceMap {
-					if c.CollInterfaceName == n.CollInterfaceName {
-						for _, d := range c.DeviceNodeMap {
-							if d.Name == n.Name {
-								for _, v := range d.VariableMap {
-									if len(v.Value) >= 1 {
-										index := len(v.Value) - 1
-										mqttAliyunValue := MQTTAliyunValueTemplate{}
-										mqttAliyunValue.Name = v.Name
-										mqttAliyunValue.Value = v.Value[index].Value
-										valueMap = append(valueMap, mqttAliyunValue)
-									}
+				if c, ok := device.CollectInterfaceMap[n.CollInterfaceName]; ok {
+					for _, d := range c.DeviceNodes {
+						if d.Name == n.Name {
+							for _, v := range d.VariableMap {
+								if len(v.Values) >= 1 {
+									index := len(v.Values) - 1
+									mqttAliyunValue := MQTTAliyunValueTemplate{}
+									mqttAliyunValue.Name = v.Name
+									mqttAliyunValue.Value = v.Values[index].Value
+									valueMap = append(valueMap, mqttAliyunValue)
 								}
-								NodeValue := MQTTAliyunNodeValueTemplate{}
-								NodeValue.ValueMap = valueMap
-								NodeValue.ProductKey = n.Param.ProductKey
-								NodeValue.DeviceName = n.Param.DeviceName
-								NodeValueMap = append(NodeValueMap, NodeValue)
 							}
+							NodeValue := MQTTAliyunNodeValueTemplate{}
+							NodeValue.ValueMap = valueMap
+							NodeValue.ProductKey = n.Param.ProductKey
+							NodeValue.DeviceName = n.Param.DeviceName
+							NodeValueMap = append(NodeValueMap, NodeValue)
 						}
 					}
 				}
@@ -161,14 +160,14 @@ func (r *ReportServiceParamAliyunTemplate) AllNodePropertyPost() {
 			case frame := <-r.ReceiveReportPropertyAckFrameChan:
 				{
 					if frame.Code == 200 {
-						setting.Logger.Debugf("%s MQTTAliyunNodePropertyPost OK", r.GWParam.ServiceName)
+						mylog.Logger.Debugf("%s MQTTAliyunNodePropertyPost OK", r.GWParam.ServiceName)
 					} else {
-						setting.Logger.Debugf("%s MQTTAliyunNodePropertyPost Err", r.GWParam.ServiceName)
+						mylog.Logger.Debugf("%s MQTTAliyunNodePropertyPost Err", r.GWParam.ServiceName)
 					}
 				}
 			case <-time.After(time.Millisecond * 2000):
 				{
-					setting.Logger.Debugf("%s MQTTAliyunNodePropertyPost Err", r.GWParam.ServiceName)
+					mylog.Logger.Debugf("%s MQTTAliyunNodePropertyPost Err", r.GWParam.ServiceName)
 				}
 			}
 		} else { //最后一页
@@ -177,25 +176,24 @@ func (r *ReportServiceParamAliyunTemplate) AllNodePropertyPost() {
 			node := r.NodeList[20*pageIndex : len(r.NodeList)]
 			//log.Printf("nodeList %v\n", node)
 			for _, n := range node {
-				for _, c := range device.CollectInterfaceMap {
-					if c.CollInterfaceName == n.CollInterfaceName {
-						for _, d := range c.DeviceNodeMap {
-							if d.Name == n.Name {
-								for _, v := range d.VariableMap {
-									if len(v.Value) >= 1 {
-										index := len(v.Value) - 1
-										mqttAliyunValue := MQTTAliyunValueTemplate{}
-										mqttAliyunValue.Name = v.Name
-										mqttAliyunValue.Value = v.Value[index].Value
-										valueMap = append(valueMap, mqttAliyunValue)
-									}
+
+				if c, ok := device.CollectInterfaceMap[n.CollInterfaceName]; ok {
+					for _, d := range c.DeviceNodes {
+						if d.Name == n.Name {
+							for _, v := range d.VariableMap {
+								if len(v.Values) >= 1 {
+									index := len(v.Values) - 1
+									mqttAliyunValue := MQTTAliyunValueTemplate{}
+									mqttAliyunValue.Name = v.Name
+									mqttAliyunValue.Value = v.Values[index].Value
+									valueMap = append(valueMap, mqttAliyunValue)
 								}
-								NodeValue := MQTTAliyunNodeValueTemplate{}
-								NodeValue.ValueMap = valueMap
-								NodeValue.ProductKey = n.Param.ProductKey
-								NodeValue.DeviceName = n.Param.DeviceName
-								NodeValueMap = append(NodeValueMap, NodeValue)
 							}
+							NodeValue := MQTTAliyunNodeValueTemplate{}
+							NodeValue.ValueMap = valueMap
+							NodeValue.ProductKey = n.Param.ProductKey
+							NodeValue.DeviceName = n.Param.DeviceName
+							NodeValueMap = append(NodeValueMap, NodeValue)
 						}
 					}
 				}
@@ -218,14 +216,14 @@ func (r *ReportServiceParamAliyunTemplate) AllNodePropertyPost() {
 			case frame := <-r.ReceiveReportPropertyAckFrameChan:
 				{
 					if frame.Code == 200 {
-						setting.Logger.Debugf("%s MQTTAliyunNodePropertyPost OK", r.GWParam.ServiceName)
+						mylog.Logger.Debugf("%s MQTTAliyunNodePropertyPost OK", r.GWParam.ServiceName)
 					} else {
-						setting.Logger.Debugf("%s MQTTAliyunNodePropertyPost Err", r.GWParam.ServiceName)
+						mylog.Logger.Debugf("%s MQTTAliyunNodePropertyPost Err", r.GWParam.ServiceName)
 					}
 				}
 			case <-time.After(time.Millisecond * 2000):
 				{
-					setting.Logger.Debugf("%s MQTTAliyunNodePropertyPost Err", r.GWParam.ServiceName)
+					mylog.Logger.Debugf("%s MQTTAliyunNodePropertyPost Err", r.GWParam.ServiceName)
 				}
 			}
 		}
@@ -260,25 +258,23 @@ func (r *ReportServiceParamAliyunTemplate) NodePropertyPost(name []string) {
 			node := nodeList[20*pageIndex : 20*pageIndex+20]
 			//log.Printf("nodeList %v\n", node)
 			for _, n := range node {
-				for _, c := range device.CollectInterfaceMap {
-					if c.CollInterfaceName == n.CollInterfaceName {
-						for _, d := range c.DeviceNodeMap {
-							if d.Name == n.Name {
-								for _, v := range d.VariableMap {
-									if len(v.Value) >= 1 {
-										index := len(v.Value) - 1
-										mqttAliyunValue := MQTTAliyunValueTemplate{}
-										mqttAliyunValue.Name = v.Name
-										mqttAliyunValue.Value = v.Value[index].Value
-										valueMap = append(valueMap, mqttAliyunValue)
-									}
+				if c, ok := device.CollectInterfaceMap[n.CollInterfaceName]; ok {
+					for _, d := range c.DeviceNodes {
+						if d.Name == n.Name {
+							for _, v := range d.VariableMap {
+								if len(v.Values) >= 1 {
+									index := len(v.Values) - 1
+									mqttAliyunValue := MQTTAliyunValueTemplate{}
+									mqttAliyunValue.Name = v.Name
+									mqttAliyunValue.Value = v.Values[index].Value
+									valueMap = append(valueMap, mqttAliyunValue)
 								}
-								NodeValue := MQTTAliyunNodeValueTemplate{}
-								NodeValue.ValueMap = valueMap
-								NodeValue.ProductKey = n.Param.ProductKey
-								NodeValue.DeviceName = n.Param.DeviceName
-								NodeValueMap = append(NodeValueMap, NodeValue)
 							}
+							NodeValue := MQTTAliyunNodeValueTemplate{}
+							NodeValue.ValueMap = valueMap
+							NodeValue.ProductKey = n.Param.ProductKey
+							NodeValue.DeviceName = n.Param.DeviceName
+							NodeValueMap = append(NodeValueMap, NodeValue)
 						}
 					}
 				}
@@ -297,14 +293,14 @@ func (r *ReportServiceParamAliyunTemplate) NodePropertyPost(name []string) {
 			case frame := <-r.ReceiveReportPropertyAckFrameChan:
 				{
 					if frame.Code == 200 {
-						setting.Logger.Debugf("%s MQTTAliyunNodePropertyPost OK", r.GWParam.ServiceName)
+						mylog.Logger.Debugf("%s MQTTAliyunNodePropertyPost OK", r.GWParam.ServiceName)
 					} else {
-						setting.Logger.Debugf("%s MQTTAliyunNodePropertyPost Err", r.GWParam.ServiceName)
+						mylog.Logger.Debugf("%s MQTTAliyunNodePropertyPost Err", r.GWParam.ServiceName)
 					}
 				}
 			case <-time.After(time.Millisecond * 2000):
 				{
-					setting.Logger.Debugf("%s MQTTAliyunNodePropertyPost Err", r.GWParam.ServiceName)
+					mylog.Logger.Debugf("%s MQTTAliyunNodePropertyPost Err", r.GWParam.ServiceName)
 				}
 			}
 		} else { //最后一页
@@ -313,25 +309,23 @@ func (r *ReportServiceParamAliyunTemplate) NodePropertyPost(name []string) {
 			node := nodeList[20*pageIndex : len(nodeList)]
 			//log.Printf("nodeList %v\n", node)
 			for _, n := range node {
-				for _, c := range device.CollectInterfaceMap {
-					if c.CollInterfaceName == n.CollInterfaceName {
-						for _, d := range c.DeviceNodeMap {
-							if d.Name == n.Name {
-								for _, v := range d.VariableMap {
-									if len(v.Value) >= 1 {
-										index := len(v.Value) - 1
-										mqttAliyunValue := MQTTAliyunValueTemplate{}
-										mqttAliyunValue.Name = v.Name
-										mqttAliyunValue.Value = v.Value[index].Value
-										valueMap = append(valueMap, mqttAliyunValue)
-									}
+				if c, ok := device.CollectInterfaceMap[n.CollInterfaceName]; ok {
+					for _, d := range c.DeviceNodes {
+						if d.Name == n.Name {
+							for _, v := range d.VariableMap {
+								if len(v.Values) >= 1 {
+									index := len(v.Values) - 1
+									mqttAliyunValue := MQTTAliyunValueTemplate{}
+									mqttAliyunValue.Name = v.Name
+									mqttAliyunValue.Value = v.Values[index].Value
+									valueMap = append(valueMap, mqttAliyunValue)
 								}
-								NodeValue := MQTTAliyunNodeValueTemplate{}
-								NodeValue.ValueMap = valueMap
-								NodeValue.ProductKey = n.Param.ProductKey
-								NodeValue.DeviceName = n.Param.DeviceName
-								NodeValueMap = append(NodeValueMap, NodeValue)
 							}
+							NodeValue := MQTTAliyunNodeValueTemplate{}
+							NodeValue.ValueMap = valueMap
+							NodeValue.ProductKey = n.Param.ProductKey
+							NodeValue.DeviceName = n.Param.DeviceName
+							NodeValueMap = append(NodeValueMap, NodeValue)
 						}
 					}
 				}
@@ -344,21 +338,21 @@ func (r *ReportServiceParamAliyunTemplate) NodePropertyPost(name []string) {
 				DeviceName:   r.GWParam.Param.DeviceName,
 				DeviceSecret: r.GWParam.Param.DeviceSecret,
 			}
-			//setting.Logger.Debugf("NodeValueMap %v", NodeValueMap)
+			//mylog.Logger.Debugf("NodeValueMap %v", NodeValueMap)
 			MQTTAliyunNodePropertyPost(r.GWParam.MQTTClient, mqttAliyunRegister, NodeValueMap)
 
 			select {
 			case frame := <-r.ReceiveReportPropertyAckFrameChan:
 				{
 					if frame.Code == 200 {
-						setting.Logger.Debugf("%s MQTTAliyunNodePropertyPost OK", r.GWParam.ServiceName)
+						mylog.Logger.Debugf("%s MQTTAliyunNodePropertyPost OK", r.GWParam.ServiceName)
 					} else {
-						setting.Logger.Debugf("%s MQTTAliyunNodePropertyPost Err", r.GWParam.ServiceName)
+						mylog.Logger.Debugf("%s MQTTAliyunNodePropertyPost Err", r.GWParam.ServiceName)
 					}
 				}
 			case <-time.After(time.Millisecond * 2000):
 				{
-					setting.Logger.Debugf("%s MQTTAliyunNodePropertyPost Err", r.GWParam.ServiceName)
+					mylog.Logger.Debugf("%s MQTTAliyunNodePropertyPost Err", r.GWParam.ServiceName)
 				}
 			}
 		}

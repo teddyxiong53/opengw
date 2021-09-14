@@ -3,7 +3,8 @@ package mqttHuawei
 import (
 	"encoding/json"
 	"goAdapter/device"
-	"goAdapter/setting"
+	"goAdapter/pkg/mylog"
+	"goAdapter/pkg/system"
 	"time"
 
 	MQTT "github.com/eclipse/paho.mqtt.golang"
@@ -44,16 +45,16 @@ func MQTTHuaweiGWPropertyPost(client MQTT.Client, gw MQTTHuaweiRegisterTemplate,
 
 	propertyPostTopic := "$oc/devices/" + gw.DeviceID + "/sys/properties/report"
 
-	setting.Logger.Infof("huawei gw property post topic: %s", propertyPostTopic)
-	setting.Logger.Debugf("huawei gw property post msg: %v", sJson)
+	mylog.Logger.Infof("huawei gw property post topic: %s", propertyPostTopic)
+	mylog.Logger.Debugf("huawei gw property post msg: %v", sJson)
 	if client != nil {
 		token := client.Publish(propertyPostTopic, 1, false, sJson)
 		if token.WaitTimeout(2*time.Second) == true {
 			MsgID = 0
-			setting.Logger.Debugf("huawei gw property post msg sucess")
+			mylog.Logger.Debugf("huawei gw property post msg sucess")
 		} else {
 			MsgID = 1
-			setting.Logger.Debugf("huawei gw property post msg fail")
+			mylog.Logger.Debugf("huawei gw property post msg fail")
 		}
 	}
 
@@ -69,62 +70,62 @@ func (r *ReportServiceParamHuaweiTemplate) GWPropertyPost() {
 
 	//
 	propertyParams.ServiceID = "MemTotal"
-	propertyValue.Value = setting.SystemState.MemTotal
+	propertyValue.Value = system.SystemState.MemTotal
 	propertyParams.Properties = propertyValue
 	services = append(services, propertyParams)
 
 	propertyParams.ServiceID = "MemUse"
-	propertyValue.Value = setting.SystemState.MemUse
+	propertyValue.Value = system.SystemState.MemUse
 	propertyParams.Properties = propertyValue
 	services = append(services, propertyParams)
 
 	propertyParams.ServiceID = "DiskTotal"
-	propertyValue.Value = setting.SystemState.DiskTotal
+	propertyValue.Value = system.SystemState.DiskTotal
 	propertyParams.Properties = propertyValue
 	services = append(services, propertyParams)
 
 	propertyParams.ServiceID = "DiskUse"
-	propertyValue.Value = setting.SystemState.DiskUse
+	propertyValue.Value = system.SystemState.DiskUse
 	propertyParams.Properties = propertyValue
 	services = append(services, propertyParams)
 
 	propertyParams.ServiceID = "Name"
-	propertyValue.Value = setting.SystemState.Name
+	propertyValue.Value = system.SystemState.Name
 	propertyParams.Properties = propertyValue
 	services = append(services, propertyParams)
 
 	propertyParams.ServiceID = "SN"
-	propertyValue.Value = setting.SystemState.SN
+	propertyValue.Value = system.SystemState.SN
 	propertyParams.Properties = propertyValue
 	services = append(services, propertyParams)
 
 	propertyParams.ServiceID = "HardVer"
-	propertyValue.Value = setting.SystemState.HardVer
+	propertyValue.Value = system.SystemState.HardVer
 	propertyParams.Properties = propertyValue
 	services = append(services, propertyParams)
 
 	propertyParams.ServiceID = "SoftVer"
-	propertyValue.Value = setting.SystemState.SoftVer
+	propertyValue.Value = system.SystemState.SoftVer
 	propertyParams.Properties = propertyValue
 	services = append(services, propertyParams)
 
 	propertyParams.ServiceID = "SystemRTC"
-	propertyValue.Value = setting.SystemState.SystemRTC
+	propertyValue.Value = system.SystemState.SystemRTC
 	propertyParams.Properties = propertyValue
 	services = append(services, propertyParams)
 
 	propertyParams.ServiceID = "RunTime"
-	propertyValue.Value = setting.SystemState.RunTime
+	propertyValue.Value = system.SystemState.RunTime
 	propertyParams.Properties = propertyValue
 	services = append(services, propertyParams)
 
 	propertyParams.ServiceID = "DeviceOnline"
-	propertyValue.Value = setting.SystemState.DeviceOnline
+	propertyValue.Value = system.SystemState.DeviceOnline
 	propertyParams.Properties = propertyValue
 	services = append(services, propertyParams)
 
 	propertyParams.ServiceID = "DevicePacketLoss"
-	propertyValue.Value = setting.SystemState.DevicePacketLoss
+	propertyValue.Value = system.SystemState.DevicePacketLoss
 	propertyParams.Properties = propertyValue
 	services = append(services, propertyParams)
 
@@ -137,16 +138,16 @@ func (r *ReportServiceParamHuaweiTemplate) GWPropertyPost() {
 
 	//上报故障先加，收到正确回应后清0
 	r.GWParam.ReportErrCnt++
-	setting.Logger.Debugf("service %s gw ReportErrCnt %d", r.GWParam.ServiceName, r.GWParam.ReportErrCnt)
+	mylog.Logger.Debugf("service %s gw ReportErrCnt %d", r.GWParam.ServiceName, r.GWParam.ReportErrCnt)
 	//清空接收缓存
 	for i := 0; i < len(r.ReceiveReportPropertyAckFrameChan); i++ {
 		<-r.ReceiveReportPropertyAckFrameChan
 	}
 	if MQTTHuaweiGWPropertyPost(r.GWParam.MQTTClient, mqttHuaweiRegister, services) == 0 {
 		r.GWParam.ReportErrCnt--
-		setting.Logger.Debugf("%s MQTTHuaweiGWPropertyPost OK", r.GWParam.ServiceName)
+		mylog.Logger.Debugf("%s MQTTHuaweiGWPropertyPost OK", r.GWParam.ServiceName)
 	} else {
-		setting.Logger.Debugf("%s MQTTHuaweiGWPropertyPost Err", r.GWParam.ServiceName)
+		mylog.Logger.Debugf("%s MQTTHuaweiGWPropertyPost Err", r.GWParam.ServiceName)
 	}
 }
 
@@ -163,8 +164,8 @@ func MQTTHuaweiNodePropertyPost(client MQTT.Client, gw MQTTHuaweiRegisterTemplat
 	sJson, _ := json.Marshal(DevicesService)
 
 	propertyPostTopic := "$oc/devices/" + gw.DeviceID + "/sys/gateway/sub_devices/properties/report"
-	setting.Logger.Infof("node property post topic: %v", propertyPostTopic)
-	setting.Logger.Debugf("node property post msg: %v", sJson)
+	mylog.Logger.Infof("node property post topic: %v", propertyPostTopic)
+	mylog.Logger.Debugf("node property post msg: %v", sJson)
 
 	MsgID = 0
 	if client != nil {
@@ -203,15 +204,15 @@ func (r *ReportServiceParamHuaweiTemplate) NodePropertyPost(name []string) {
 			for _, n := range node {
 				for _, c := range device.CollectInterfaceMap {
 					if c.CollInterfaceName == n.CollInterfaceName {
-						for _, d := range c.DeviceNodeMap {
+						for _, d := range c.DeviceNodes {
 							if d.Name == n.Name {
 								ServiceMap := make([]MQTTHuaweiServiceTemplate, 0)
 								for _, v := range d.VariableMap {
-									if len(v.Value) >= 1 {
-										index := len(v.Value) - 1
+									if len(v.Values) >= 1 {
+										index := len(v.Values) - 1
 										service := MQTTHuaweiServiceTemplate{}
 										service.ServiceID = v.Name
-										service.Properties.Value = v.Value[index].Value
+										service.Properties.Value = v.Values[index].Value
 										ServiceMap = append(ServiceMap, service)
 									}
 								}
@@ -233,7 +234,7 @@ func (r *ReportServiceParamHuaweiTemplate) NodePropertyPost(name []string) {
 			}
 
 			if MQTTHuaweiNodePropertyPost(r.GWParam.MQTTClient, mqttHuaweiRegister, DeviceServiceMap) == 0 {
-				setting.Logger.Debugf("%s MQTTHuaweiNodePropertyPost OK", r.GWParam.ServiceName)
+				mylog.Logger.Debugf("%s MQTTHuaweiNodePropertyPost OK", r.GWParam.ServiceName)
 				for _, n := range node {
 					for k, v := range r.NodeList {
 						if n.Name == v.Name {
@@ -243,7 +244,7 @@ func (r *ReportServiceParamHuaweiTemplate) NodePropertyPost(name []string) {
 					}
 				}
 			} else {
-				setting.Logger.Debugf("%s MQTTHuaweiNodePropertyPost Err", r.GWParam.ServiceName)
+				mylog.Logger.Debugf("%s MQTTHuaweiNodePropertyPost Err", r.GWParam.ServiceName)
 			}
 		} else { //最后一页
 			node := nodeList[20*pageIndex:]
@@ -251,15 +252,15 @@ func (r *ReportServiceParamHuaweiTemplate) NodePropertyPost(name []string) {
 			for _, n := range node {
 				for _, c := range device.CollectInterfaceMap {
 					if c.CollInterfaceName == n.CollInterfaceName {
-						for _, d := range c.DeviceNodeMap {
+						for _, d := range c.DeviceNodes {
 							if d.Name == n.Name {
 								ServiceMap := make([]MQTTHuaweiServiceTemplate, 0)
 								for _, v := range d.VariableMap {
-									if len(v.Value) >= 1 {
-										index := len(v.Value) - 1
+									if len(v.Values) >= 1 {
+										index := len(v.Values) - 1
 										service := MQTTHuaweiServiceTemplate{}
 										service.ServiceID = v.Name
-										service.Properties.Value = v.Value[index].Value
+										service.Properties.Value = v.Values[index].Value
 										ServiceMap = append(ServiceMap, service)
 									}
 								}
@@ -280,7 +281,7 @@ func (r *ReportServiceParamHuaweiTemplate) NodePropertyPost(name []string) {
 				DeviceSecret: r.GWParam.Param.DeviceSecret,
 			}
 			if MQTTHuaweiNodePropertyPost(r.GWParam.MQTTClient, mqttHuaweiRegister, DeviceServiceMap) == 0 {
-				setting.Logger.Debugf("%s MQTTHuaweiNodePropertyPost OK", r.GWParam.ServiceName)
+				mylog.Logger.Debugf("%s MQTTHuaweiNodePropertyPost OK", r.GWParam.ServiceName)
 				for _, n := range node {
 					for k, v := range r.NodeList {
 						if n.Name == v.Name {
@@ -290,7 +291,7 @@ func (r *ReportServiceParamHuaweiTemplate) NodePropertyPost(name []string) {
 					}
 				}
 			} else {
-				setting.Logger.Debugf("%s MQTTHuaweiNodePropertyPost Err", r.GWParam.ServiceName)
+				mylog.Logger.Debugf("%s MQTTHuaweiNodePropertyPost Err", r.GWParam.ServiceName)
 			}
 		}
 	}

@@ -1,79 +1,83 @@
 package main
 
 import (
-	"fmt"
+	"context"
+	"goAdapter/config"
 	"goAdapter/device"
 	"goAdapter/httpServer"
-	"goAdapter/report"
-	"goAdapter/setting"
+	"goAdapter/initialize"
+	"goAdapter/pkg/mylog"
+	"goAdapter/pkg/ntp"
+	"goAdapter/pkg/system"
+	"log"
+	"net/http"
+	"os"
+	"os/signal"
+	"syscall"
 
-	"github.com/robfig/cron"
+	"github.com/fatih/color"
+	"github.com/jasonlvhit/gocron"
+	"go.uber.org/zap"
 )
 
 func main() {
 
-	/**************获取配置文件***********************/
-	setting.GetConf()
+	/**************初始化配置以及日志***********************/
+	initialize.Init()
 
-	setting.LogerInit()
-
-	//记录起始时间
-	setting.GetTimeStart()
-
-	setting.Logger.Debugf("%s %s", setting.SystemState.Name, setting.SystemState.SoftVer)
-
-	setting.MemoryDataStream = setting.NewDataStreamTemplate("内存使用率")
-	setting.DiskDataStream = setting.NewDataStreamTemplate("硬盘使用率")
-	setting.DeviceOnlineDataStream = setting.NewDataStreamTemplate("设备在线率")
-	setting.DevicePacketLossDataStream = setting.NewDataStreamTemplate("通信丢包率")
-
-	/**************网口初始化***********************/
-	setting.NetworkParaRead()
-	setting.NetworkParamList.GetNetworkParam()
-
+	mylog.Logger.Debugf("%s %s", system.SystemState.Name, system.SystemState.SoftVer)
 	/**************变量模板初始化****************/
-	device.DeviceNodeManageInit()
-
-	/**************NTP校时初始化****************/
-	setting.NTPInit()
-
-	/**************创建定时获取网络状态的任务***********************/
-	// 定义一个cron运行器
-	cronProcess := cron.New()
-	// 定时5秒，每5秒执行print5
-	_ = cronProcess.AddFunc("*/5 * * * * *", setting.NetworkParamList.GetNetworkParam)
-
-	// 定时
-	for k, v := range device.CollectInterfaceMap {
-		device.CommunicationManage = append(device.CommunicationManage, device.NewCommunicationManageTemplate(v))
-		//CommunicationManage.CollInterfaceName = v.CollInterfaceName
-		str := fmt.Sprintf("@every %dm%ds", v.PollPeriod/60, v.PollPeriod%60)
-		setting.Logger.Infof("str %+v", str)
-
-		_ = cronProcess.AddFunc(str, device.CommunicationManage[k].CommunicationManagePoll)
-
-		go device.CommunicationManage[k].CommunicationManageDel()
+	if err := device.NodeManageInit(); err != nil {
+		mylog.ZAP.Error("初始化模板和接口失败", zap.Error(err))
+		return
 	}
 
-	// 定时60秒,定时获取系统信息
-	_ = cronProcess.AddFunc("*/60 * * * * *", setting.CollectSystemParam)
+	/**************创建定时获取网络状态的任务***********************/
+	/**************创建定时获取网络状态的任务***********************/
+	// 定义一个cron运行器
+	schedule := gocron.NewScheduler()
+	// 定时5秒，每5秒执行print5
+	//_ = cronProcess.AddFunc("*/5 * * * * *", setting.GetNetworkParam)
 
+	// 定时
+	quitChan := make(chan struct{}, 1)
+	device.ScheduleJob(schedule, quitChan)
+
+	// 定时60秒,定时获取系统信息
+	schedule.Every(60).Seconds().Do(system.CollectSystemParam)
 	// 每天0点,定时获取NTP服务器的时间，并校时
-	_ = cronProcess.AddFunc("0 0 0 * * ?", func() {
-		setting.NTPGetTime()
-	})
+	schedule.Every(1).Day().At("00:00").Do(ntp.NTPGetTime)
 
 	// 定时60秒,mqtt发布消息
 	//cronGetNetStatus.AddFunc("*/30 * * * * *", mqttClient.MqttAppPublish)
 
-	cronProcess.Start()
-	defer cronProcess.Stop()
+	schedule.Start()
+	defer schedule.Clear()
 
-	report.ReportServiceInit()
+	router := httpServer.Router()
+	server := http.Server{
+		Addr:    ":" + config.Cfg.ServerCfg.Port,
+		Handler: router,
+	}
+	sigChan := make(chan os.Signal, 1)
+	go func() {
+		signal.Notify(sigChan, syscall.SIGINT, syscall.SIGTERM, syscall.SIGABRT)
 
-	for _, v := range device.CommunicationManage {
-		v.CommunicationManagePoll()
+		select {
+		case <-sigChan:
+			if err := server.Shutdown(context.Background()); err != nil {
+				log.Println(color.RedString("shutdown server error:%v", err))
+			}
+			quitChan <- struct{}{}
+
+		}
+
+	}()
+
+	if err := server.ListenAndServe(); err != http.ErrServerClosed {
+		log.Println(color.RedString("server listen and serve error:%v", err))
+		return
 	}
 
-	httpServer.RouterWeb()
+	log.Println(color.CyanString("服务器正常退出...."))
 }
