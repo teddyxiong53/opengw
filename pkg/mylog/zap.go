@@ -32,6 +32,7 @@ func InitLogger() {
 		panic(err)
 	}
 	zapLogger, err := NewJSONLogger(WithTimeLayout("2006-01-02 15:04:05"), WithFileRotationP(absPath))
+
 	if err != nil {
 		panic(err)
 	}

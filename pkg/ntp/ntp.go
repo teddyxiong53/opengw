@@ -59,7 +59,7 @@ func ReadNTPHostAddrFromJson() bool {
 	exeCurDir, _ := filepath.Abs(filepath.Dir(os.Args[0]))
 	fileDir := exeCurDir + "/selfpara/ntpHostAddr.json"
 
-	if fileExist(fileDir) == true {
+	if fileExist(fileDir) {
 		fp, err := os.OpenFile(fileDir, os.O_RDONLY, 0777)
 		if err != nil {
 			log.Println("open ntpHostAddr.json err", err)

@@ -112,6 +112,7 @@ func LuaCallNewVariables(L *lua.LState) {
 		mylog.Logger.Info("string")
 	case *lua.LTable:
 		mylog.Logger.Info("table")
+
 	}
 
 	type VariableTemplate struct {
@@ -134,6 +135,8 @@ func LuaCallNewVariables(L *lua.LState) {
 	for _, v := range VariableMap.Variable {
 		mylog.Logger.Infof("%+v", v.Label)
 
+		mylog.Logger.Infof("%+v", v.Label)
+
 	}
 }
 
@@ -147,6 +150,7 @@ func LuaInit() {
 	defer L.Close()
 	//加载Lua
 	if err := L.DoFile(path + "td200.lua"); err != nil {
+
 		mylog.Logger.Warning("open td200.lua fail", err)
 	}
 	mylog.Logger.Info("open TD200.lua OK")
@@ -195,7 +199,6 @@ func CheckCRCModbus(L *lua.LState) int {
 	LuaVariableMap := LuaVariableMapTemplate{}
 	if err := gluamapper.Map(lv, &LuaVariableMap); err != nil {
 		mylog.Logger.Warning("GetCRC16 gluamapper.Map err,", err)
-
 	}
 
 	nBytes := make([]byte, 0)
