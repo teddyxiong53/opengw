@@ -11,3 +11,5 @@ openGW_arm64
 openGW_armV5
 openGW_linux64
 openGW_win64.exe
+mock/
+logs

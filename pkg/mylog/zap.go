@@ -39,7 +39,7 @@ func InitLogger() {
 
 	ZAP = zapLogger
 	ZAPS = zapLogger.Sugar()
-	log.Println(color.GreenString("初始化ZAP日志成功! 日志等级:%s 日志文件:%s", config.Cfg.LogCfg.Level, config.Cfg.LogCfg.File))
+	ZAPS.Debugf("初始化ZAP日志成功! 日志等级:%s 日志文件:%s", config.Cfg.LogCfg.Level, config.Cfg.LogCfg.File)
 }
 
 func Level(level string) zapcore.Level {

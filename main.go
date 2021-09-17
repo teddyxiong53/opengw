@@ -1,3 +1,11 @@
+/*
+@Description: This is auto comment by koroFileHeader.
+@Author: Linn
+@Date: 2021-09-15 15:48:28
+@LastEditors: WalkMiao
+@LastEditTime: 2021-09-16 16:34:05
+@FilePath: /goAdapter-Raw/main.go
+*/
 package main
 
 import (
@@ -75,9 +83,9 @@ func main() {
 	}()
 
 	if err := server.ListenAndServe(); err != http.ErrServerClosed {
-		log.Println(color.RedString("server listen and serve error:%v", err))
+		mylog.ZAPS.Debugf("server listen and serve error:%v", err)
 		return
 	}
 
-	log.Println(color.CyanString("服务器正常退出...."))
+	mylog.ZAPS.Debug("服务器正常退出....")
 }

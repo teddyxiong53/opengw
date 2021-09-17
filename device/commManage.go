@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"goAdapter/config"
 	"goAdapter/pkg/mylog"
 	"goAdapter/pkg/system"
 	"io"
@@ -13,6 +14,7 @@ import (
 
 	"github.com/fatih/color"
 	"github.com/jasonlvhit/gocron"
+	"go.uber.org/zap"
 )
 
 type CommunicationCmdTemplate struct {
@@ -38,6 +40,7 @@ type CommunicationManageTemplate struct {
 	Cancel               context.CancelFunc
 	Delay                time.Duration
 	Waiting              bool
+	Ready                chan struct{}
 }
 
 var CommunicationManage = CommManger{
@@ -63,6 +66,7 @@ func NewCommunicationManageTemplate(coll *CollectInterfaceTemplate) *Communicati
 		Context:              ctx,
 		Cancel:               cancel,
 		Delay:                time.Millisecond * 100,
+		Ready:                make(chan struct{}, 1),
 	}
 	if coll.CommInterface.Error() == nil {
 		//启动接收协程
@@ -135,21 +139,25 @@ func (c *CommunicationManageTemplate) CommunicationManageAddEmergency(cmd Commun
 
 func (c *CommunicationManageTemplate) ReadRx(ctx context.Context) {
 
-	for {
-		select {
-		case <-ctx.Done():
-			return
-		default:
-			//阻塞读
-			data, err := io.ReadAll(c.CollInterface.CommInterface)
-			if err != nil {
-				time.Sleep(100 * time.Millisecond)
-				continue
-			}
-			c.PacketChan <- data
-			log.Println(color.GreenString(" 接口%s RECV:% X", c.CollInterface.CollInterfaceName, data))
-			//每次读休眠100毫秒
-			time.Sleep(100 * time.Millisecond)
+	//阻塞读
+	rxBuf := make([]byte, 512)
+	var rxBufCnt int
+	var err error
+
+	for range c.Ready {
+		//等待数据已经完全写入缓冲区
+		time.Sleep(time.Duration(config.Cfg.SerialCfg.BufferReadDelay) * time.Millisecond)
+
+		//阻塞读
+		rxBufCnt, err = c.CollInterface.CommInterface.Read(rxBuf)
+		if err != nil && err != io.EOF {
+			mylog.ZAP.Error("comm read error", zap.String("collinterface", c.CollInterface.CollInterfaceName), zap.String("comm", c.CollInterface.CommInterfaceName), zap.Error(err))
+			continue
+		}
+		if rxBufCnt > 0 {
+
+			c.PacketChan <- rxBuf[:rxBufCnt]
+			rxBufCnt = 0
 		}
 
 	}
@@ -193,7 +201,7 @@ func (c *CommunicationManageTemplate) CommunicationStateMachine(cmd Communicatio
 
 			}
 			step++
-			log.Println(color.BlueString("设备【%s】SEND:% X", cmd.DeviceName, txBuf))
+			mylog.ZAPS.Debugf("【SEND】接口【%s】% X", cmd.CollInterfaceName, txBuf)
 			//setting.ZAPS.Debugf("interfaceName %s:txbuf %X", c.CollInterface.CollInterfaceName, txBuf)
 
 			CommunicationMessage := CommunicationMessageTemplate{
@@ -212,6 +220,7 @@ func (c *CommunicationManageTemplate) CommunicationStateMachine(cmd Communicatio
 			//---------------发送-------------------------
 			//判断是否是串口采集
 			c.CollInterface.CommInterface.Write(txBuf)
+			c.Ready <- struct{}{}
 			node.CommTotalCnt++
 			//---------------等待接收----------------------
 			//阻塞读
@@ -267,6 +276,7 @@ func (c *CommunicationManageTemplate) CommunicationStateMachine(cmd Communicatio
 					{
 						rxBufCnt = len(rxBuf)
 						if rxBufCnt > 0 {
+							mylog.ZAPS.Debugf("【RECV】 接口%s % X", c.CollInterface.CollInterfaceName, rxBuf)
 							rxTotalBufCnt += rxBufCnt
 							//追加接收的数据到接收缓冲区
 							rxTotalBuf = append(rxTotalBuf, rxBuf[:rxBufCnt]...)

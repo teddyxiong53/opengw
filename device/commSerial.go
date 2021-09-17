@@ -2,10 +2,11 @@ package device
 
 import (
 	"fmt"
+	"goAdapter/config"
+	"io"
 	"strconv"
-	"time"
 
-	"github.com/tarm/serial"
+	s2 "github.com/jacobsa/go-serial/serial"
 )
 
 type SerialInterfaceParam struct {
@@ -22,13 +23,13 @@ type CommunicationSerialTemplate struct {
 	Name  string                `json:"Name"`  //接口名称
 	Type  string                `json:"Type"`  //接口类型,比如serial,tcp,udp,http
 	Param *SerialInterfaceParam `json:"Param"` //接口参数
-	Port  *serial.Port          `json:"-"`     //通信句柄
+	Port  io.ReadWriteCloser    `json:"-"`     //通信句柄
 	err   error                 `json:"-"`
 }
 
 var _ CommunicationInterface = (*CommunicationSerialTemplate)(nil)
 
-func (c *CommunicationSerialTemplate) Open() error {
+func (c *CommunicationSerialTemplate) Open() (err error) {
 
 	serialParam := c.Param
 	serialBaud, err := strconv.Atoi(serialParam.BaudRate)
@@ -36,35 +37,51 @@ func (c *CommunicationSerialTemplate) Open() error {
 		return err
 	}
 
-	var serialParity serial.Parity
+	var serialParity s2.ParityMode
 	switch serialParam.Parity {
 	case "N":
-		serialParity = serial.ParityNone
+		serialParity = s2.PARITY_NONE
 	case "O":
-		serialParity = serial.ParityOdd
+		serialParity = s2.PARITY_ODD
 	case "E":
-		serialParity = serial.ParityEven
+		serialParity = s2.PARITY_EVEN
+	default:
+		return fmt.Errorf("serial parity not valid:%s", serialParam.Parity)
 	}
 
-	var serialStop serial.StopBits
+	var serialStop uint = 1
 	switch serialParam.StopBits {
 	case "1":
-		serialStop = serial.Stop1
+		serialStop = 1
 	case "1.5":
-		serialStop = serial.Stop1Half
+		serialStop = 1
 	case "2":
-		serialStop = serial.Stop2
+		serialStop = 2
 	}
 
-	serialConfig := &serial.Config{
-		Name:        serialParam.Name,
-		Baud:        serialBaud,
-		Parity:      serialParity,
-		StopBits:    serialStop,
-		ReadTimeout: time.Millisecond * 10,
+	var databit int
+	databit, err = strconv.Atoi(c.Param.DataBits)
+	if err != nil {
+		return err
 	}
+	// serialConfig := &serial.Config{
+	// 	Name:        serialParam.Name,
+	// 	Baud:        serialBaud,
+	// 	Parity:      serialParity,
+	// 	StopBits:    serialStop,
+	// 	ReadTimeout: time.Second * time.Duration(config.Cfg.SerialCfg.ReadTimeOut),
+	// }
 
-	c.Port, err = serial.OpenPort(serialConfig)
+	serialConfig := s2.OpenOptions{
+		PortName:              serialParam.Name,
+		BaudRate:              uint(serialBaud),
+		ParityMode:            serialParity,
+		StopBits:              serialStop,
+		DataBits:              uint(databit),
+		InterCharacterTimeout: uint(config.Cfg.SerialCfg.ReadTimeOut),
+	}
+	//c.Port, err = serial.OpenPort(serialConfig)
+	c.Port, err = s2.Open(serialConfig)
 	if err != nil {
 		c.err = err
 		return err

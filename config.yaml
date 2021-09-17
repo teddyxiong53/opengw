@@ -1,0 +1,17 @@
+server:
+  port: 8090
+  timeout:
+  mode: release
+
+udpserver:
+  addr: ":9000"
+  timeout:
+
+serial:
+  readtimeout: 100 #串口读取延时
+  bufferReadDelay: 200 #如果串口有设置延时的话，读取串口时的延时
+
+log:
+  level: debug
+  dir: 
+  file: ./logs/goadapter.log

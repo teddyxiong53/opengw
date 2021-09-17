@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"goAdapter/pkg/mylog"
 	"log"
 
 	"runtime"
@@ -12,7 +13,6 @@ import (
 	"time"
 
 	"github.com/5anthosh/chili/parser"
-	"github.com/fatih/color"
 	"github.com/shopspring/decimal"
 	"github.com/walkmiao/chili/environment"
 	"github.com/walkmiao/chili/evaluator"
@@ -38,17 +38,19 @@ func initializeEval() {
 
 type ValueTemplate struct {
 	Value     interface{} //变量值，不可以是字符串
-	Explain   interface{} //变量值解释，必须是字符串
+	Explain   string      //变量值解释，必须是字符串
 	TimeStamp string
 }
 
 //变量标签模版
 type VariableTemplate struct {
-	Index  int             `json:"index"` //变量偏移量
-	Name   string          `json:"name"`  //变量名
-	Label  string          `json:"lable"` //变量标签
-	Values []ValueTemplate `json:"value"` //变量值
-	Type   string          `json:"type"`  //变量类型
+	Index     int             `json:"index"`     //变量偏移量
+	Name      string          `json:"name"`      //变量名
+	Label     string          `json:"lable"`     //变量标签
+	Values    []ValueTemplate `json:"value"`     //变量值
+	Type      string          `json:"type"`      //变量类型
+	ChannelNo uint32          `json:"channelNo"` //通道号
+	Changed   bool            `json:"changed"`   //是否变化
 }
 
 //设备模板
@@ -342,117 +344,123 @@ func (d *DeviceNodeTemplate) AnalysisRx(sAddr string, variables []*VariableTempl
 	timeNowStr := time.Now().Format("2006-01-02 15:04:05")
 	value := ValueTemplate{}
 	//正常
-	if LuaVariableMap.Status == "0" {
-		if len(LuaVariableMap.Variable) > 0 {
-			var item float64
-		VLOOP:
-			for _, lv := range LuaVariableMap.Variable {
-				if lv != nil {
+	if LuaVariableMap.Status != "0" {
+		return fmt.Errorf("lua return  status  is not 0: %s", LuaVariableMap.Status)
+	}
 
-					v := variables[lv.Index]
-					switch v.Type {
-					case "uint8":
-						item = lv.Value.(float64)
-						value.Value = uint8(item)
+	if l := len(LuaVariableMap.Variable); l <= 0 {
+		return fmt.Errorf("variable map is less than 0:%d", l)
+	}
 
-					case "uint16":
-						item = lv.Value.(float64)
-						value.Value = uint16(item)
+	var item float64
+VLOOP:
+	for _, lv := range LuaVariableMap.Variable {
+		if lv == nil {
+			mylog.ZAPS.Errorf("device %s variable is nil", d.Name)
+			continue
+		}
+		if lv.Value == nil {
+			mylog.ZAPS.Errorf("device %s variable %s value is nil", d.Name, lv.Label)
+			continue
+		}
 
-					case "uint32":
-						item = lv.Value.(float64)
-						value.Value = uint32(item)
+		v := variables[lv.Index]
+		switch v.Type {
+		case "uint8", "byte":
+			item = lv.Value.(float64)
+			value.Value = uint8(item)
 
-					case "uint64":
-						item = lv.Value.(float64)
-						value.Value = uint64(item)
+		case "uint16":
+			item = lv.Value.(float64)
+			value.Value = uint16(item)
 
-					case "int8":
-						item = lv.Value.(float64)
-						value.Value = int8(item)
+		case "uint32":
+			item = lv.Value.(float64)
+			value.Value = uint32(item)
 
-					case "int16":
-						item = lv.Value.(float64)
-						value.Value = int16(item)
-					case "int32":
-						item = lv.Value.(float64)
-						value.Value = int32(item)
-					case "int64":
-						item = lv.Value.(float64)
-						value.Value = int64(item)
-					case "float32":
-						item = lv.Value.(float64)
-						value.Value = float32(item)
-					case "float64":
-						item = lv.Value.(float64)
-						value.Value = item
-					case "string":
-						value.Value = lv.Value.(string)
-					}
+		case "uint64":
+			item = lv.Value.(float64)
+			value.Value = uint64(item)
 
-					//如果有表达式
-					if lv.Formula != "" {
-						//log.Printf("formula:%s\n", lv.Formula)
-						if d.Parser == nil {
-							d.Parser = &IndexParser{
-								env: env,
-							}
-						}
-						d.Parser.SetFormula(lv.Formula)
-						if err := d.Parser.PreVarSet(variables); err != nil {
-							log.Println(color.RedString("基础变量设置失败:%v", err))
-							goto VLOOP
-						}
-						if err := d.Parser.VarSet(item); err != nil {
-							log.Println(color.RedString("设置表达式val值错误:%v", err))
-							goto VLOOP
-						}
+		case "int8":
+			item = lv.Value.(float64)
+			value.Value = int8(item)
 
-						parser := parser.New(lv.Formula)
-						exp, err := parser.Parse()
-						if err != nil {
-							log.Println(color.RedString("解析表达式%s错误:%v", lv.Formula, err))
-							goto VLOOP
-						}
-						ret, err := eval.Run(exp)
-						if err != nil {
-							log.Println(color.RedString("运行表达式%s错误:%v", lv.Formula, err))
-							goto VLOOP
-						}
-						var endValue interface{}
-						if d, ok := ret.(decimal.Decimal); ok {
-							v, exact := d.Float64()
-							if exact {
-								endValue = v
-							} else {
-								endValue = d.String()
-							}
-						} else {
-							log.Printf("不能转换%s\n", lv.Label)
-						}
-						//log.Printf("label:%s 表达式值:%v val:%v\n", lv.Label, endValue, item)
-						value.Value = endValue
+		case "int16":
+			item = lv.Value.(float64)
+			value.Value = int16(item)
+		case "int32":
+			item = lv.Value.(float64)
+			value.Value = int32(item)
+		case "int64":
+			item = lv.Value.(float64)
+			value.Value = int64(item)
+		case "float32":
+			item = lv.Value.(float64)
+			value.Value = float32(item)
+		case "float64":
+			item = lv.Value.(float64)
+			value.Value = item
+		case "string":
+			value.Value = lv.Value.(string)
+		default:
+			mylog.ZAPS.Errorf("未识别的值类型:%s 将设置为NIL", v.Type)
+			value.Value = "NIL"
+		}
 
-					}
-
-					value.Explain = lv.Explain
-					value.TimeStamp = timeNowStr
-
-					if len(v.Values) < 100 {
-						v.Values = append(v.Values, value)
-					} else {
-						v.Values = v.Values[1:]
-						v.Values = append(v.Values, value)
-					}
+		//如果有表达式
+		if lv.Formula != "" {
+			//log.Printf("formula:%s\n", lv.Formula)
+			if d.Parser == nil {
+				d.Parser = &IndexParser{
+					env: env,
 				}
-
 			}
-			return
-		} else {
-			err = fmt.Errorf("variable len:%d", len(LuaVariableMap.Variable))
-			return
+			d.Parser.SetFormula(lv.Formula)
+			if err := d.Parser.PreVarSet(variables); err != nil {
+				mylog.ZAPS.Errorf("基础变量设置失败:%v", err)
+				goto VLOOP
+			}
+			if err := d.Parser.VarSet(item); err != nil {
+				mylog.ZAPS.Errorf("设置表达式val值错误:%v", err)
+				goto VLOOP
+			}
+
+			parser := parser.New(lv.Formula)
+			exp, err := parser.Parse()
+			if err != nil {
+				mylog.ZAPS.Errorf("解析表达式%s错误:%v", lv.Formula, err)
+				goto VLOOP
+			}
+			ret, err := eval.Run(exp)
+			if err != nil {
+				mylog.ZAPS.Errorf("运行表达式%s错误:%v", lv.Formula, err)
+				goto VLOOP
+			}
+			var endValue interface{}
+			if d, ok := ret.(decimal.Decimal); ok {
+				v, exact := d.Float64()
+				if exact {
+					endValue = v
+				} else {
+					endValue = d.String()
+				}
+			} else {
+				mylog.ZAPS.Errorf("%s 不能转换为float64或者string", lv.Label)
+			}
+			value.Value = endValue
 
 		}
+
+		value.Explain = lv.Explain
+		value.TimeStamp = timeNowStr
+
+		if len(v.Values) < 100 {
+			v.Values = append(v.Values, value)
+		} else {
+			v.Values = v.Values[1:]
+			v.Values = append(v.Values, value)
+		}
 	}
-	return fmt.Errorf("ret status is %s", LuaVariableMap.Status)
+	return nil
 }
