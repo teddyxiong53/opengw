@@ -1,7 +1,6 @@
 goAdapter
 .idea
 plugin/
-config/
 selfpara/
 log/
 .DS_Store
@@ -13,3 +12,4 @@ openGW_linux64
 openGW_win64.exe
 mock/
 logs
+*.exe

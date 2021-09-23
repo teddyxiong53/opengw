@@ -267,7 +267,7 @@ func getGoroutineID() uint64 {
 	return n
 }
 
-func (d *DeviceNodeTemplate) AnalysisRx(sAddr string, variables []*VariableTemplate, rxBuf []byte, rxBufCnt int, txBuf []byte) (err error) {
+func (d *DeviceNodeTemplate) AnalysisRx(sAddr string, variables []*VariableTemplate, rxBuf []byte, rxBufCnt int, txBuf []byte) error {
 	type LuaVariableTemplate struct {
 		Index   int
 		Name    string
@@ -288,13 +288,11 @@ func (d *DeviceNodeTemplate) AnalysisRx(sAddr string, variables []*VariableTempl
 	defer lock.Unlock()
 	template, ok := DeviceTemplateMap[d.Type]
 	if !ok {
-		err = fmt.Errorf("no such device template %s", d.Type)
-		return
+		return fmt.Errorf("no such device template %s", d.Type)
 	}
 	state := template.LuaState
 	if state == nil {
-		err = errors.New("nil lua state")
-		return
+		return errors.New("nil lua state")
 	}
 	tbl := lua.LTable{}
 	for _, v := range rxBuf {
@@ -307,15 +305,14 @@ func (d *DeviceNodeTemplate) AnalysisRx(sAddr string, variables []*VariableTempl
 	}
 	state.SetGlobal(string(TXBUF), luar.New(state, &tbl_tx))
 	//AnalysisRx
-	err = state.CallByParam(lua.P{
+	err := state.CallByParam(lua.P{
 		Fn:      state.GetGlobal(string(ANALYSISRX)),
 		NRet:    1,
 		Protect: true,
 	}, lua.LString(sAddr), lua.LNumber(rxBufCnt))
 
 	if err != nil {
-		return
-
+		return err
 	}
 
 	//获取返回结果
@@ -325,13 +322,11 @@ func (d *DeviceNodeTemplate) AnalysisRx(sAddr string, variables []*VariableTempl
 	LuaVariableMap := LuaVariableMapTemplate{}
 	table, ok := ret.(*lua.LTable)
 	if !ok {
-		err = errors.New("ret is not lua LTable")
-		return
+		return errors.New("ret is not lua LTable")
 
 	}
 	if err = gluamapper.Map(table, &LuaVariableMap); err != nil {
-		err = fmt.Errorf("AnalysisRx gluamapper.Map error:%v", err)
-		return
+		return fmt.Errorf("AnalysisRx gluamapper.Map error:%v", err)
 	}
 
 	//如果有公式的话
@@ -351,7 +346,6 @@ func (d *DeviceNodeTemplate) AnalysisRx(sAddr string, variables []*VariableTempl
 	if l := len(LuaVariableMap.Variable); l <= 0 {
 		return fmt.Errorf("variable map is less than 0:%d", l)
 	}
-
 	var item float64
 VLOOP:
 	for _, lv := range LuaVariableMap.Variable {
@@ -462,5 +456,6 @@ VLOOP:
 			v.Values = append(v.Values, value)
 		}
 	}
+
 	return nil
 }

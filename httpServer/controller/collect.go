@@ -85,22 +85,28 @@ func ModifyInterface(context *gin.Context) {
 		})
 		return
 	}
-	//先删
-	device.CommunicationManage.Collectors <- &device.CollectInterfaceStatus{
-		Tmp: old,
-		ACT: device.DELETE,
+
+	//只有更改了关键参数才会执行这个操作
+	if interfaceInfo.OfflinePeriod != old.OfflinePeriod || interfaceInfo.PollPeriod != old.PollPeriod || interfaceInfo.CommInterfaceName != old.CommInterfaceName {
+		//先删
+		device.CommunicationManage.Collectors <- &device.CollectInterfaceStatus{
+			Tmp: old,
+			ACT: device.DELETE,
+		}
+		old.CollInterfaceName = interfaceInfo.CollInterfaceName
+		old.CommInterfaceName = interfaceInfo.CommInterfaceName
+		old.PollPeriod = interfaceInfo.PollPeriod
+		old.OfflinePeriod = interfaceInfo.OfflinePeriod
+		//后增
+		device.CommunicationManage.Collectors <- &device.CollectInterfaceStatus{
+			Tmp: old,
+			ACT: device.ADD,
+		}
 	}
-	old.CollInterfaceName = interfaceInfo.CollInterfaceName
-	old.CommInterfaceName = interfaceInfo.CommInterfaceName
-	old.PollPeriod = interfaceInfo.PollPeriod
-	old.OfflinePeriod = interfaceInfo.OfflinePeriod
-	//后增
-	device.CommunicationManage.Collectors <- &device.CollectInterfaceStatus{
-		Tmp: old,
-		ACT: device.ADD,
-	}
+
 	device.WriteJsonErrorHandler(context, device.COLLINTERFACEJSON,
 		200, 200, fmt.Sprintf("modify interface %s success", interfaceInfo.CollInterfaceName))
+
 }
 
 func DeleteInterface(context *gin.Context) {
