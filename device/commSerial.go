@@ -123,10 +123,12 @@ func (c *CommunicationSerialTemplate) GetParam() interface{} {
 	return c.Param
 }
 
+//通讯超时
 func (c *CommunicationSerialTemplate) GetTimeOut() string {
 	return c.Param.Timeout
 }
 
+//命令间隔
 func (c *CommunicationSerialTemplate) GetInterval() string {
 	return c.Param.Interval
 }

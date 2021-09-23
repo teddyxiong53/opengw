@@ -13,3 +13,4 @@ openGW_linux64
 openGW_win64.exe
 mock/
 logs
+*.exe
