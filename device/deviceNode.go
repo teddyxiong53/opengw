@@ -1,14 +1,11 @@
 package device
 
 import (
-	"bytes"
 	"errors"
 	"fmt"
 	"goAdapter/pkg/mylog"
 	"log"
 
-	"runtime"
-	"strconv"
 	"sync"
 	"time"
 
@@ -256,15 +253,6 @@ func (d *DeviceNodeTemplate) DeviceCustomCmd(
 		return
 	}
 	return
-}
-
-func getGoroutineID() uint64 {
-	b := make([]byte, 64)
-	runtime.Stack(b, false)
-	b = bytes.TrimPrefix(b, []byte("goroutine "))
-	b = b[:bytes.IndexByte(b, ' ')]
-	n, _ := strconv.ParseUint(string(b), 10, 64)
-	return n
 }
 
 func (d *DeviceNodeTemplate) AnalysisRx(sAddr string, variables []*VariableTemplate, rxBuf []byte, rxBufCnt int, txBuf []byte) error {

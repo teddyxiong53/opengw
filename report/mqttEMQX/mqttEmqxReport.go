@@ -171,7 +171,8 @@ func (r *ReportServiceParamEmqxTemplate) NodePropertyPost(name []string) {
 					ClientID: v.Param.ClientID,
 				}
 				timeStamp := time.Now().Unix()
-				for _, c := range device.CollectInterfaceMap {
+				tmps := device.CollectInterfaceMap.GetAll()
+				for _, c := range tmps {
 					if c.CollInterfaceName == v.CollInterfaceName {
 						for _, d := range c.DeviceNodes {
 							if d.Name == v.Name {

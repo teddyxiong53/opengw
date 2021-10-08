@@ -3,7 +3,7 @@
 @Author: Linn
 @Date: 2021-09-15 15:48:28
 @LastEditors: WalkMiao
-@LastEditTime: 2021-09-16 16:34:05
+@LastEditTime: 2021-10-07 23:07:02
 @FilePath: /goAdapter-Raw/main.go
 */
 package main
@@ -34,6 +34,10 @@ func main() {
 	initialize.Init()
 
 	mylog.Logger.Debugf("%s %s", system.SystemState.Name, system.SystemState.SoftVer)
+	// 订阅主题
+	quitChan := make(chan struct{}, 1)
+	device.SubScribeCollect("collect.*", quitChan)
+	device.SubScribeComunication("comm.*", quitChan)
 	/**************变量模板初始化****************/
 	if err := device.NodeManageInit(); err != nil {
 		mylog.ZAP.Error("初始化模板和接口失败", zap.Error(err))
@@ -47,15 +51,11 @@ func main() {
 	// 定时5秒，每5秒执行print5
 	//_ = cronProcess.AddFunc("*/5 * * * * *", setting.GetNetworkParam)
 
-	// 定时
-	quitChan := make(chan struct{}, 1)
-	device.ScheduleJob(schedule, quitChan)
-
 	// 定时60秒,定时获取系统信息
 	schedule.Every(60).Seconds().Do(system.CollectSystemParam)
 	// 每天0点,定时获取NTP服务器的时间，并校时
 	schedule.Every(1).Day().At("00:00").Do(ntp.NTPGetTime)
-
+	schedule.Every(1).Hour().Do(device.WriteAllCfg)
 	// 定时60秒,mqtt发布消息
 	//cronGetNetStatus.AddFunc("*/30 * * * * *", mqttClient.MqttAppPublish)
 
@@ -70,14 +70,19 @@ func main() {
 	sigChan := make(chan os.Signal, 1)
 	go func() {
 		signal.Notify(sigChan, syscall.SIGINT, syscall.SIGTERM, syscall.SIGABRT)
+		for {
+			select {
+			case <-sigChan:
+				if err := device.WriteAllCfg(); err != nil {
+					mylog.ZAP.Error("保存配置错误", zap.Error(err))
+				}
+				if err := server.Shutdown(context.Background()); err != nil {
+					log.Println(color.RedString("shutdown server error:%v", err))
+				}
+				quitChan <- struct{}{}
+				return
 
-		select {
-		case <-sigChan:
-			if err := server.Shutdown(context.Background()); err != nil {
-				log.Println(color.RedString("shutdown server error:%v", err))
 			}
-			quitChan <- struct{}{}
-
 		}
 
 	}()

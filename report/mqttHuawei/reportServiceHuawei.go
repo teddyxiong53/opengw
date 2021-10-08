@@ -356,7 +356,8 @@ func (r *ReportServiceParamHuaweiTemplate) ReportCommStatusTimeFun() {
 	mylog.Logger.Infof("service:%s CheckCommStatus", r.GWParam.ServiceName)
 	for k, n := range r.NodeList {
 		name := make([]string, 0)
-		for _, c := range device.CollectInterfaceMap {
+		tmps := device.CollectInterfaceMap.GetAll()
+		for _, c := range tmps {
 			if c.CollInterfaceName == n.CollInterfaceName {
 				for _, d := range c.DeviceNodes {
 					if n.Name == d.Name {

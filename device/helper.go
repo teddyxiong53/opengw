@@ -3,14 +3,13 @@
 @Author: Linn
 @Date: 2021-09-13 11:28:56
 @LastEditors: WalkMiao
-@LastEditTime: 2021-09-14 14:56:21
+@LastEditTime: 2021-10-08 08:11:55
 @FilePath: /goAdapter-Raw/device/helper.go
 */
 package device
 
 import (
 	"encoding/json"
-	"errors"
 	"fmt"
 	"io/ioutil"
 	"log"
@@ -20,6 +19,7 @@ import (
 	"strings"
 
 	"goAdapter/pkg/luautils"
+	"goAdapter/pkg/mylog"
 
 	"github.com/fatih/color"
 	"github.com/gin-gonic/gin"
@@ -46,6 +46,7 @@ const (
 	IOINJSON          = "commIoInInterface.json"
 	IOOUTJSON         = "commIoOutInterface.json"
 	COLLINTERFACEJSON = "collInterface.json"
+	DEVICETSLJSON     = "deviceTSLParam.json"
 )
 
 const (
@@ -58,6 +59,20 @@ const (
 const (
 	ONLINE  = "onLine"
 	OFFLINE = "offLine"
+)
+
+const (
+	//comm
+	CommAdd    = "comm.add"
+	CommDelete = "comm.delete"
+	CommUpdate = "comm.update"
+	CommQuery  = "comm.query"
+
+	//collect
+	CollectAdd    = "collect.add"
+	CollectDelete = "collect.delete"
+	CollectUpdate = "collect.update"
+	CollectQuery  = "collect.query"
 )
 
 func disPatchCommonFunction(state *lua.LState) {
@@ -130,7 +145,7 @@ func FileExist(path string) bool {
 }
 
 func WriteJsonErrorHandler(ctx *gin.Context, cfg string, errCode, succCode int, succInfo string) {
-	if err := WriteToJson(cfg); err != nil {
+	if err := writeCfg(cfg); err != nil {
 		ctx.JSON(errCode, struct {
 			Code    string
 			Message string
@@ -148,38 +163,77 @@ func WriteJsonErrorHandler(ctx *gin.Context, cfg string, errCode, succCode int, 
 	})
 }
 
+func WriteAllCfg() error {
+	mylog.ZAP.Debug("保存配置文件...")
+	if err := writeCfg(COMMJSON); err != nil {
+		return err
+	}
+	if err := writeCfg(COLLINTERFACEJSON); err != nil {
+		return err
+	}
+	if err := writeCfg(DEVICETSLJSON); err != nil {
+		return err
+	}
+	return nil
+}
+
 //所有不同类型的通讯接口都放在一个json里
-func WriteToJson(cfg string) (err error) {
+func writeCfg(cfg string) (err error) {
 	fileDir, err := filepath.Abs(path.Join("./selfpara", cfg))
 	if err != nil {
 		err = fmt.Errorf("load file 【%s】 error:%v", cfg, err)
 		return
 	}
+	var fp *os.File
 
-	fp, err := os.OpenFile(fileDir, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0666)
-	if err != nil {
-		return
-	}
 	defer fp.Close()
-	var data []byte
 	switch cfg {
 	case COMMJSON:
-		data, err = json.Marshal(CommunicationInterfaceMap)
+		if CommunicationInterfaceMap.Changed() {
+			fp, err = os.OpenFile(fileDir, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0666)
+			if err != nil {
+				return err
+			}
+			err = CommunicationInterfaceMap.SaveTo(fp)
+		}
+
 	case COLLINTERFACEJSON:
-		data, err = json.Marshal(CollectInterfaceMap)
+		if CollectInterfaceMap.Changed {
+			fp, err = os.OpenFile(fileDir, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0666)
+			if err != nil {
+				return err
+			}
+			err = CollectInterfaceMap.SaveTo(fp)
+		}
+
+	case DEVICETSLJSON:
+		fp, err = os.OpenFile(fileDir, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0666)
+		if err != nil {
+			return err
+		}
+		err = DeviceTSLMap.SaveTo(fp)
 		//TODO 其他case
 	}
 	if err != nil {
 		return fmt.Errorf("marshal %s error:%v", cfg, err)
 	}
-	_, err = fp.Write(data)
-	if err != nil {
-		return err
-	}
 	return
 }
 
-func LoadJsonFile(cfg string) error {
+func LoadAllCfg() error {
+	if err := loadCfg(COMMJSON); err != nil {
+		return err
+	}
+	if err := loadCfg(COLLINTERFACEJSON); err != nil {
+		return err
+	}
+	if err := loadCfg(DEVICETSLJSON); err != nil {
+		return err
+	}
+	return nil
+}
+
+func loadCfg(cfg string) error {
 	fileDir, err := filepath.Abs(path.Join("./selfpara", cfg))
 	if err != nil {
 		return fmt.Errorf("load file 【%s】 error:%v", cfg, err)
@@ -201,38 +255,16 @@ func LoadJsonFile(cfg string) error {
 		case COMMJSON:
 			return CommInterfaceInit(data)
 		case COLLINTERFACEJSON:
-			if err := json.Unmarshal(data, &CollectInterfaceMap); err != nil {
+			if err := json.Unmarshal(data, &CollectInterfaceMap.m); err != nil {
 				return err
 			}
-			for k, v := range CollectInterfaceMap {
-				if v.DeviceNodes == nil {
-					v.DeviceNodes = make([]*DeviceNodeTemplate, 0, 10)
-				} else {
-					for _, node := range v.DeviceNodes {
-						v.InitDeviceNode(node)
-					}
-				}
-				var param = &CollectInterfaceParamTemplate{
-					CollInterfaceName: v.CollInterfaceName,
-					CommInterfaceName: v.CommInterfaceName,
-					PollPeriod:        v.PollPeriod,
-					OfflinePeriod:     v.OfflinePeriod,
-					DeviceNodeCnt:     v.DeviceNodeCnt,
-					DeviceNodes:       v.DeviceNodes,
-				}
-
-				collect, err := NewCollectInterface(param)
-				if err != nil {
-					return err
-				}
-				CollectInterfaceMap[k] = collect
-				CommunicationManage.Collectors <- &CollectInterfaceStatus{
-					Tmp: collect,
-					ACT: ADD,
-				}
+			if err = CollectInterfaceMap.Init(); err != nil {
+				return err
 			}
+		case DEVICETSLJSON:
+			//TODO 物模型待更新
 		default:
-			return errors.New("unsupported cfg file")
+			return fmt.Errorf("unsupported cfg file:%s", cfg)
 		}
 	}
 	return nil

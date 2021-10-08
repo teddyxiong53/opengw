@@ -60,7 +60,8 @@ func (r *ReportServiceParamEmqxTemplate) ReportServiceEmqxProcessWriteProperty(r
 		for _, node := range r.NodeList {
 			if v.ClientID == node.Param.ClientID {
 				//从上报节点中找到相应节点
-				for _, coll := range device.CollectInterfaceMap {
+				tmps := device.CollectInterfaceMap.GetAll()
+				for _, coll := range tmps {
 					if coll.CollInterfaceName == node.CollInterfaceName {
 						for _, n := range coll.DeviceNodes {
 							if n.Name == node.Name {
@@ -79,26 +80,24 @@ func (r *ReportServiceParamEmqxTemplate) ReportServiceEmqxProcessWriteProperty(r
 									ClientID: node.Param.ClientID,
 								}
 								property := MQTTEmqxWritePropertyRequestParamPropertyTemplate{}
-								for _, comm := range device.CommunicationManage.ManagerTemp {
-									if comm.CollInterface == coll {
-										ackData := comm.CommunicationManageAddEmergency(cmd)
-										if ackData.Err == nil {
-											writeStatus = true
-											for _, p := range v.Properties {
-												property.Name = p.Name
-												property.Value = 0
-												param.Properties = append(param.Properties, property)
-											}
-										} else {
-											writeStatus = false
-											for _, p := range v.Properties {
-												property.Name = p.Name
-												property.Value = 1
-												param.Properties = append(param.Properties, property)
-											}
-										}
+
+								ackData := coll.CommunicationManager.CommunicationManageAddEmergency(cmd)
+								if ackData.Err == nil {
+									writeStatus = true
+									for _, p := range v.Properties {
+										property.Name = p.Name
+										property.Value = 0
+										param.Properties = append(param.Properties, property)
+									}
+								} else {
+									writeStatus = false
+									for _, p := range v.Properties {
+										property.Name = p.Name
+										property.Value = 1
+										param.Properties = append(param.Properties, property)
 									}
 								}
+
 								ackParams = append(ackParams, param)
 							}
 						}

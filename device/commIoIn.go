@@ -3,7 +3,7 @@
 @Author: Linn
 @Date: 2021-09-10 09:28:15
 @LastEditors: WalkMiao
-@LastEditTime: 2021-09-13 13:42:09
+@LastEditTime: 2021-10-08 09:39:03
 @FilePath: /goAdapter-Raw/device/commIoIn.go
 */
 package device
@@ -21,10 +21,11 @@ type IoInInterfaceParam struct {
 }
 
 type CommunicationIoInTemplate struct {
-	Name  string              `json:"Name"`  //接口名称
-	Type  string              `json:"Type"`  //接口类型,比如serial,IoIn,udp,http
-	Param *IoInInterfaceParam `json:"Param"` //接口参数
-	err   error               `json:"-"`
+	Name     string              `json:"Name"`  //接口名称
+	Type     string              `json:"Type"`  //接口类型,比如serial,IoIn,udp,http
+	Param    *IoInInterfaceParam `json:"Param"` //接口参数
+	err      error               `json:"-"`
+	Bindings []string            `json:"Bindings"`
 }
 
 var _ CommunicationInterface = (*CommunicationIoInTemplate)(nil)
@@ -93,4 +94,31 @@ func (c *CommunicationIoInTemplate) GetTimeOut() string {
 
 func (c *CommunicationIoInTemplate) GetInterval() string {
 	return ""
+}
+
+func (c *CommunicationIoInTemplate) Bind(name string) {
+	if c.Bindings == nil {
+		c.Bindings = make([]string, 0)
+	}
+	c.Bindings = append(c.Bindings, name)
+}
+func (c *CommunicationIoInTemplate) UnBind(name string) {
+	if c.Bindings == nil {
+		c.Bindings = make([]string, 0)
+		return
+	}
+	var index int
+	for k, v := range c.Bindings {
+		if v == name {
+			index = k
+		}
+	}
+	c.Bindings = append(c.Bindings[:index], c.Bindings[index+1:]...)
+}
+func (c *CommunicationIoInTemplate) BindNames() []string {
+	if c.Bindings == nil {
+		c.Bindings = make([]string, 0)
+
+	}
+	return c.Bindings
 }

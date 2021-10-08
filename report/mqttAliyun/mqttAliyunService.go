@@ -22,10 +22,11 @@ func (r *ReportServiceParamAliyunTemplate) ProcessInvokeThingsService() {
 					continue
 				}
 				name := reqFrame.Params["Name"].(string)
+				tmps := device.CollectInterfaceMap.GetAll()
 				for _, n := range r.NodeList {
 					if name == n.Param.DeviceName {
-						for _, v := range device.CommunicationManage.ManagerTemp {
-							if v.CollInterface.CollInterfaceName == n.CollInterfaceName {
+						for _, v := range tmps {
+							if v.CommunicationManager.CollInterface.CollInterfaceName == n.CollInterfaceName {
 								cmd := device.CommunicationCmdTemplate{}
 								cmd.CollInterfaceName = n.CollInterfaceName
 								cmd.DeviceName = n.Name
@@ -34,7 +35,7 @@ func (r *ReportServiceParamAliyunTemplate) ProcessInvokeThingsService() {
 								cmd.FunPara = string(paramStr)
 
 								ack := MQTTAliyunInvokeThingsServiceAckTemplate{}
-								ackData := v.CommunicationManageAddEmergency(cmd)
+								ackData := v.CommunicationManager.CommunicationManageAddEmergency(cmd)
 								if ackData.Err == nil {
 									ack.ID = reqFrame.ID
 									ack.Code = 200
@@ -45,6 +46,7 @@ func (r *ReportServiceParamAliyunTemplate) ProcessInvokeThingsService() {
 									MQTTAliyunThingServiceAck(r.GWParam.MQTTClient, r.GWParam, ack, string(cmd.FunName))
 								}
 							}
+
 						}
 					}
 				}

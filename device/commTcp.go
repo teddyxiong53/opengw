@@ -3,7 +3,7 @@
 @Author: Linn
 @Date: 2021-09-10 09:28:15
 @LastEditors: WalkMiao
-@LastEditTime: 2021-09-13 13:41:18
+@LastEditTime: 2021-10-08 09:38:40
 @FilePath: /goAdapter-Raw/device/commTcp.go
 */
 package device
@@ -23,11 +23,12 @@ type TcpClientInterfaceParam struct {
 }
 
 type CommunicationTcpClientTemplate struct {
-	Name  string                   `json:"Name"`  //接口名称
-	Type  string                   `json:"Type"`  //接口类型,比如serial,TcpClient,udp,http
-	Param *TcpClientInterfaceParam `json:"Param"` //接口参数
-	Conn  net.Conn                 `json:"-"`     //通信句柄
-	err   error                    `json:"-"`     //open串口是否出错
+	Name     string                   `json:"Name"`  //接口名称
+	Type     string                   `json:"Type"`  //接口类型,比如serial,TcpClient,udp,http
+	Param    *TcpClientInterfaceParam `json:"Param"` //接口参数
+	Conn     net.Conn                 `json:"-"`     //通信句柄
+	err      error                    `json:"-"`     //open串口是否出错
+	Bindings []string                 `json:"Bindings"`
 }
 
 var _ CommunicationInterface = (*CommunicationTcpClientTemplate)(nil)
@@ -93,4 +94,31 @@ func (c *CommunicationTcpClientTemplate) GetTimeOut() string {
 
 func (c *CommunicationTcpClientTemplate) GetInterval() string {
 	return c.Param.Interval
+}
+
+func (c *CommunicationTcpClientTemplate) Bind(name string) {
+	if c.Bindings == nil {
+		c.Bindings = make([]string, 0)
+	}
+	c.Bindings = append(c.Bindings, name)
+}
+func (c *CommunicationTcpClientTemplate) UnBind(name string) {
+	if c.Bindings == nil {
+		c.Bindings = make([]string, 0)
+		return
+	}
+	var index int
+	for k, v := range c.Bindings {
+		if v == name {
+			index = k
+		}
+	}
+	c.Bindings = append(c.Bindings[:index], c.Bindings[index+1:]...)
+}
+func (c *CommunicationTcpClientTemplate) BindNames() []string {
+	if c.Bindings == nil {
+		c.Bindings = make([]string, 0)
+
+	}
+	return c.Bindings
 }

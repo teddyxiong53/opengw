@@ -37,8 +37,8 @@ func AddNode(context *gin.Context) {
 		return
 	}
 
-	v, ok := device.CollectInterfaceMap[nodeInfo.InterfaceName]
-	if !ok {
+	v := device.CollectInterfaceMap.Get(nodeInfo.InterfaceName)
+	if v == nil {
 		context.JSON(200, model.Response{
 			Code:    "1",
 			Message: fmt.Sprintf("interface %s is not exist", nodeInfo.InterfaceName),
@@ -71,9 +71,20 @@ func AddNode(context *gin.Context) {
 		})
 		return
 	}
-	device.WriteJsonErrorHandler(context, device.COLLINTERFACEJSON,
-		200, 200,
-		fmt.Sprintf("add node %s of interface %s success", nodeInfo.InterfaceName, nodeInfo.InterfaceName))
+
+	//设备增加了设置变化状态
+	device.CollectInterfaceMap.Lock()
+	device.CollectInterfaceMap.Changed = true
+	device.CollectInterfaceMap.Unlock()
+
+	context.JSON(200, struct {
+		Code    string
+		Message string
+	}{
+		Code:    "0",
+		Message: fmt.Sprintf("add node %s of interface %s success", nodeInfo.InterfaceName, nodeInfo.InterfaceName),
+	})
+
 }
 
 func ModifyNode(context *gin.Context) {
@@ -100,20 +111,29 @@ func ModifyNode(context *gin.Context) {
 		})
 		return
 	}
-	v, ok := device.CollectInterfaceMap[nodeInfo.InterfaceName]
-	if !ok {
+	v := device.CollectInterfaceMap.Get(nodeInfo.InterfaceName)
+	if v == nil {
 		context.JSON(200, model.Response{
 			Code:    "1",
 			Message: fmt.Sprintf("interface %s is not exists!", nodeInfo.InterfaceName),
 		})
 		return
 	}
+
 	for _, node := range v.DeviceNodes {
 		if node.Name == nodeInfo.Name {
 			node.Type = nodeInfo.DType
 			node.Addr = nodeInfo.Addr
-			device.WriteJsonErrorHandler(context, device.COLLINTERFACEJSON,
-				200, 200, fmt.Sprintf("modify node %s success", nodeInfo.Name))
+			device.CollectInterfaceMap.Lock()
+			device.CollectInterfaceMap.Changed = true
+			device.CollectInterfaceMap.Unlock()
+			context.JSON(200, struct {
+				Code    string
+				Message string
+			}{
+				Code:    "0",
+				Message: fmt.Sprintf("modify node %s of interface %s success", nodeInfo.InterfaceName, nodeInfo.InterfaceName),
+			})
 		}
 	}
 
@@ -144,8 +164,8 @@ func ModifyNodes(context *gin.Context) {
 		})
 		return
 	}
-	v, ok := device.CollectInterfaceMap[nodeInfo.InterfaceName]
-	if !ok {
+	v := device.CollectInterfaceMap.Get(nodeInfo.InterfaceName)
+	if v == nil {
 		context.JSON(200, model.Response{
 			Code:    "1",
 			Message: fmt.Sprintf("interfacename %s is not exists", nodeInfo.InterfaceName),
@@ -160,8 +180,15 @@ func ModifyNodes(context *gin.Context) {
 			}
 		}
 	}
-	device.WriteJsonErrorHandler(context, device.COLLINTERFACEJSON,
-		200, 200, "")
+	device.CollectInterfaceMap.Lock()
+	device.CollectInterfaceMap.Changed = true
+	device.CollectInterfaceMap.Unlock()
+	context.JSON(200, struct {
+		Code    string
+		Message string
+	}{
+		Code: "0",
+	})
 }
 
 func GetNode(context *gin.Context) {
@@ -174,15 +201,15 @@ func GetNode(context *gin.Context) {
 		Message string
 		Data    *device.DeviceNodeTemplate
 	}{}
-	i, ok := device.CollectInterfaceMap[sName]
-	if !ok {
+	v := device.CollectInterfaceMap.Get(sName)
+	if v == nil {
 		context.JSON(200, model.Response{
 			Code:    "1",
 			Message: fmt.Sprintf("collect interface %s is not exists!", sName),
 		})
 		return
 	}
-	aParam.Data = i.GetDeviceNode(sAddr)
+	aParam.Data = v.GetDeviceNode(sAddr)
 	aParam.Code = "0"
 	context.JSON(200, aParam)
 }
@@ -214,8 +241,8 @@ func DeleteNode(context *gin.Context) {
 		return
 	}
 
-	i, ok := device.CollectInterfaceMap[nodeInfo.InterfaceName]
-	if !ok {
+	v := device.CollectInterfaceMap.Get(nodeInfo.InterfaceName)
+	if v == nil {
 		context.JSON(200, model.Response{
 			Code:    "1",
 			Message: fmt.Sprintf("interface %s is not exists!", nodeInfo.InterfaceName),
@@ -224,10 +251,20 @@ func DeleteNode(context *gin.Context) {
 	}
 
 	for _, name := range nodeInfo.DName {
-		i.DeleteDeviceNode(name)
+		v.DeleteDeviceNode(name)
 	}
-	device.WriteJsonErrorHandler(context, device.COLLINTERFACEJSON, 200, 200,
-		fmt.Sprintf("delete %s success", strings.Join(nodeInfo.DName, ",")))
+	device.CollectInterfaceMap.Lock()
+	device.CollectInterfaceMap.Changed = true
+	device.CollectInterfaceMap.Unlock()
+
+	context.JSON(200, struct {
+		Code    string
+		Message string
+	}{
+		Code:    "0",
+		Message: fmt.Sprintf("delete nodes 【%s】 success", strings.Join(nodeInfo.DName, ",")),
+	})
+
 }
 
 /**
@@ -248,8 +285,8 @@ func GetNodeVariableFromCache(context *gin.Context) {
 	sName := context.Query("CollInterfaceName")
 	sAddr := context.Query("Addr")
 
-	i, ok := device.CollectInterfaceMap[sName]
-	if !ok {
+	i := device.CollectInterfaceMap.Get(sName)
+	if i == nil {
 		context.JSON(200, model.Response{
 			Code:    "1",
 			Message: fmt.Sprintf("interface %s is not exists!", sName),
@@ -302,8 +339,8 @@ func GetNodeHistoryVariable(context *gin.Context) {
 		Data    []device.ValueTemplate
 	}{}
 
-	i, ok := device.CollectInterfaceMap[sName]
-	if !ok {
+	i := device.CollectInterfaceMap.Get(sName)
+	if i == nil {
 		context.JSON(200, model.Response{
 			Code:    "1",
 			Message: fmt.Sprintf("interface %s is not exists!", sName),
@@ -342,8 +379,8 @@ func GetNodeReadVariable(context *gin.Context) {
 	sName := context.Query("CollInterfaceName")
 	sAddr := context.Query("Addr")
 
-	i, ok := device.CollectInterfaceMap[sName]
-	if !ok {
+	i := device.CollectInterfaceMap.Get(sName)
+	if i == nil {
 		context.JSON(200, model.Response{
 			Code:    "1",
 			Message: fmt.Sprintf("interface %s is not exists!", sName),
@@ -359,8 +396,8 @@ func GetNodeReadVariable(context *gin.Context) {
 		return
 	}
 
-	manager, ok := device.CommunicationManage.ManagerTemp[sName]
-	if !ok {
+	manager := device.CollectInterfaceMap.Get(sName)
+	if manager == nil {
 		context.JSON(200, model.Response{
 			Code:    "1",
 			Message: fmt.Sprintf("comm manager is not initialized with interface %s", sName),
@@ -371,7 +408,7 @@ func GetNodeReadVariable(context *gin.Context) {
 	cmd.CollInterfaceName = sName
 	cmd.DeviceName = node.Name
 	cmd.FunName = device.GETREAL
-	cmdRX := manager.CommunicationManageAddEmergency(cmd)
+	cmdRX := manager.CommunicationManager.CommunicationManageAddEmergency(cmd)
 
 	if cmdRX.Err != nil {
 		context.JSON(200, model.Response{

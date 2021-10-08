@@ -3,7 +3,7 @@
 @Author: Linn
 @Date: 2021-09-10 09:28:15
 @LastEditors: WalkMiao
-@LastEditTime: 2021-09-14 19:13:56
+@LastEditTime: 2021-10-07 21:13:06
 @FilePath: /goAdapter-Raw/report/mqttHuawei/mqttHuaweiReadProperty.go
 */
 package mqttHuawei
@@ -49,14 +49,15 @@ func ReportServiceHuaweiProcessGetProperties(r *ReportServiceParamHuaweiTemplate
 		}
 	}
 	var name string
-	for k, v := range device.CollectInterfaceMap {
+	tmps := device.CollectInterfaceMap.GetAll()
+	for _, v := range tmps {
 		if v.CollInterfaceName == r.NodeList[x].CollInterfaceName {
-			name = k
+			name = v.CollInterfaceName
 			break
 		}
 	}
 	i := 0
-	for k, v := range device.CollectInterfaceMap[name].DeviceNodes {
+	for k, v := range device.CollectInterfaceMap.Get(name).DeviceNodes {
 		if v.Name == r.NodeList[x].Name {
 			i = k
 			break
@@ -64,16 +65,16 @@ func ReportServiceHuaweiProcessGetProperties(r *ReportServiceParamHuaweiTemplate
 	}
 
 	cmd := device.CommunicationCmdTemplate{}
-	cmd.CollInterfaceName = device.CollectInterfaceMap[name].CollInterfaceName
-	cmd.DeviceName = device.CollectInterfaceMap[name].DeviceNodes[i].Name
+	cmd.CollInterfaceName = device.CollectInterfaceMap.Get(name).CollInterfaceName
+	cmd.DeviceName = device.CollectInterfaceMap.Get(name).DeviceNodes[i].Name
 	cmd.FunName = "GetRealVariables"
 	cmd.FunPara = ""
 
-	cmdRX := device.CommunicationManage.ManagerTemp[name].CommunicationManageAddEmergency(cmd)
+	cmdRX := device.CollectInterfaceMap.Get(name).CommunicationManager.CommunicationManageAddEmergency(cmd)
 	if cmdRX.Err == nil {
 		mylog.Logger.Debugf("GetRealVariables ok")
 		service := MQTTHuaweiServiceTemplate{}
-		for _, v := range device.CollectInterfaceMap[name].DeviceNodes[i].VariableMap {
+		for _, v := range device.CollectInterfaceMap.Get(name).DeviceNodes[i].VariableMap {
 			if v.Name == request.ServiceID {
 				if len(v.Values) >= 1 {
 					index := len(v.Values) - 1

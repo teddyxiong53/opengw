@@ -22,40 +22,48 @@ func AddInterface(context *gin.Context) {
 	}
 
 	//判断串口是否已经被其他采集接口使用了
-	if _, ok := device.CollectInterfaceMap[interfaceInfo.CollInterfaceName]; ok {
+	if v := device.CollectInterfaceMap.Get(interfaceInfo.CollInterfaceName); v != nil {
 		context.JSON(200, model.Response{
 			Code:    "1",
 			Message: fmt.Sprintf("采集接口【%s】已经存在", interfaceInfo.CollInterfaceName),
 		})
 		return
 	}
-	comm, ok := device.CommunicationInterfaceMap[interfaceInfo.CommInterfaceName]
-	if !ok {
+	comm := device.CommunicationInterfaceMap.Get(interfaceInfo.CommInterfaceName)
+	if comm == nil {
 		context.JSON(200, model.Response{
 			Code:    "1",
 			Message: fmt.Sprintf("未找到已注册的通讯接口【%s】!", interfaceInfo.CommInterfaceName),
 		})
 		return
 	}
-	for k, v := range device.CollectInterfaceMap {
-		//是否只针对特定采集口 比如串口或者TCP客户端
-		if v.CommInterfaceName == comm.GetName() {
-			context.JSON(200, model.Response{
-				Code:    "1",
-				Message: fmt.Sprintf("通讯接口【%s】已经被【%s】使用!", comm.GetName(), k),
-			})
-			return
-		}
+	//通信口绑定采集接口
+	comm.Bind(interfaceInfo.CollInterfaceName)
+
+	//是否只针对特定采集口 比如串口或者TCP客户端
+	if used, collectName := device.CollectInterfaceMap.CommCheck(comm.GetName()); used {
+		context.JSON(200, model.Response{
+			Code:    "1",
+			Message: fmt.Sprintf("通讯口【%s】已经被接口【%s】使用!", comm.GetName(), collectName),
+		})
+		return
 	}
 
 	nodeManage, _ := device.NewCollectInterface(&interfaceInfo)
-	device.CollectInterfaceMap[interfaceInfo.CollInterfaceName] = nodeManage
-	device.CommunicationManage.Collectors <- &device.CollectInterfaceStatus{
-		Tmp: nodeManage,
-		ACT: device.ADD,
-	}
-	device.WriteJsonErrorHandler(context, device.COLLINTERFACEJSON,
-		200, 200, fmt.Sprintf("add interface %s success", interfaceInfo.CollInterfaceName))
+	device.CollectInterfaceMap.Add(nodeManage)
+	// 废弃
+	// device.CommunicationManage.Collectors <- &device.CollectInterfaceStatus{
+	// 	Tmp: nodeManage,
+	// 	ACT: device.ADD,
+	// }
+	context.JSON(200, struct {
+		Code    string
+		Message string
+	}{
+		Code:    "0",
+		Message: fmt.Sprintf("add interface %s success", interfaceInfo.CollInterfaceName),
+	})
+
 }
 
 func ModifyInterface(context *gin.Context) {
@@ -77,35 +85,42 @@ func ModifyInterface(context *gin.Context) {
 		return
 	}
 
-	old, ok := device.CollectInterfaceMap[interfaceInfo.CollInterfaceName]
-	if !ok {
+	old := device.CollectInterfaceMap.Get(interfaceInfo.CollInterfaceName)
+	if old == nil {
 		context.JSON(http.StatusOK, model.Response{
 			Code:    "1",
-			Message: "collInterface is not exist",
+			Message: fmt.Sprintf("collInterface【%s】is not exist", interfaceInfo.CollInterfaceName),
 		})
 		return
 	}
 
-	//只有更改了关键参数才会执行这个操作
+	//只有关键参数更改才会发布这个消息
 	if interfaceInfo.OfflinePeriod != old.OfflinePeriod || interfaceInfo.PollPeriod != old.PollPeriod || interfaceInfo.CommInterfaceName != old.CommInterfaceName {
+		device.CollectInterfaceMap.Update(interfaceInfo)
+		//废弃
 		//先删
-		device.CommunicationManage.Collectors <- &device.CollectInterfaceStatus{
-			Tmp: old,
-			ACT: device.DELETE,
-		}
-		old.CollInterfaceName = interfaceInfo.CollInterfaceName
-		old.CommInterfaceName = interfaceInfo.CommInterfaceName
-		old.PollPeriod = interfaceInfo.PollPeriod
-		old.OfflinePeriod = interfaceInfo.OfflinePeriod
-		//后增
-		device.CommunicationManage.Collectors <- &device.CollectInterfaceStatus{
-			Tmp: old,
-			ACT: device.ADD,
-		}
+		// device.CommunicationManage.Collectors <- &device.CollectInterfaceStatus{
+		// 	Tmp: old,
+		// 	ACT: device.DELETE,
+		// }
+		// old.CollInterfaceName = interfaceInfo.CollInterfaceName
+		// old.CommInterfaceName = interfaceInfo.CommInterfaceName
+		// old.PollPeriod = interfaceInfo.PollPeriod
+		// old.OfflinePeriod = interfaceInfo.OfflinePeriod
+		// //后增
+		// device.CommunicationManage.Collectors <- &device.CollectInterfaceStatus{
+		// 	Tmp: old,
+		// 	ACT: device.ADD,
+		// }
 	}
 
-	device.WriteJsonErrorHandler(context, device.COLLINTERFACEJSON,
-		200, 200, fmt.Sprintf("modify interface %s success", interfaceInfo.CollInterfaceName))
+	context.JSON(200, struct {
+		Code    string
+		Message string
+	}{
+		Code:    "0",
+		Message: fmt.Sprintf("modify interface %s success", interfaceInfo.CollInterfaceName),
+	})
 
 }
 
@@ -133,29 +148,20 @@ func DeleteInterface(context *gin.Context) {
 		return
 	}
 
-	if _, ok := device.CollectInterfaceMap[interfaceInfo.CollectInterfaceName]; !ok {
+	if ok := device.CollectInterfaceMap.Delete(interfaceInfo.CollectInterfaceName); !ok {
 		context.JSON(200, model.Response{
 			Code:    "1",
 			Message: fmt.Sprintf("key %s is not exist!", interfaceInfo.CollectInterfaceName),
 		})
 		return
 	}
-	v, ok := device.CollectInterfaceMap[interfaceInfo.CollectInterfaceName]
-	if ok {
-		delete(device.CollectInterfaceMap, interfaceInfo.CollectInterfaceName)
-		device.CommunicationManage.Collectors <- &device.CollectInterfaceStatus{
-			Tmp: v,
-			ACT: device.DELETE,
-		}
-	} else {
-		context.JSON(200, model.Response{
-			Code:    "1",
-			Message: fmt.Sprintf("interface %s is not registered", interfaceInfo.CollectInterfaceName),
-		})
-		return
-	}
-	device.WriteJsonErrorHandler(context, device.COLLINTERFACEJSON,
-		200, 200, fmt.Sprintf("delete interface %s success", interfaceInfo.CollectInterfaceName))
+	context.JSON(200, struct {
+		Code    string
+		Message string
+	}{
+		Code:    "0",
+		Message: fmt.Sprintf("delete interface %s success", interfaceInfo.CollectInterfaceName),
+	})
 }
 
 //接口详情
@@ -169,14 +175,15 @@ func GetInterfaceInfo(context *gin.Context) {
 		Data    interface{}
 	}{}
 
-	v, ok := device.CollectInterfaceMap[sName]
-	if !ok {
+	v := device.CollectInterfaceMap.Get(sName)
+	if v == nil {
 		context.JSON(200, model.Response{
 			Code:    "1",
 			Message: fmt.Sprintf("key %s is not exist", sName),
 		})
 		return
 	}
+
 	if v.DeviceNodes == nil {
 		v.DeviceNodes = make([]*device.DeviceNodeTemplate, 0)
 	}
@@ -223,7 +230,8 @@ func GetAllInterfaceInfo(context *gin.Context) {
 
 	aParam.Code = "0"
 	aParam.Message = ""
-	for _, v := range device.CollectInterfaceMap {
+	tmps := device.CollectInterfaceMap.GetAll()
+	for _, v := range tmps {
 		Param := InterfaceParamTemplate{
 			CollInterfaceName:   v.CollInterfaceName,
 			CommInterfaceName:   v.CommInterfaceName,

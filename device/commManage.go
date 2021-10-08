@@ -1,18 +1,15 @@
 package device
 
 import (
-	"errors"
 	"fmt"
 	"goAdapter/config"
 	"goAdapter/pkg/mylog"
-	"goAdapter/pkg/system"
 	"io"
 	"log"
 	"strconv"
 	"time"
 
 	"github.com/fatih/color"
-	"github.com/jasonlvhit/gocron"
 	"go.uber.org/zap"
 )
 
@@ -55,16 +52,6 @@ const (
 	Stop
 )
 
-var CommunicationManage = CommManger{
-	ManagerTemp: make(map[string]*CommunicationManageTemplate),
-	Collectors:  make(chan *CollectInterfaceStatus, 20),
-}
-
-type CommManger struct {
-	ManagerTemp map[string]*CommunicationManageTemplate
-	Collectors  chan *CollectInterfaceStatus
-}
-
 func NewCommunicationManageTemplate(coll *CollectInterfaceTemplate) *CommunicationManageTemplate {
 
 	template := &CommunicationManageTemplate{
@@ -76,6 +63,7 @@ func NewCommunicationManageTemplate(coll *CollectInterfaceTemplate) *Communicati
 		Ready:                make(chan struct{}, 1),
 		Signal:               make(chan struct{}, 1),
 	}
+	coll.CommunicationManager = template
 	if coll.CommInterface.Error() == nil {
 		//启动接收协程
 		mylog.ZAPS.Infof("采集接口【%s】打开成功，启动接收协程！", coll.CollInterfaceName)
@@ -84,58 +72,164 @@ func NewCommunicationManageTemplate(coll *CollectInterfaceTemplate) *Communicati
 	return template
 }
 
-func addHandler(scheduler *gocron.Scheduler, collect *CollectInterfaceStatus) {
-	comm := collect.Tmp.CommInterface
+func addHandler(collect *CollectInterfaceTemplate, commChaned bool) {
+	comm := collect.CommInterface
 	if comm == nil {
 		mylog.ZAPS.Errorf("通讯口【%s】未绑定到接口【%s】",
-			collect.Tmp.CommInterfaceName, collect.Tmp.CollInterfaceName)
+			collect.CommInterfaceName, collect.CollInterfaceName)
 		return
 	}
-	if err := comm.Open(); err != nil {
-		mylog.ZAPS.Errorf("通讯口【%s】打开错误", comm.GetName())
-		return
+	if commChaned {
+		if err := comm.Open(); err != nil {
+			mylog.ZAPS.Errorf("通讯口【%s】打开【%s】错误", comm.GetName(), comm.Unique())
+			return
+		}
 	}
-	manager := NewCommunicationManageTemplate(collect.Tmp)
-	CommunicationManage.ManagerTemp[collect.Tmp.CollInterfaceName] = manager
 
-	go manager.CommunicationManagePoll(collect.Tmp.PollPeriod)
+	manager := NewCommunicationManageTemplate(collect)
+
+	go manager.CommunicationManagePoll(collect.PollPeriod)
 	go manager.CommunicationManageDel()
-	mylog.ZAPS.Infof("添加采集【%s】到定时任务,Addr:%p", collect.Tmp.CollInterfaceName, manager)
+	mylog.ZAPS.Infof("添加采集【%s】到定时任务,Addr:%p", collect.CollInterfaceName, manager)
 }
 
-func delHandler(scheduler *gocron.Scheduler, collect *CollectInterfaceStatus) {
-	managerRemove := CommunicationManage.ManagerTemp[collect.Tmp.CollInterfaceName]
+func delHandler(collect *CollectInterfaceTemplate, commChaned bool) {
+	managerRemove := collect.CommunicationManager
 	if managerRemove != nil {
 		//广播到所有监听管理模板的信号channel的goroutine
 		close(managerRemove.Signal)
-		managerRemove.CollInterface.CommInterface.Close()
-		mylog.ZAPS.Infof("取消采集【%s】定时任务,Addr:%p", collect.Tmp.CollInterfaceName, managerRemove)
+		if commChaned {
+			managerRemove.CollInterface.CommInterface.Close()
+		}
+
+		mylog.ZAPS.Infof("取消采集【%s】定时任务,Addr:%p", collect.CollInterfaceName, managerRemove)
+	} else {
+		mylog.ZAP.Error("采集接口未创建管理字段", zap.String("采集接口", collect.CollInterfaceName))
 	}
 }
 
-func ScheduleJob(scheduler *gocron.Scheduler, quitChan chan struct{}) {
+func SubScribeCollect(topics string, quitChan chan struct{}) {
+	mylog.ZAP.Debug("开始订阅采集器主题", zap.String("topics", topics))
+	sub := CollectInterfaceMap.publisher.Subscribe(10, topics)
 	go func() {
 		for {
 			select {
-			case collect := <-CommunicationManage.Collectors:
-				switch collect.ACT {
-				case ADD:
-					addHandler(scheduler, collect)
-				case DELETE:
-					delHandler(scheduler, collect)
+			case msg := <-sub.Receiver:
+				collectName, ok := msg.Fields["Collect"].(*CollectInterfaceTemplate)
+				if !ok {
+					mylog.ZAP.Sugar().Errorf("this msg field Collect type error:%t", msg.Fields["Collect"])
+					continue
+				}
+				commChaned, ok := msg.Fields["CommChange"].(bool)
+				if !ok {
+					mylog.ZAP.Sugar().Errorf("this msg field commchange error:%v", msg.Fields["CommChange"])
+					continue
+				}
 
-				case UPDATE:
-					//TODO 更新要稍微考虑一下，目前更新是先DELETE然后Add来实现
-
+				switch msg.Name {
+				case CollectAdd:
+					mylog.ZAP.Debug("添加采集接口", zap.String("name", collectName.CollInterfaceName), zap.String("comm", collectName.CommInterfaceName))
+					addHandler(collectName, true)
+				case CollectUpdate:
+					mylog.ZAP.Debug("更新采集接口", zap.String("name", collectName.CollInterfaceName), zap.String("comm", collectName.CommInterfaceName))
+					delHandler(collectName, commChaned)
+					addHandler(collectName, commChaned)
+				case CollectQuery:
+					mylog.ZAP.Debug("查询采集接口", zap.String("name", collectName.CollInterfaceName), zap.String("comm", collectName.CommInterfaceName))
+				case CollectDelete:
+					mylog.ZAP.Debug("删除采集接口", zap.String("name", collectName.CollInterfaceName), zap.String("comm", collectName.CommInterfaceName))
+					delHandler(collectName, commChaned)
 				}
 			case <-quitChan:
+				CollectInterfaceMap.Close()
 				return
 			default:
 				time.Sleep(100 * time.Millisecond)
 			}
 		}
 	}()
+}
 
+func SubScribeComunication(topics string, quitChan chan struct{}) {
+	mylog.ZAP.Debug("开始订阅通信接口主题", zap.String("topics", topics))
+	sub := CommunicationInterfaceMap.publisher.Subscribe(10, topics)
+	go func() {
+		for {
+			select {
+			case msg := <-sub.Receiver:
+				commName := msg.Fields["Name"].(string)
+				// collectName, ok := msg.Fields["Collect"].(*CollectInterfaceTemplate)
+				// if !ok {
+				// 	mylog.ZAP.Sugar().Errorf("this msg field Collect type error:%t", msg.Fields["Collect"])
+				// 	continue
+				// }
+				// commChaned, ok := msg.Fields["CommChange"].(bool)
+				// if !ok {
+				// 	mylog.ZAP.Sugar().Errorf("this msg field commchange error:%v", msg.Fields["CommChange"])
+				// 	continue
+				// }
+
+				switch msg.Name {
+				case CommAdd:
+					mylog.ZAP.Debug("添加了通信接口", zap.String("name", commName))
+				case CommUpdate:
+					mylog.ZAP.Debug("更新了通信接口")
+					oldCommField, ok := msg.Fields["Old"]
+					if !ok {
+						mylog.ZAPS.Errorf("msg have no field named Old")
+						continue
+					}
+					oldComm, ok := oldCommField.(CommunicationInterface)
+					if !ok {
+						mylog.ZAPS.Errorf("msg field Old is not communicationinterface:%t", oldCommField)
+						continue
+					}
+					newCommField, ok := msg.Fields["New"]
+					if !ok {
+						mylog.ZAPS.Errorf("msg have no field named New")
+						continue
+					}
+					newComm, ok := newCommField.(CommunicationInterface)
+					if !ok {
+						mylog.ZAPS.Errorf("msg field New is not communicationinterface:%t", newCommField)
+						continue
+					}
+					for _, collectName := range oldComm.BindNames() {
+						coll := CollectInterfaceMap.Get(collectName)
+						if coll != nil {
+							//和这个通信口有关的采集都要停掉
+							//delHandler(coll, true)
+							oldComm.UnBind(collectName)
+							//替换新的comm口
+							if err := newComm.Open(); err != nil {
+								mylog.ZAP.Error("新通讯口打开失败", zap.Error(err))
+							}
+							coll.CommInterface = newComm
+							coll.CommInterfaceName = newComm.GetName()
+							//新comm绑定这个采集
+							newComm.Bind(collectName)
+
+							//如果之前打开就是错误的那么要重新add
+							if oldComm.Error() != nil {
+								addHandler(coll, false)
+							}
+
+						}
+
+					}
+				case CommQuery:
+				case CommDelete:
+					mylog.ZAP.Debug("删除通信接口", zap.String("name", commName))
+				}
+
+			case <-quitChan:
+				CollectInterfaceMap.Close()
+				return
+			default:
+				time.Sleep(100 * time.Millisecond)
+			}
+		}
+	}()
 }
 
 func (c *CommunicationManageTemplate) CommunicationManageAddEmergency(cmd CommunicationCmdTemplate) CommunicationRxTemplate {
@@ -171,6 +265,7 @@ func (c *CommunicationManageTemplate) ReadRx() {
 	for range c.Ready {
 		select {
 		case <-c.Signal:
+			mylog.ZAPS.Debugf("%s关闭ReadRX goroutine", c.CollInterface.CollInterfaceName)
 			return
 		default:
 			//等待数据已经完全写入缓冲区
@@ -196,11 +291,6 @@ func (c *CommunicationManageTemplate) ReadRx() {
 func (c *CommunicationManageTemplate) CommunicationStateMachine(cmd CommunicationCmdTemplate) (rxData CommunicationRxTemplate) {
 
 	startT := time.Now() //计算当前时间
-
-	if c.CollInterface == nil || c.CollInterface.DeviceNodes == nil {
-		rxData.Err = errors.New("collect or devicenodes is nil")
-		return
-	}
 
 	node := c.CollInterface.DeviceNodes[cmd.DeviceIndex]
 	step := 0
@@ -233,12 +323,19 @@ OUT:
 						rxData.Err = fmt.Errorf("lua %s generate error:%v", cmd.FunName, err)
 						state = Stop
 					} else {
-						state = Send
-						step++
+						if len(txBuf) > 0 {
+							state = Send
+							step++
+						} else {
+							state = Stop
+							mylog.ZAP.Error("txbuf length <=0 ")
+						}
+
 					}
 
 				} else {
 					txBuf, hasFrame, err = node.DeviceCustomCmd(node.Addr, cmd.FunName, cmd.FunPara, step)
+
 					if err != nil {
 						rxData.Err = fmt.Errorf("device custom  cmd error:%v", err)
 						state = Stop
@@ -301,10 +398,10 @@ OUT:
 
 							node.CurCommFailCnt++
 							rxTotalBufCnt = 0
-							rxTotalBuf = []byte{}
-
+							// rxTotalBuf = []byte{}
 							//如果失败次数大于offlinePeriod 就放弃这个设备了
 							if node.CurCommFailCnt >= c.CollInterface.OfflinePeriod {
+								log.Println(color.MagentaString("采集器【%v】-> 设备【%s】接收数据超时，失败次数已达到最大尝试次数:%d 放弃此次尝试", c.CollInterface.CollInterfaceName, node.Name, c.CollInterface.OfflinePeriod))
 								node.CurCommFailCnt = 0
 								//设备从上线变成离线
 								if node.CommStatus == ONLINE {
@@ -317,8 +414,8 @@ OUT:
 								}
 								return
 							}
+							log.Println(color.MagentaString("采集器【%v】-> 设备【%s】接收数据超时，失败次数:%d 可尝试次数:%d", c.CollInterface.CollInterfaceName, node.Name, node.CurCommFailCnt, c.CollInterface.OfflinePeriod))
 							state = Start
-							log.Println(color.MagentaString("采集器【%v】-设备【%s】接收数据超时，失败次数:%d 总次数:%d", c.CollInterface.CollInterfaceName, node.Name, node.CurCommFailCnt, c.CollInterface.OfflinePeriod))
 							goto OUT
 						}
 
@@ -366,7 +463,6 @@ OUT:
 								node.LastCommRTC = time.Now().Format("2006-01-02 15:04:05")
 
 								rxTotalBufCnt = 0
-								rxTotalBuf = rxTotalBuf[0:0]
 								goto OUT
 							}
 						}
@@ -406,61 +502,25 @@ func (c *CommunicationManageTemplate) CommunicationManageDel() {
 
 	for {
 		select {
+		case <-c.Signal:
+			log.Println(color.RedString("停止接口【%s】采集协程", c.CollInterface.CollInterfaceName))
+			return
 		case cmd := <-c.EmergencyRequestChan:
 			{
 				mylog.Logger.Infof("emergency chan collName %v nodeName %v funName %v", c.CollInterface.CollInterfaceName, cmd.DeviceName, cmd.FunName)
 				rxData := c.CommunicationStateMachine(cmd)
-
-				GetDeviceOnline()
-				GetDevicePacketLoss()
+				CollectInterfaceMap.Statics()
 				c.EmergencyAckChan <- rxData
 			}
 
 		case cmd := <-c.CommonRequestChan:
 			rxData := c.CommunicationStateMachine(cmd)
-			GetDeviceOnline()
-			GetDevicePacketLoss()
+			CollectInterfaceMap.Statics()
 			if err := rxData.Err; err != nil {
 				mylog.Logger.Debugf("get data from common request chan  error:%v", err)
 			}
-		case <-c.Signal:
-			log.Println(color.RedString("停止接口【%s】采集协程", c.CollInterface.CollInterfaceName))
-			return
+
 		}
-	}
-}
-
-func GetDeviceOnline() {
-
-	//更新设备在线率
-	deviceTotalCnt := 0
-	deviceOnlineCnt := 0
-	for _, v := range CollectInterfaceMap {
-		deviceTotalCnt += v.DeviceNodeCnt
-		deviceOnlineCnt += v.DeviceNodeOnlineCnt
-	}
-	if deviceOnlineCnt == 0 {
-		system.SystemState.DeviceOnline = "0"
-	} else {
-		system.SystemState.DeviceOnline = fmt.Sprintf("%2.1f", float32(deviceOnlineCnt*100.0/deviceTotalCnt))
-	}
-}
-
-func GetDevicePacketLoss() {
-
-	//更新设备丢包率
-	deviceCommTotalCnt := 0
-	deviceCommLossCnt := 0
-	for _, v := range CollectInterfaceMap {
-		for _, v := range v.DeviceNodes {
-			deviceCommTotalCnt += v.CommTotalCnt
-			deviceCommLossCnt += v.CommTotalCnt - v.CommSuccessCnt
-		}
-	}
-	if deviceCommLossCnt == 0 {
-		system.SystemState.DevicePacketLoss = "0"
-	} else {
-		system.SystemState.DevicePacketLoss = fmt.Sprintf("%2.1f", float32(deviceCommLossCnt*100.0/deviceCommTotalCnt))
 	}
 }
 
@@ -471,7 +531,7 @@ func (c *CommunicationManageTemplate) CommunicationManagePoll(polling int) {
 		select {
 		case <-c.Signal:
 			close(first)
-
+			mylog.ZAPS.Debugf("采集接口【%s】 停止CommunicationManagePoll", c.CollInterface.CollInterfaceName)
 			return
 		case first <- struct{}{}:
 			c.sendCmd()
@@ -482,6 +542,18 @@ func (c *CommunicationManageTemplate) CommunicationManagePoll(polling int) {
 }
 
 func (c *CommunicationManageTemplate) sendCmd() {
+	if c.CollInterface == nil || c.CollInterface.DeviceNodes == nil {
+		mylog.ZAP.Error("【sendcmd】采集接口或者设备节点未初始化")
+		return
+	}
+	if c.CollInterface.CommInterface == nil {
+		mylog.ZAP.Error("【sendcmd】通讯接口未初始化", zap.String("采集接口", c.CollInterface.CollInterfaceName))
+		return
+	}
+	if err := c.CollInterface.CommInterface.Error(); err != nil {
+		mylog.ZAP.Error("【sendcmd】通讯口打开错误", zap.Error(err))
+		return
+	}
 	//对采集接口下设备进行遍历进行发送
 	for index, node := range c.CollInterface.DeviceNodes {
 		cmd := CommunicationCmdTemplate{

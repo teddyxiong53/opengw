@@ -62,7 +62,8 @@ func (r *ReportServiceParamEmqxTemplate) ReportServiceEmqxProcessInvokeService(r
 		for _, node := range r.NodeList {
 			if v.ClientID == node.Param.ClientID {
 				//从上报节点中找到相应节点
-				for _, coll := range device.CollectInterfaceMap {
+				tmps := device.CollectInterfaceMap.GetAll()
+				for _, coll := range tmps {
 					if coll.CollInterfaceName == node.CollInterfaceName {
 						for _, n := range coll.DeviceNodes {
 							if n.Name == node.Name {
@@ -78,18 +79,16 @@ func (r *ReportServiceParamEmqxTemplate) ReportServiceEmqxProcessInvokeService(r
 									CmdName:  v.CmdName,
 								}
 								//从采集队列中找到
-								for _, comm := range device.CommunicationManage.ManagerTemp {
-									if comm.CollInterface == coll {
-										ackData := comm.CommunicationManageAddEmergency(cmd)
-										if ackData.Err == nil {
-											ReadStatus = true
-											ackParam.CmdStatus = 0
-										} else {
-											ReadStatus = false
-											ackParam.CmdStatus = 1
-										}
-									}
+
+								ackData := coll.CommunicationManager.CommunicationManageAddEmergency(cmd)
+								if ackData.Err == nil {
+									ReadStatus = true
+									ackParam.CmdStatus = 0
+								} else {
+									ReadStatus = false
+									ackParam.CmdStatus = 1
 								}
+
 								ackParams = append(ackParams, ackParam)
 							}
 						}

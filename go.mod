@@ -15,6 +15,7 @@ require (
 	github.com/jacobsa/go-serial v0.0.0-20180131005756-15cf729a72d4
 	github.com/jasonlvhit/gocron v0.0.1
 	github.com/jonboulle/clockwork v0.2.2 // indirect
+	github.com/leandro-lugaresi/hub v1.1.1
 	github.com/lestrrat-go/file-rotatelogs v2.4.0+incompatible
 	github.com/lestrrat-go/strftime v1.0.4 // indirect
 	github.com/pkg/errors v0.9.1
@@ -29,7 +30,6 @@ require (
 	github.com/yuin/gluamapper v0.0.0-20150323120927-d836955830e7
 	github.com/yuin/gopher-lua v0.0.0-20200816102855-ee81675732da
 	go.uber.org/zap v1.19.1
-	gopkg.in/ini.v1 v1.62.0
 	gopkg.in/natefinch/lumberjack.v2 v2.0.0
 	layeh.com/gopher-luar v1.0.8
 )

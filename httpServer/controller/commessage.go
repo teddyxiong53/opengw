@@ -3,7 +3,7 @@
 @Author: Linn
 @Date: 2021-09-10 09:28:15
 @LastEditors: WalkMiao
-@LastEditTime: 2021-09-14 13:35:45
+@LastEditTime: 2021-10-07 11:41:29
 @FilePath: /goAdapter-Raw/httpServer/controller/commessage.go
 */
 package controller
@@ -34,8 +34,9 @@ func GetCommMessage(context *gin.Context) {
 		})
 		return
 	}
+	tmps := device.CollectInterfaceMap.GetAll()
 	for _, name := range interfaceName.CollInterfaceNames {
-		for _, v := range device.CollectInterfaceMap {
+		for _, v := range tmps {
 			if name == v.CollInterfaceName {
 				commMessageMap = append(commMessageMap, v.CommMessage...)
 				// 清空map

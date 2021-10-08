@@ -20,11 +20,12 @@ type SerialInterfaceParam struct {
 }
 
 type CommunicationSerialTemplate struct {
-	Name  string                `json:"Name"`  //接口名称
-	Type  string                `json:"Type"`  //接口类型,比如serial,tcp,udp,http
-	Param *SerialInterfaceParam `json:"Param"` //接口参数
-	Port  io.ReadWriteCloser    `json:"-"`     //通信句柄
-	err   error                 `json:"-"`
+	Name     string                `json:"Name"`  //接口名称
+	Type     string                `json:"Type"`  //接口类型,比如serial,tcp,udp,http
+	Param    *SerialInterfaceParam `json:"Param"` //接口参数
+	Port     io.ReadWriteCloser    `json:"-"`     //通信句柄
+	err      error                 `json:"-"`
+	Bindings []string              `json:"Bindings"`
 }
 
 var _ CommunicationInterface = (*CommunicationSerialTemplate)(nil)
@@ -90,6 +91,9 @@ func (c *CommunicationSerialTemplate) Open() (err error) {
 }
 
 func (c *CommunicationSerialTemplate) Close() error {
+	if c.Port == nil {
+		return fmt.Errorf("port close error:port %s is not initialized", c.Param.Name)
+	}
 	return c.Port.Close()
 }
 
@@ -139,4 +143,47 @@ func (c *CommunicationSerialTemplate) Error() error {
 
 func (c *CommunicationSerialTemplate) Unique() string {
 	return fmt.Sprintf("type:%s serial:%s", c.Type, c.Param.Name)
+}
+
+func (c *CommunicationSerialTemplate) Bind(name string) {
+	if c.Bindings == nil {
+		c.Bindings = make([]string, 0)
+	}
+	var alreadyExists bool
+	for _, v := range c.Bindings {
+		if v == name {
+			alreadyExists = true
+			break
+		}
+	}
+	if !alreadyExists {
+		c.Bindings = append(c.Bindings, name)
+	}
+	fmt.Printf("after bind:%v\n", c.Bindings)
+}
+
+func (c *CommunicationSerialTemplate) UnBind(name string) {
+	if c.Bindings == nil {
+		c.Bindings = make([]string, 0)
+		return
+	}
+	var index int
+	for k, v := range c.Bindings {
+		if v == name {
+			index = k
+		}
+	}
+	c.Bindings = append(c.Bindings[:index], c.Bindings[index+1:]...)
+	fmt.Printf("after unbind :%v\n", c.Bindings)
+
+}
+
+func (c *CommunicationSerialTemplate) BindNames() []string {
+	if c.Bindings == nil {
+		c.Bindings = make([]string, 0)
+
+	}
+	fmt.Printf("get bindings:%v\n", c.Bindings)
+
+	return c.Bindings
 }

@@ -8,6 +8,7 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
+	"github.com/leandro-lugaresi/hub"
 )
 
 func AddCommInterface(context *gin.Context) {
@@ -94,24 +95,18 @@ func AddCommInterface(context *gin.Context) {
 		})
 		return
 	}
-	for _, v := range device.CommunicationInterfaceMap {
-		if v.Unique() == willAdd.Unique() {
-			context.JSON(200, model.Response{
-				Code:    "1",
-				Message: fmt.Sprintf("%s is already exists", v.Unique()),
-			})
-			return
-		}
-	}
-
-	device.CommunicationInterfaceMap[interfaceInfo.Name] = willAdd
-	if err = device.WriteToJson(device.COMMJSON); err != nil {
+	if !device.CommunicationInterfaceMap.Compare(willAdd) {
 		context.JSON(200, model.Response{
 			Code:    "1",
-			Message: err.Error(),
+			Message: fmt.Sprintf("%s is already exists", willAdd.Unique()),
 		})
 		return
 	}
+
+	device.CommunicationInterfaceMap.Add(willAdd)
+	device.CommunicationInterfaceMap.Publish(device.CommAdd, hub.Fields{
+		"Name": willAdd.GetName(),
+	})
 
 	context.JSON(http.StatusOK, model.Response{
 		Code: "0",
@@ -143,12 +138,13 @@ func ModifyCommInterface(context *gin.Context) {
 	err = json.Unmarshal(data, &interfaceInfo)
 	if err != nil {
 		aParam.Code = "1"
-		aParam.Message = "json unMarshall err"
+		aParam.Message = "json unMarshal err"
 		sJson, _ := json.Marshal(aParam)
 		context.String(http.StatusOK, string(sJson))
 		return
 	}
 
+	var ok bool
 	switch interfaceInfo.Type {
 	case "LocalSerial":
 		serial := &device.SerialInterfaceParam{}
@@ -161,7 +157,7 @@ func ModifyCommInterface(context *gin.Context) {
 			Name:  interfaceInfo.Name,
 			Type:  interfaceInfo.Type,
 		}
-		device.CommunicationInterfaceMap[interfaceInfo.Name] = SerialInterface
+		ok = device.CommunicationInterfaceMap.Update(SerialInterface)
 
 	case "TcpClient":
 		TcpClient := device.TcpClientInterfaceParam{}
@@ -176,7 +172,7 @@ func ModifyCommInterface(context *gin.Context) {
 			Type:  interfaceInfo.Type,
 		}
 
-		device.CommunicationInterfaceMap[interfaceInfo.Name] = TcpClientInterface
+		ok = device.CommunicationInterfaceMap.Update(TcpClientInterface)
 	case "IoOut":
 		IoOut := device.IoOutInterfaceParam{}
 		err = json.Unmarshal(Param, &IoOut)
@@ -189,7 +185,7 @@ func ModifyCommInterface(context *gin.Context) {
 			Type:  interfaceInfo.Type,
 		}
 
-		device.CommunicationInterfaceMap[interfaceInfo.Name] = IoOutInterface
+		ok = device.CommunicationInterfaceMap.Update(IoOutInterface)
 	case "IoIn":
 		IoIn := device.IoInInterfaceParam{}
 		err = json.Unmarshal(Param, &IoIn)
@@ -202,7 +198,7 @@ func ModifyCommInterface(context *gin.Context) {
 			Type:  interfaceInfo.Type,
 		}
 
-		device.CommunicationInterfaceMap[interfaceInfo.Name] = IoInInterface
+		ok = device.CommunicationInterfaceMap.Update(IoInInterface)
 	}
 
 	if err != nil {
@@ -212,13 +208,22 @@ func ModifyCommInterface(context *gin.Context) {
 		})
 		return
 	}
-	if err := device.WriteToJson(device.COMMJSON); err != nil {
-		aParam.Code = "1"
-		aParam.Message = fmt.Sprintf("write to commjson error:%v", err)
-		sJson, _ := json.Marshal(aParam)
-		context.String(http.StatusOK, string(sJson))
+
+	if !ok {
+		context.JSON(200, model.Response{
+			Code:    "1",
+			Message: fmt.Sprintln("modify comm interface  error"),
+		})
 		return
 	}
+
+	// if err := device.WriteToJsonFile(device.COMMJSON); err != nil {
+	// 	aParam.Code = "1"
+	// 	aParam.Message = fmt.Sprintf("write to commjson error:%v", err)
+	// 	sJson, _ := json.Marshal(aParam)
+	// 	context.String(http.StatusOK, string(sJson))
+	// 	return
+	// }
 	sJson, _ := json.Marshal(aParam)
 	context.String(http.StatusOK, string(sJson))
 }
@@ -234,7 +239,7 @@ func DeleteCommInterface(context *gin.Context) {
 	}
 
 	cName := context.Query("commInterface")
-	_, ok := device.CommunicationInterfaceMap[cName]
+	ok := device.CommunicationInterfaceMap.Delete(cName)
 	if !ok {
 		aParam.Code = "1"
 		aParam.Message = fmt.Sprintf("comminterface %s is not exists", cName)
@@ -242,8 +247,6 @@ func DeleteCommInterface(context *gin.Context) {
 		context.String(http.StatusOK, string(sJson))
 		return
 	}
-	delete(device.CommunicationInterfaceMap, cName)
-	device.WriteToJson(device.COMMJSON)
 	aParam.Message = fmt.Sprintf("delete comminterface %s success", cName)
 	sJson, _ := json.Marshal(aParam)
 	context.String(http.StatusOK, string(sJson))
@@ -273,7 +276,8 @@ func GetCommInterface(context *gin.Context) {
 		InterfaceMap: make([]*CommunicationInterfaceTemplate, 0),
 	}
 
-	for _, v := range device.CommunicationInterfaceMap {
+	comms := device.CommunicationInterfaceMap.GetAll()
+	for _, v := range comms {
 		item := &CommunicationInterfaceTemplate{
 			Name:  v.GetName(),
 			Type:  v.GetType(),
@@ -281,7 +285,7 @@ func GetCommInterface(context *gin.Context) {
 		}
 		CommunicationInterfaceManage.InterfaceMap = append(CommunicationInterfaceManage.InterfaceMap, item)
 	}
-	CommunicationInterfaceManage.InterfaceCnt = len(device.CommunicationInterfaceMap)
+	CommunicationInterfaceManage.InterfaceCnt = len(comms)
 
 	aParam.Data = CommunicationInterfaceManage
 	aParam.Code = "0"

@@ -122,7 +122,7 @@ func (r *ReportServiceParamAliyunTemplate) AllNodePropertyPost() {
 			node := r.NodeList[20*pageIndex : 20*pageIndex+20]
 			//log.Printf("nodeList %v\n", node)
 			for _, n := range node {
-				if c, ok := device.CollectInterfaceMap[n.CollInterfaceName]; ok {
+				if c := device.CollectInterfaceMap.Get(n.CollInterfaceName); c != nil {
 					for _, d := range c.DeviceNodes {
 						if d.Name == n.Name {
 							for _, v := range d.VariableMap {
@@ -177,7 +177,7 @@ func (r *ReportServiceParamAliyunTemplate) AllNodePropertyPost() {
 			//log.Printf("nodeList %v\n", node)
 			for _, n := range node {
 
-				if c, ok := device.CollectInterfaceMap[n.CollInterfaceName]; ok {
+				if c := device.CollectInterfaceMap.Get(n.CollInterfaceName); c != nil {
 					for _, d := range c.DeviceNodes {
 						if d.Name == n.Name {
 							for _, v := range d.VariableMap {
@@ -258,7 +258,7 @@ func (r *ReportServiceParamAliyunTemplate) NodePropertyPost(name []string) {
 			node := nodeList[20*pageIndex : 20*pageIndex+20]
 			//log.Printf("nodeList %v\n", node)
 			for _, n := range node {
-				if c, ok := device.CollectInterfaceMap[n.CollInterfaceName]; ok {
+				if c := device.CollectInterfaceMap.Get(n.CollInterfaceName); c != nil {
 					for _, d := range c.DeviceNodes {
 						if d.Name == n.Name {
 							for _, v := range d.VariableMap {
@@ -309,7 +309,7 @@ func (r *ReportServiceParamAliyunTemplate) NodePropertyPost(name []string) {
 			node := nodeList[20*pageIndex : len(nodeList)]
 			//log.Printf("nodeList %v\n", node)
 			for _, n := range node {
-				if c, ok := device.CollectInterfaceMap[n.CollInterfaceName]; ok {
+				if c := device.CollectInterfaceMap.Get(n.CollInterfaceName); c != nil {
 					for _, d := range c.DeviceNodes {
 						if d.Name == n.Name {
 							for _, v := range d.VariableMap {

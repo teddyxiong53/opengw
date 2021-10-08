@@ -202,7 +202,8 @@ func (r *ReportServiceParamHuaweiTemplate) NodePropertyPost(name []string) {
 			node := nodeList[20*pageIndex : 20*pageIndex+20]
 			DeviceServiceMap := make([]MQTTHuaweiDeviceServiceTemplate, 0)
 			for _, n := range node {
-				for _, c := range device.CollectInterfaceMap {
+				tmps := device.CollectInterfaceMap.GetAll()
+				for _, c := range tmps {
 					if c.CollInterfaceName == n.CollInterfaceName {
 						for _, d := range c.DeviceNodes {
 							if d.Name == n.Name {
@@ -250,7 +251,8 @@ func (r *ReportServiceParamHuaweiTemplate) NodePropertyPost(name []string) {
 			node := nodeList[20*pageIndex:]
 			DeviceServiceMap := make([]MQTTHuaweiDeviceServiceTemplate, 0)
 			for _, n := range node {
-				for _, c := range device.CollectInterfaceMap {
+				tmps := device.CollectInterfaceMap.GetAll()
+				for _, c := range tmps {
 					if c.CollInterfaceName == n.CollInterfaceName {
 						for _, d := range c.DeviceNodes {
 							if d.Name == n.Name {
