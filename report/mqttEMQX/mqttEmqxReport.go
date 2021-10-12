@@ -176,12 +176,12 @@ func (r *ReportServiceParamEmqxTemplate) NodePropertyPost(name []string) {
 					if c.CollInterfaceName == v.CollInterfaceName {
 						for _, d := range c.DeviceNodes {
 							if d.Name == v.Name {
-								for _, v := range d.VariableMap {
-									if len(v.Values) >= 1 {
-										index := len(v.Values) - 1
+								for _, v := range d.Properties {
+									if len(v.Value) >= 1 {
+										index := len(v.Value) - 1
 										property := MQTTEmqxPropertyPostParamPropertyTemplate{}
 										property.Name = v.Name
-										property.Value = v.Values[index].Value
+										property.Value = v.Value[index].Value
 										property.TimeStamp = timeStamp
 										propertyPostParam.Properties = append(propertyPostParam.Properties, property)
 									}

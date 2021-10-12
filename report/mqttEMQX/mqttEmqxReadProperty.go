@@ -99,17 +99,17 @@ func (r *ReportServiceParamEmqxTemplate) ReportServiceEmqxProcessReadProperty(re
 								if ackData.Err == nil {
 									ReadStatus = true
 									for _, p := range v.Properties {
-										for _, variable := range n.VariableMap {
+										for _, variable := range n.Properties {
 											if p.Name == variable.Name {
-												if len(variable.Values) >= 1 {
-													index := len(variable.Values) - 1
+												if len(variable.Value) >= 1 {
+													index := len(variable.Value) - 1
 													property.Name = variable.Name
 													property.Timestamp = timeStamp
-													switch t := variable.Values[index].Value.(type) {
+													switch t := variable.Value[index].Value.(type) {
 													case uint8, uint16, int16, uint32, uint64:
-														property.Value = fmt.Sprintf("%d", variable.Values[index].Value)
+														property.Value = fmt.Sprintf("%d", variable.Value[index].Value)
 													case string:
-														property.Value = variable.Values[index].Value.(string)
+														property.Value = variable.Value[index].Value.(string)
 													default:
 														mylog.Logger.Debugf("valueType %T", t)
 													}

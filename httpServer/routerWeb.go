@@ -36,7 +36,7 @@ func Router() *gin.Engine {
 
 			systemRouter.GET("/status", controller.GetSystemStatus)
 
-			systemRouter.GET("/backup", controller.BackupFiles)
+			systemRouter.GET("/backup", controller.BackupConfigs)
 
 			systemRouter.POST("/recover", controller.RecoverFiles)
 
@@ -167,15 +167,104 @@ func Router() *gin.Engine {
 			//	deviceRouter.POST("/service", apiInvokeService)
 		}
 
+		// 物模型
+		TSLRouter := router.Group("/api/v1/device/tsl")
+		{
+			//增加设备物模型
+			TSLRouter.POST("", controller.AddDeviceTSL)
+
+			//删除设备物模型
+			TSLRouter.DELETE("", controller.DeleteDeviceTSL)
+
+			//修改设备物模型
+			TSLRouter.PUT("", controller.ModifyDeviceTSL)
+
+			//查看设备物模型
+			TSLRouter.GET("", controller.GetDeviceTSL)
+
+			TSLContentRouter := TSLRouter.Group("/contents")
+			{
+				//查看设备物模型内容
+				TSLContentRouter.GET("", controller.GetDeviceTSLContents)
+
+				//批量导入设备物模型内容
+				TSLContentRouter.POST("/csv", controller.ImportDeviceTSLContents)
+
+				//批量导出设备物模型内容
+				TSLContentRouter.GET("/csv", controller.ExportDeviceTSLContents)
+
+				// //导出设备物模型内容模板
+				// TSLContentRouter.GET("/template", ExportDeviceTSLContentsTemplate)
+			}
+			TSLPropertyRouter := TSLRouter.Group("/property")
+			{
+				//增加设备物模型属性
+				TSLPropertyRouter.POST("", controller.AddDeviceTSLProperty)
+				//修改设备物模型属性
+				TSLPropertyRouter.PUT("", controller.ModifyDeviceTSLProperty)
+			}
+
+			TSLPropertiesRouter := TSLRouter.Group("/properties")
+			{
+				//删除设备物模型属性
+				TSLPropertiesRouter.DELETE("", controller.DeleteDeviceTSLProperties)
+
+				//查看设备物模型属性
+				TSLPropertiesRouter.GET("/tsl/properties", nil)
+			}
+			TSLPluginRouter := TSLRouter.Group("/plugin")
+			{
+				//导入设备物模型插件
+				TSLPluginRouter.POST("", controller.ImportDeviceTSLPlugin)
+
+				//导出设备物模型插件
+				TSLPluginRouter.GET("", controller.ExportDeviceTSLPlugin)
+			}
+
+		}
+
+		// 	// 物模型内容
+		// 	TSLContentRouter := TSLRouter.Group("/contents")
+		// 	{
+		// 		//查看设备物模型内容
+		// 		TSLContentRouter.GET("", GetDeviceTSLContents)
+
+		// 		//批量导入设备物模型内容
+		// 		TSLContentRouter.POST("/csv", ImportDeviceTSLContents)
+
+		// 		//批量导出设备物模型内容
+		// 		TSLContentRouter.GET("/csv", ExportDeviceTSLContents)
+
+		// 		//导出设备物模型内容模板
+		// 		TSLContentRouter.GET("/template", ExportDeviceTSLContentsTemplate)
+		// 	}
+
+		// 	//增加设备物模型属性
+		// 	deviceRouter.POST("/tsl/property", apiAddDeviceTSLProperty)
+
+		// 	//修改设备物模型属性
+		// 	deviceRouter.PUT("/tsl/property", apiModifyDeviceTSLProperty)
+
+		// 	//删除设备物模型属性
+		// 	deviceRouter.DELETE("/tsl/properties", apiDeleteDeviceTSLProperties)
+
+		// 	//查看设备物模型属性
+		// 	deviceRouter.GET("/tsl/properties", apiGetDeviceTSLProperties)
+
+		// 	//增加设备物模型服务
+		// 	deviceRouter.POST("/tsl/service", apiAddDeviceTSLService)
+
+		// 	//修改设备物模型服务
+		// 	deviceRouter.PUT("/tsl/service", apiModifyDeviceTSLService)
+
+		// 	//删除设备物模型服务
+		// 	deviceRouter.DELETE("/tsl/services", apiDeleteDeviceTSLServices)
+		// }
+
 		toolRouter := router.Group("/api/v1/tool")
 		{
 			//获取通信报文
 			toolRouter.POST("/commMessage", controller.GetCommMessage)
-		}
-
-		pluginRouter := router.Group("/api/v1/update")
-		{
-			pluginRouter.POST("/plugin", controller.UpdatePlugin)
 		}
 
 		ReportRouter := router.Group("/api/v1/report")
@@ -194,7 +283,7 @@ func Router() *gin.Engine {
 
 			ReportRouter.DELETE("/node/param", controller.DeleteReportNodeWParam)
 		}
-	}
 
+	}
 	return router
 }

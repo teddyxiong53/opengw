@@ -33,7 +33,7 @@ func AddTemplate(context *gin.Context) {
 		return
 	}
 
-	template := &device.DeviceTemplate{
+	template := &model.PluginTemplate{
 		Name:    typeInfo.TemplateName,
 		Type:    typeInfo.TemplateType,
 		Message: typeInfo.TemplateMessage,
@@ -60,7 +60,7 @@ func GetTemplate(context *gin.Context) {
 	// 	return
 	// }
 
-	ts := make([]*device.DeviceTemplate, 0, len(device.DeviceTemplateMap))
+	ts := make([]*model.PluginTemplate, 0, len(device.DeviceTemplateMap))
 	for _, v := range device.DeviceTemplateMap {
 		ts = append(ts, v)
 	}
@@ -68,7 +68,7 @@ func GetTemplate(context *gin.Context) {
 	context.JSON(http.StatusOK, &struct {
 		Code    string
 		Message string
-		Data    []*device.DeviceTemplate
+		Data    []*model.PluginTemplate
 	}{
 		Code: "0",
 		Data: ts,

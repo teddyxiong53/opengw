@@ -8,22 +8,6 @@
 */
 package device
 
-import (
-	lua "github.com/yuin/gopher-lua"
-)
+import "goAdapter/httpServer/model"
 
-type DeviceTemplate struct {
-	TemplateID int         `json:"TemplateID"`
-	Name       string      `json:"TemplateName"`    //模板名称
-	Type       string      `json:"TemplateType"`    //模板型号
-	Message    string      `json:"TemplateMessage"` //备注信息
-	LuaState   *lua.LState `json:"-"`
-}
-
-//type DeviceNodeTypeLuaState struct {
-//	LuaState *lua.LState
-//	TypeName string
-//	CollName string
-//}
-
-var DeviceTemplateMap = make(map[string]*DeviceTemplate)
+var DeviceTemplateMap = make(map[string]*model.PluginTemplate)

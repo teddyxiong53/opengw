@@ -328,12 +328,13 @@ func (d *CollectInterfaceTemplate) AddDeviceNode(dName string, dType string, dAd
 	node.Type = dType
 	node.LastCommRTC = "1970-01-01 00:00:00"
 	node.CommStatus = OFFLINE
-	variables, err := node.NewVariables()
+	err := node.NewVariablesForTSL()
+	//variables, err := node.NewVariables()
 	if err != nil {
 		return err
 	}
-	node.VariableMap = make([]*VariableTemplate, 0, len(variables))
-	node.VariableMap = append(node.VariableMap, variables...)
+	// node.VariableMap = make([]*VariableTemplate, 0, len(variables))
+	// node.VariableMap = append(node.VariableMap, variables...)
 	d.DeviceNodes = append(d.DeviceNodes, node)
 	d.DeviceNodeCnt++
 
@@ -341,13 +342,18 @@ func (d *CollectInterfaceTemplate) AddDeviceNode(dName string, dType string, dAd
 }
 
 func (d *CollectInterfaceTemplate) InitDeviceNode(node *DeviceNodeTemplate) error {
-
-	variables, err := node.NewVariables()
-	if err != nil {
-		return err
+	tmps := DeviceTSLMap.GetAll()
+	var index = -1
+	for i, v := range tmps {
+		if v.Plugin == node.Type {
+			index = i
+			node.Properties = v.Properties
+			node.Services = v.Services
+		}
 	}
-	node.VariableMap = make([]*VariableTemplate, 0, len(variables))
-	node.VariableMap = append(node.VariableMap, variables...)
+	if index == -1 {
+		return fmt.Errorf("node %s type %s tls template  is not exists", node.Name, node.Type)
+	}
 	node.CommStatus = OFFLINE
 
 	return nil

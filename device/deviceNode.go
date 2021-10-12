@@ -3,8 +3,10 @@ package device
 import (
 	"errors"
 	"fmt"
+	"goAdapter/httpServer/model"
 	"goAdapter/pkg/mylog"
 	"log"
+	"reflect"
 
 	"sync"
 	"time"
@@ -52,17 +54,40 @@ type VariableTemplate struct {
 
 //设备模板
 type DeviceNodeTemplate struct {
-	Index          int                 `json:"Index"`          //设备偏移量
-	Name           string              `json:"Name"`           //设备名称
-	Addr           string              `json:"Addr"`           //设备地址
-	Type           string              `json:"Type"`           //设备类型
-	LastCommRTC    string              `json:"LastCommRTC"`    //最后一次通信时间戳
-	CommTotalCnt   int                 `json:"CommTotalCnt"`   //通信总次数
-	CommSuccessCnt int                 `json:"CommSuccessCnt"` //通信成功次数
-	CurCommFailCnt int                 `json:"-"`              //当前通信失败次数
-	CommStatus     string              `json:"CommStatus"`     //通信状态
-	VariableMap    []*VariableTemplate `json:"-"`              //变量列表
-	Parser         Parser              `json:"-"`              //表达式解析器
+	Index          int    `json:"Index"`          //设备偏移量
+	Name           string `json:"Name"`           //设备名称
+	Addr           string `json:"Addr"`           //设备地址
+	Type           string `json:"Type"`           //设备类型
+	LastCommRTC    string `json:"LastCommRTC"`    //最后一次通信时间戳
+	CommTotalCnt   int    `json:"CommTotalCnt"`   //通信总次数
+	CommSuccessCnt int    `json:"CommSuccessCnt"` //通信成功次数
+	CurCommFailCnt int    `json:"-"`              //当前通信失败次数
+	CommStatus     string `json:"CommStatus"`     //通信状态
+	//VariableMap    []*VariableTemplate                `json:"-"`              //变量列表
+	Properties []model.DeviceTSLPropertyTemplate `json:"-"` //属性列表
+	Services   []model.DeviceTSLServiceTempalte  `json:"-"` //服务
+	Parser     Parser                            `json:"-"` //表达式解析器
+}
+
+func ClearPropertyValue(properties []model.DeviceTSLPropertyTemplate) {
+	for i := 0; i < len(properties); i++ {
+		properties[i].Value = make([]model.DeviceTSLPropertyValueTemplate, 0)
+	}
+}
+
+func (d *DeviceNodeTemplate) NewVariablesForTSL() error {
+	tmps := DeviceTSLMap.GetAll()
+	for _, v := range tmps {
+		if v.Plugin == d.Type {
+			d.Properties = make([]model.DeviceTSLPropertyTemplate, len(v.Properties))
+			copy(d.Properties, v.Properties)
+			ClearPropertyValue(d.Properties)
+			d.Services = make([]model.DeviceTSLServiceTempalte, len(v.Services))
+			copy(d.Properties, v.Properties)
+			return nil
+		}
+	}
+	return fmt.Errorf("tsl template not bind plugin %s", d.Type)
 }
 
 func (d *DeviceNodeTemplate) NewVariables() (variables []*VariableTemplate, err error) {
@@ -255,7 +280,10 @@ func (d *DeviceNodeTemplate) DeviceCustomCmd(
 	return
 }
 
-func (d *DeviceNodeTemplate) AnalysisRx(sAddr string, variables []*VariableTemplate, rxBuf []byte, rxBufCnt int, txBuf []byte) error {
+func (d *DeviceNodeTemplate) AnalysisRx(sAddr string, properties []model.DeviceTSLPropertyTemplate, rxBuf []byte, rxBufCnt int, txBuf []byte) error {
+	if len(properties) <= 0 {
+		return fmt.Errorf("node %s properties type %s is not defined", d.Name, d.Type)
+	}
 	type LuaVariableTemplate struct {
 		Index   int
 		Name    string
@@ -274,11 +302,12 @@ func (d *DeviceNodeTemplate) AnalysisRx(sAddr string, variables []*VariableTempl
 
 	lock.Lock()
 	defer lock.Unlock()
-	template, ok := DeviceTemplateMap[d.Type]
-	if !ok {
+	template := DeviceTSLMap.Get(d.Type)
+
+	if template == nil {
 		return fmt.Errorf("no such device template %s", d.Type)
 	}
-	state := template.LuaState
+	state := template.PluginTemplate.LuaState
 	if state == nil {
 		return errors.New("nil lua state")
 	}
@@ -325,7 +354,7 @@ func (d *DeviceNodeTemplate) AnalysisRx(sAddr string, variables []*VariableTempl
 	}
 
 	timeNowStr := time.Now().Format("2006-01-02 15:04:05")
-	value := ValueTemplate{}
+	value := model.DeviceTSLPropertyValueTemplate{}
 	//正常
 	if LuaVariableMap.Status != "0" {
 		return fmt.Errorf("lua return  status  is not 0: %s", LuaVariableMap.Status)
@@ -345,46 +374,46 @@ VLOOP:
 			mylog.ZAPS.Errorf("device %s variable %s value is nil", d.Name, lv.Label)
 			continue
 		}
-
-		v := variables[lv.Index]
+		if len(properties) < lv.Index+1 {
+			//mylog.ZAPS.Errorf("tsl template defined properties(%d) less than lua return(%d)", len(properties), len(LuaVariableMap.Variable))
+			return nil
+		}
+		v := &properties[lv.Index]
+		value.Index = lv.Index
 		switch v.Type {
-		case "uint8", "byte":
-			item = lv.Value.(float64)
-			value.Value = uint8(item)
+		case PropertyTypeInt32:
+			item, ok = lv.Value.(float64)
+			if ok {
+				value.Value = (int32)(item)
+			} else {
+				mylog.ZAPS.Errorf("%v(%t) 不能转换为float64,将设置为NIL", lv.Value, reflect.TypeOf(lv.Value))
+				value.Value = "NIL"
+			}
+		case PropertyTypeUInt32:
+			item, ok = lv.Value.(float64)
+			if ok {
+				value.Value = (uint32)(item)
+			} else {
+				mylog.ZAPS.Errorf("%v(%t) 不能转换为float64,将设置为NIL", lv.Value, reflect.TypeOf(lv.Value))
+				value.Value = "NIL"
+			}
+		case PropertyTypeDouble:
+			item, ok = lv.Value.(float64)
+			if ok {
+				value.Value = item
+			} else {
+				mylog.ZAPS.Errorf("%v(%t) 不能转换为float64,将设置为NIL", lv.Value, reflect.TypeOf(lv.Value))
+				value.Value = "NIL"
+			}
+		case PropertyTypeString:
+			item, ok := lv.Value.(string)
+			if ok {
+				value.Value = item
+			} else {
+				mylog.ZAPS.Errorf("%v(%t) 不能转换为string,将设置为NIL", lv.Value, reflect.TypeOf(lv.Value))
+				value.Value = "NIL"
+			}
 
-		case "uint16":
-			item = lv.Value.(float64)
-			value.Value = uint16(item)
-
-		case "uint32":
-			item = lv.Value.(float64)
-			value.Value = uint32(item)
-
-		case "uint64":
-			item = lv.Value.(float64)
-			value.Value = uint64(item)
-
-		case "int8":
-			item = lv.Value.(float64)
-			value.Value = int8(item)
-
-		case "int16":
-			item = lv.Value.(float64)
-			value.Value = int16(item)
-		case "int32":
-			item = lv.Value.(float64)
-			value.Value = int32(item)
-		case "int64":
-			item = lv.Value.(float64)
-			value.Value = int64(item)
-		case "float32":
-			item = lv.Value.(float64)
-			value.Value = float32(item)
-		case "float64":
-			item = lv.Value.(float64)
-			value.Value = item
-		case "string":
-			value.Value = lv.Value.(string)
 		default:
 			mylog.ZAPS.Errorf("未识别的值类型:%s 将设置为NIL", v.Type)
 			value.Value = "NIL"
@@ -399,7 +428,7 @@ VLOOP:
 				}
 			}
 			d.Parser.SetFormula(lv.Formula)
-			if err := d.Parser.PreVarSet(variables); err != nil {
+			if err := d.Parser.PreVarSet(properties); err != nil {
 				mylog.ZAPS.Errorf("基础变量设置失败:%v", err)
 				goto VLOOP
 			}
@@ -437,11 +466,11 @@ VLOOP:
 		value.Explain = lv.Explain
 		value.TimeStamp = timeNowStr
 
-		if len(v.Values) < 100 {
-			v.Values = append(v.Values, value)
+		if len(v.Value) < 100 {
+			v.Value = append(v.Value, value)
 		} else {
-			v.Values = v.Values[1:]
-			v.Values = append(v.Values, value)
+			v.Value = v.Value[1:]
+			v.Value = append(v.Value, value)
 		}
 	}
 

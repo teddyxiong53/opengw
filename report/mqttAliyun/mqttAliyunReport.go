@@ -125,12 +125,12 @@ func (r *ReportServiceParamAliyunTemplate) AllNodePropertyPost() {
 				if c := device.CollectInterfaceMap.Get(n.CollInterfaceName); c != nil {
 					for _, d := range c.DeviceNodes {
 						if d.Name == n.Name {
-							for _, v := range d.VariableMap {
-								if len(v.Values) >= 1 {
-									index := len(v.Values) - 1
+							for _, v := range d.Properties {
+								if len(v.Value) >= 1 {
+									index := len(v.Value) - 1
 									mqttAliyunValue := MQTTAliyunValueTemplate{}
 									mqttAliyunValue.Name = v.Name
-									mqttAliyunValue.Value = v.Values[index].Value
+									mqttAliyunValue.Value = v.Value[index].Value
 									valueMap = append(valueMap, mqttAliyunValue)
 								}
 							}
@@ -180,12 +180,12 @@ func (r *ReportServiceParamAliyunTemplate) AllNodePropertyPost() {
 				if c := device.CollectInterfaceMap.Get(n.CollInterfaceName); c != nil {
 					for _, d := range c.DeviceNodes {
 						if d.Name == n.Name {
-							for _, v := range d.VariableMap {
-								if len(v.Values) >= 1 {
-									index := len(v.Values) - 1
+							for _, v := range d.Properties {
+								if len(v.Value) >= 1 {
+									index := len(v.Value) - 1
 									mqttAliyunValue := MQTTAliyunValueTemplate{}
 									mqttAliyunValue.Name = v.Name
-									mqttAliyunValue.Value = v.Values[index].Value
+									mqttAliyunValue.Value = v.Value[index].Value
 									valueMap = append(valueMap, mqttAliyunValue)
 								}
 							}
@@ -261,12 +261,12 @@ func (r *ReportServiceParamAliyunTemplate) NodePropertyPost(name []string) {
 				if c := device.CollectInterfaceMap.Get(n.CollInterfaceName); c != nil {
 					for _, d := range c.DeviceNodes {
 						if d.Name == n.Name {
-							for _, v := range d.VariableMap {
-								if len(v.Values) >= 1 {
-									index := len(v.Values) - 1
+							for _, v := range d.Properties {
+								if len(v.Value) >= 1 {
+									index := len(v.Value) - 1
 									mqttAliyunValue := MQTTAliyunValueTemplate{}
 									mqttAliyunValue.Name = v.Name
-									mqttAliyunValue.Value = v.Values[index].Value
+									mqttAliyunValue.Value = v.Value[index].Value
 									valueMap = append(valueMap, mqttAliyunValue)
 								}
 							}
@@ -312,12 +312,12 @@ func (r *ReportServiceParamAliyunTemplate) NodePropertyPost(name []string) {
 				if c := device.CollectInterfaceMap.Get(n.CollInterfaceName); c != nil {
 					for _, d := range c.DeviceNodes {
 						if d.Name == n.Name {
-							for _, v := range d.VariableMap {
-								if len(v.Values) >= 1 {
-									index := len(v.Values) - 1
+							for _, v := range d.Properties {
+								if len(v.Value) >= 1 {
+									index := len(v.Value) - 1
 									mqttAliyunValue := MQTTAliyunValueTemplate{}
 									mqttAliyunValue.Name = v.Name
-									mqttAliyunValue.Value = v.Values[index].Value
+									mqttAliyunValue.Value = v.Value[index].Value
 									valueMap = append(valueMap, mqttAliyunValue)
 								}
 							}

@@ -208,12 +208,12 @@ func (r *ReportServiceParamHuaweiTemplate) NodePropertyPost(name []string) {
 						for _, d := range c.DeviceNodes {
 							if d.Name == n.Name {
 								ServiceMap := make([]MQTTHuaweiServiceTemplate, 0)
-								for _, v := range d.VariableMap {
-									if len(v.Values) >= 1 {
-										index := len(v.Values) - 1
+								for _, v := range d.Properties {
+									if len(v.Value) >= 1 {
+										index := len(v.Value) - 1
 										service := MQTTHuaweiServiceTemplate{}
 										service.ServiceID = v.Name
-										service.Properties.Value = v.Values[index].Value
+										service.Properties.Value = v.Value[index].Value
 										ServiceMap = append(ServiceMap, service)
 									}
 								}
@@ -257,12 +257,12 @@ func (r *ReportServiceParamHuaweiTemplate) NodePropertyPost(name []string) {
 						for _, d := range c.DeviceNodes {
 							if d.Name == n.Name {
 								ServiceMap := make([]MQTTHuaweiServiceTemplate, 0)
-								for _, v := range d.VariableMap {
-									if len(v.Values) >= 1 {
-										index := len(v.Values) - 1
+								for _, v := range d.Properties {
+									if len(v.Value) >= 1 {
+										index := len(v.Value) - 1
 										service := MQTTHuaweiServiceTemplate{}
 										service.ServiceID = v.Name
-										service.Properties.Value = v.Values[index].Value
+										service.Properties.Value = v.Value[index].Value
 										ServiceMap = append(ServiceMap, service)
 									}
 								}

@@ -3,6 +3,7 @@ package device
 import (
 	"fmt"
 	"goAdapter/config"
+	"goAdapter/httpServer/model"
 	"goAdapter/pkg/mylog"
 	"io"
 	"log"
@@ -231,6 +232,128 @@ func SubScribeComunication(topics string, quitChan chan struct{}) {
 		}
 	}()
 }
+func SubScribeTSL(topics string, quitChan chan struct{}) {
+	mylog.ZAP.Debug("开始订阅设备模型主题", zap.String("topics", topics))
+	sub := DeviceTSLMap.publisher.Subscribe(20, topics)
+	go func() {
+		for {
+			select {
+			case msg := <-sub.Receiver:
+
+				switch msg.Name {
+				case PropertyAdd:
+					mylog.ZAPS.Debugf("添加单个属性%v", msg.Fields["name"])
+					propertyValue, ok := msg.Fields["property"]
+					if !ok {
+						mylog.ZAP.Error("recv property msg not contain proerty field")
+						continue
+					}
+					property, ok := propertyValue.(model.DeviceTSLPropertyTemplate)
+					if !ok {
+						mylog.ZAP.Error("recv property msg is not model.DeviceTSLPropertyTemplate")
+						continue
+					}
+					colls := CollectInterfaceMap.GetAll()
+					for _, v := range colls {
+						for _, n := range v.DeviceNodes {
+							if n.Type == msg.Fields["plugin"].(string) {
+								n.Properties = append(n.Properties, property)
+							}
+						}
+					}
+				case PropertySync:
+					mylog.ZAPS.Debugf("同步所有导入属性")
+					propertiesValue, ok := msg.Fields["properties"]
+					if !ok {
+						mylog.ZAP.Error("recv property msg not contain proerty field")
+						continue
+					}
+					properties, ok := propertiesValue.([]model.DeviceTSLPropertyTemplate)
+					if !ok {
+						mylog.ZAP.Error("recv property msg is not []*model.DeviceTSLPropertyTemplate")
+						continue
+					}
+					colls := CollectInterfaceMap.GetAll()
+					for _, v := range colls {
+						for _, n := range v.DeviceNodes {
+							if n.Type == msg.Fields["plugin"].(string) {
+								n.Properties = make([]model.DeviceTSLPropertyTemplate, len(properties))
+								copy(n.Properties, properties)
+								ClearPropertyValue(n.Properties)
+							}
+						}
+					}
+				case PropertyUpdate:
+					mylog.ZAPS.Debugf("更新属性%v", msg.Fields["name"])
+					propertyValue, ok := msg.Fields["property"]
+					if !ok {
+						mylog.ZAP.Error("recv property msg not contain proerty field")
+						continue
+					}
+					property, ok := propertyValue.(model.DeviceTSLPropertyTemplate)
+
+					if !ok {
+						mylog.ZAP.Error("recv property msg is not model.DeviceTSLPropertyTemplate")
+						continue
+					}
+					colls := CollectInterfaceMap.GetAll()
+					for _, v := range colls {
+						for _, n := range v.DeviceNodes {
+							if n.Type == msg.Fields["plugin"].(string) {
+								for i := 0; i < len(n.Properties); i++ {
+									if n.Properties[i].Name == property.Name {
+										n.Properties[i].AccessMode = property.AccessMode
+										n.Properties[i].Explain = property.Explain
+										n.Properties[i].Params = property.Params
+										n.Properties[i].Type = property.Type
+									}
+								}
+							}
+						}
+					}
+
+				case PropertyQuery:
+				case PropertyDelete:
+					mylog.ZAPS.Debugf("删除了属性%v", msg.Fields["name"])
+					propertyValue, ok := msg.Fields["property"]
+					if !ok {
+						mylog.ZAP.Error("recv property msg not contain proerty field")
+						continue
+					}
+					property, ok := propertyValue.(model.DeviceTSLPropertyTemplate)
+					if !ok {
+						mylog.ZAP.Error("recv property index  is not int")
+						continue
+					}
+					colls := CollectInterfaceMap.GetAll()
+					for _, v := range colls {
+						for _, n := range v.DeviceNodes {
+							if n.Type == msg.Fields["plugin"].(string) {
+								var i = -1
+								for index, v := range n.Properties {
+									if v.Name == property.Name {
+										i = index
+										break
+									}
+								}
+								if i != -1 {
+									n.Properties = append(n.Properties[:i], n.Properties[i+1:]...)
+								}
+							}
+						}
+					}
+
+				}
+
+			case <-quitChan:
+				CollectInterfaceMap.Close()
+				return
+			default:
+				time.Sleep(100 * time.Millisecond)
+			}
+		}
+	}()
+}
 
 func (c *CommunicationManageTemplate) CommunicationManageAddEmergency(cmd CommunicationCmdTemplate) CommunicationRxTemplate {
 
@@ -291,7 +414,9 @@ func (c *CommunicationManageTemplate) ReadRx() {
 func (c *CommunicationManageTemplate) CommunicationStateMachine(cmd CommunicationCmdTemplate) (rxData CommunicationRxTemplate) {
 
 	startT := time.Now() //计算当前时间
-
+	if len(c.CollInterface.DeviceNodes) < cmd.DeviceIndex+1 {
+		return
+	}
 	node := c.CollInterface.DeviceNodes[cmd.DeviceIndex]
 	step := 0
 	var txBuf []byte
@@ -430,7 +555,7 @@ OUT:
 								rxTotalBuf = append(rxTotalBuf, rxBuf[:rxBufCnt]...)
 
 							}
-							err := node.AnalysisRx(node.Addr, node.VariableMap, rxTotalBuf, rxTotalBufCnt, txBuf)
+							err := node.AnalysisRx(node.Addr, node.Properties, rxTotalBuf, rxTotalBufCnt, txBuf)
 							{
 								if err != nil {
 									rxData.Err = err

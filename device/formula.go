@@ -10,6 +10,7 @@ package device
 
 import (
 	"fmt"
+	"goAdapter/httpServer/model"
 	"regexp"
 	"strconv"
 
@@ -18,7 +19,7 @@ import (
 
 type Parser interface {
 	VarSet(float64) error
-	PreVarSet([]*VariableTemplate) error
+	PreVarSet([]model.DeviceTSLPropertyTemplate) error
 	SetFormula(formula string)
 }
 
@@ -33,7 +34,7 @@ func (fla *IndexParser) SetFormula(formula string) {
 	fla.formula = formula
 }
 
-func (fla *IndexParser) PreVarSet(variables []*VariableTemplate) error {
+func (fla *IndexParser) PreVarSet(variables []model.DeviceTSLPropertyTemplate) error {
 	reg, err := regexp.Compile("i([0-9])") //val*i6*i7 i:index
 	if err != nil {
 		return err
@@ -47,11 +48,11 @@ func (fla *IndexParser) PreVarSet(variables []*VariableTemplate) error {
 		}
 		nodeVar := variables[i]
 
-		if nodeVar != nil && len(nodeVar.Values) > 0 {
-			env.SetIntVariable(item, int64(nodeVar.Values[0].Value.(uint16)))
+		if len(nodeVar.Value) > 0 {
+			env.SetIntVariable(item, int64(nodeVar.Value[0].Value.(uint32)))
 
 		} else {
-			return fmt.Errorf("基础值%s还未获取,values:%v", item, nodeVar.Values)
+			return fmt.Errorf("基础值%s还未获取,values:%v", item, nodeVar.Value)
 		}
 
 	}

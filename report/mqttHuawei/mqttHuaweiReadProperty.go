@@ -74,13 +74,13 @@ func ReportServiceHuaweiProcessGetProperties(r *ReportServiceParamHuaweiTemplate
 	if cmdRX.Err == nil {
 		mylog.Logger.Debugf("GetRealVariables ok")
 		service := MQTTHuaweiServiceTemplate{}
-		for _, v := range device.CollectInterfaceMap.Get(name).DeviceNodes[i].VariableMap {
+		for _, v := range device.CollectInterfaceMap.Get(name).DeviceNodes[i].Properties {
 			if v.Name == request.ServiceID {
-				if len(v.Values) >= 1 {
-					index := len(v.Values) - 1
+				if len(v.Value) >= 1 {
+					index := len(v.Value) - 1
 					service := MQTTHuaweiServiceTemplate{}
 					service.ServiceID = v.Name
-					service.Properties.Value = v.Values[index].Value
+					service.Properties.Value = v.Value[index].Value
 				}
 			}
 		}

@@ -301,19 +301,29 @@ func GetNodeVariableFromCache(context *gin.Context) {
 		})
 		return
 	}
-	vData := make([]VariableTemplate, 0, len(node.VariableMap))
+	vData := make([]VariableTemplate, 0, len(node.Properties))
 
 	vt := VariableTemplate{}
-	for _, v := range node.VariableMap {
-		vt.Index = v.Index
+	for _, v := range node.Properties {
 		vt.Name = v.Name
-		vt.Label = v.Label
-		vt.Type = v.Type
-		if len(v.Values) > 0 {
-			last := v.Values[len(v.Values)-1]
+		vt.Label = v.Explain
+		switch v.Type {
+		case device.PropertyTypeUInt32:
+			vt.Type = "uint32"
+		case device.PropertyTypeInt32:
+			vt.Type = "int32"
+		case device.PropertyTypeDouble:
+			vt.Type = "double"
+		case device.PropertyTypeString:
+			vt.Type = "string"
+		}
+
+		if len(v.Value) > 0 {
+			last := v.Value[len(v.Value)-1]
 			vt.Value = last.Value
 			vt.Explain = last.Explain
 			vt.TimeStamp = last.TimeStamp
+			vt.Index = last.Index
 		}
 		vData = append(vData, vt)
 	}
@@ -336,7 +346,7 @@ func GetNodeHistoryVariable(context *gin.Context) {
 	aParam := &struct {
 		Code    string
 		Message string
-		Data    []device.ValueTemplate
+		Data    []model.DeviceTSLPropertyValueTemplate
 	}{}
 
 	i := device.CollectInterfaceMap.Get(sName)
@@ -355,10 +365,10 @@ func GetNodeHistoryVariable(context *gin.Context) {
 		})
 		return
 	}
-	for _, v := range node.VariableMap {
+	for _, v := range node.Properties {
 		if v.Name == sVariable {
 			aParam.Code = "0"
-			aParam.Data = v.Values
+			aParam.Data = v.Value
 		}
 	}
 	context.JSON(200, aParam)
@@ -418,17 +428,27 @@ func GetNodeReadVariable(context *gin.Context) {
 		return
 	}
 	var variable VariableTemplate
-	var vs = make([]VariableTemplate, 0, len(node.VariableMap))
-	for _, v := range node.VariableMap {
-		variable.Index = v.Index
+	var vs = make([]VariableTemplate, 0, len(node.Properties))
+	for _, v := range node.Properties {
 		variable.Name = v.Name
-		variable.Label = v.Label
-		variable.Type = v.Type
-		if len(v.Values) > 0 {
-			last := v.Values[len(v.Values)-1]
+		variable.Label = v.Explain
+		variable.Label = v.Explain
+		switch v.Type {
+		case device.PropertyTypeUInt32:
+			variable.Type = "uint32"
+		case device.PropertyTypeInt32:
+			variable.Type = "int32"
+		case device.PropertyTypeDouble:
+			variable.Type = "double"
+		case device.PropertyTypeString:
+			variable.Type = "string"
+		}
+		if len(v.Value) > 0 {
+			last := v.Value[len(v.Value)-1]
 			variable.Value = last.Value
 			variable.Explain = last.Explain
 			variable.TimeStamp = last.TimeStamp
+			variable.Index = last.Index
 		}
 		vs = append(vs, variable)
 	}
