@@ -18,6 +18,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"goAdapter/httpServer/model"
 	"goAdapter/pkg/luautils"
 	"goAdapter/pkg/mylog"
 
@@ -41,12 +42,17 @@ const (
 
 const (
 	PLUGINPATH        = "./plugin"
+	SELFPARAPATH      = "./selfpara"
 	COMMJSON          = "commInterface.json"
 	NETWORKJSON       = "commTcpClientInterface.json"
 	IOINJSON          = "commIoInInterface.json"
 	IOOUTJSON         = "commIoOutInterface.json"
 	COLLINTERFACEJSON = "collInterface.json"
 	DEVICETSLJSON     = "deviceTSLParam.json"
+)
+
+const (
+	BACKUPZIP = "./config.bak.zip"
 )
 
 const (
@@ -73,6 +79,13 @@ const (
 	CollectDelete = "collect.delete"
 	CollectUpdate = "collect.update"
 	CollectQuery  = "collect.query"
+
+	// properties
+	PropertyAdd    = "property.add"
+	PropertySync   = "property.addall"
+	PropertyDelete = "property.delete"
+	PropertyUpdate = "property.update"
+	PropertyQuery  = "property.query"
 )
 
 func disPatchCommonFunction(state *lua.LState) {
@@ -91,7 +104,7 @@ func parseJson(jsonFile string, index int) (err error) {
 	if err != nil {
 		return
 	}
-	var devTemp = DeviceTemplate{
+	var devTemp = model.PluginTemplate{
 		TemplateID: index,
 	}
 	err = json.Unmarshal(data, &devTemp)
@@ -207,11 +220,14 @@ func writeCfg(cfg string) (err error) {
 		}
 
 	case DEVICETSLJSON:
-		fp, err = os.OpenFile(fileDir, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0666)
-		if err != nil {
-			return err
+		if DeviceTSLMap.Changed() {
+			fp, err = os.OpenFile(fileDir, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0666)
+			if err != nil {
+				return err
+			}
+			err = DeviceTSLMap.SaveTo(fp)
 		}
-		err = DeviceTSLMap.SaveTo(fp)
+
 		//TODO 其他case
 	}
 	if err != nil {
@@ -224,10 +240,11 @@ func LoadAllCfg() error {
 	if err := loadCfg(COMMJSON); err != nil {
 		return err
 	}
-	if err := loadCfg(COLLINTERFACEJSON); err != nil {
+
+	if err := loadCfg(DEVICETSLJSON); err != nil {
 		return err
 	}
-	if err := loadCfg(DEVICETSLJSON); err != nil {
+	if err := loadCfg(COLLINTERFACEJSON); err != nil {
 		return err
 	}
 	return nil
@@ -254,6 +271,14 @@ func loadCfg(cfg string) error {
 		switch cfg {
 		case COMMJSON:
 			return CommInterfaceInit(data)
+		case DEVICETSLJSON:
+			//TODO 物模型待更新
+			if err := json.Unmarshal(data, &DeviceTSLMap.m); err != nil {
+				return err
+			}
+			if err = DeviceTSLMap.Init(); err != nil {
+				return err
+			}
 		case COLLINTERFACEJSON:
 			if err := json.Unmarshal(data, &CollectInterfaceMap.m); err != nil {
 				return err
@@ -261,8 +286,7 @@ func loadCfg(cfg string) error {
 			if err = CollectInterfaceMap.Init(); err != nil {
 				return err
 			}
-		case DEVICETSLJSON:
-			//TODO 物模型待更新
+
 		default:
 			return fmt.Errorf("unsupported cfg file:%s", cfg)
 		}
