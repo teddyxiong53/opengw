@@ -32,12 +32,14 @@ func main() {
 
 	/**************初始化配置以及日志***********************/
 	initialize.Init()
-
 	mylog.Logger.Debugf("%s %s", system.SystemState.Name, system.SystemState.SoftVer)
-	// 订阅主题
+
+	/**************订阅主题************************/
 	quitChan := make(chan struct{}, 1)
 	device.SubScribeCollect("collect.*", quitChan)
 	device.SubScribeComunication("comm.*", quitChan)
+	device.SubScribeTSL("property.*", quitChan)
+
 	/**************变量模板初始化****************/
 	if err := device.NodeManageInit(); err != nil {
 		mylog.ZAP.Error("初始化模板和接口失败", zap.Error(err))
@@ -45,12 +47,7 @@ func main() {
 	}
 
 	/**************创建定时获取网络状态的任务***********************/
-	/**************创建定时获取网络状态的任务***********************/
-	// 定义一个cron运行器
 	schedule := gocron.NewScheduler()
-	// 定时5秒，每5秒执行print5
-	//_ = cronProcess.AddFunc("*/5 * * * * *", setting.GetNetworkParam)
-
 	// 定时60秒,定时获取系统信息
 	schedule.Every(60).Seconds().Do(system.CollectSystemParam)
 	// 每天0点,定时获取NTP服务器的时间，并校时
@@ -68,6 +65,7 @@ func main() {
 		Handler: router,
 	}
 	sigChan := make(chan os.Signal, 1)
+
 	go func() {
 		signal.Notify(sigChan, syscall.SIGINT, syscall.SIGTERM, syscall.SIGABRT)
 		for {
