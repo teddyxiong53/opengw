@@ -6,6 +6,7 @@ import (
 	"os"
 	"path/filepath"
 
+	"goAdapter/device"
 	"goAdapter/httpServer/middleware"
 	"goAdapter/httpServer/model"
 	"goAdapter/pkg/backup"
@@ -151,22 +152,22 @@ func SystemGetNTPHost(context *gin.Context) {
 	})
 }
 
-func BackupFiles(context *gin.Context) {
+// BackupConfigs 备份plugin目录和selfpara目录
+func BackupConfigs(context *gin.Context) {
 
-	status, name := backup.BackupFiles()
-	if status == true {
-		//返回文件流
-		context.Writer.Header().Add("Content-Disposition",
-			fmt.Sprintf("attachment;filename=%s", filepath.Base(name)))
-		context.File(name) //返回文件路径，自动调用http.ServeFile方法
-
-	} else {
+	err := backup.Zip(device.BACKUPZIP, device.SELFPARAPATH, device.PLUGINPATH)
+	if err != nil {
 		context.JSON(http.StatusOK, model.Response{
 			Code:    "1",
-			Message: "",
-			Data:    "",
+			Message: fmt.Sprintf("backup config  error:%v", err),
 		})
+		return
 	}
+	//返回文件流
+	context.Writer.Header().Add("Content-Disposition", fmt.Sprintf("attachment;filename=%s", filepath.Base(device.BACKUPZIP)))
+	defer os.Remove(device.BACKUPZIP)
+	context.File(device.BACKUPZIP) //返回文件路径，自动调用http.ServeFile方法
+
 }
 
 func RecoverFiles(context *gin.Context) {
@@ -176,41 +177,33 @@ func RecoverFiles(context *gin.Context) {
 	if err != nil {
 		context.JSON(http.StatusOK, model.Response{
 			Code:    "1",
-			Message: "",
-			Data:    "",
+			Message: "no form file named file",
 		})
 		return
 	}
 
-	exeCurDir, _ := filepath.Abs(filepath.Dir(os.Args[0]))
-	fileName := exeCurDir + "/selfpara/" + file.Filename
-
+	dst := device.BACKUPZIP
 	//保存文件到服务器本地
-	if err := context.SaveUploadedFile(file, fileName); err != nil {
+	if err := context.SaveUploadedFile(file, dst); err != nil {
 		context.JSON(http.StatusOK, model.Response{
 			Code:    "1",
-			Message: "Save File Error",
-			Data:    "",
+			Message: fmt.Sprintf("Save File Error:%v", err),
 		})
 
 		return
 	}
 
-	//恢复
-	status := backup.RecoverFiles(file.Filename)
-	if status == true {
-		context.JSON(http.StatusOK, model.Response{
-			Code:    "0",
-			Message: "",
-			Data:    "",
-		})
-	} else {
+	if err = backup.Unzip(dst, "."); err != nil {
 		context.JSON(http.StatusOK, model.Response{
 			Code:    "1",
-			Message: "",
-			Data:    "",
+			Message: fmt.Sprintf("unzip %s error:%v", dst, err),
 		})
+		return
 	}
+	context.JSON(http.StatusOK, model.Response{
+		Code:    "0",
+		Message: fmt.Sprintf("unzip %s success", dst),
+	})
 }
 
 func SystemUpdate(context *gin.Context) {
