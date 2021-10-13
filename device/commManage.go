@@ -413,7 +413,7 @@ func (c *CommunicationManageTemplate) ReadRx() {
 
 func (c *CommunicationManageTemplate) CommunicationStateMachine(cmd CommunicationCmdTemplate) (rxData CommunicationRxTemplate) {
 
-	startT := time.Now() //计算当前时间
+	//startT := time.Now() //计算当前时间
 	if len(c.CollInterface.DeviceNodes) < cmd.DeviceIndex+1 {
 		return
 	}
@@ -484,7 +484,7 @@ OUT:
 				c.Ready <- struct{}{}
 				c.CommunicationManageMessageAdd("send", txBuf)
 				node.CommTotalCnt++
-				mylog.ZAPS.Debugf("【SEND】接口【%s】% X", cmd.CollInterfaceName, txBuf)
+				mylog.ZAPS.Debugf("【S-%s】% X", cmd.CollInterfaceName, txBuf)
 				state = Wait
 			}
 
@@ -547,7 +547,7 @@ OUT:
 					//继续接收数据
 					case rxBuf = <-c.PacketChan:
 						{
-							mylog.ZAPS.Debugf("【RECV】 接口%s % X", c.CollInterface.CollInterfaceName, rxBuf)
+							mylog.ZAPS.Debugf("【R-%s】% X", c.CollInterface.CollInterfaceName, rxBuf)
 							rxBufCnt = len(rxBuf)
 							if rxBufCnt > 0 {
 								rxTotalBufCnt += rxBufCnt
@@ -608,8 +608,8 @@ OUT:
 			}
 		case Stop:
 			{
-				cost := time.Since(startT)
-				log.Println(color.CyanString("接口【%s】 设备【%s】【第%d帧】 cost %v ", c.CollInterface.CollInterfaceName, node.Name, step, cost))
+				//cost := time.Since(startT)
+				//log.Println(color.CyanString("接口【%s】 设备【%s】【第%d帧】 cost %v ", c.CollInterface.CollInterfaceName, node.Name, step, cost))
 				c.CollInterface.DeviceNodeOnlineCnt = 0
 				for _, v := range c.CollInterface.DeviceNodes {
 					if v.CommStatus == ONLINE {

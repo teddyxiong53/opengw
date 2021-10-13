@@ -148,6 +148,11 @@ func (tslManager *DeviceTSLManager) ModifyPlugin(name string, plugin string) err
 		return fmt.Errorf("no such tsl template %s", name)
 	}
 	tmp.Plugin = plugin
+	v, ok := DeviceTemplateMap[tmp.Plugin]
+	if !ok {
+		return fmt.Errorf("devicetemplatemap not contains %s", plugin)
+	}
+	tmp.PluginTemplate = v
 	tslManager.changed = true
 	return nil
 }

@@ -86,7 +86,14 @@ func ImportDeviceTSLPlugin(context *gin.Context) {
 		return
 	}
 
-	device.DeviceTSLMap.ModifyPlugin(tslName, pluginName)
+	if err := device.ReadPlugins(device.PLUGINPATH); err != nil {
+		context.JSON(http.StatusOK, model.Response{Code: "1", Message: fmt.Sprintf("roadmap plugin dir  error:%v!", err)})
+		return
+	}
+	if err := device.DeviceTSLMap.ModifyPlugin(tslName, pluginName); err != nil {
+		context.JSON(http.StatusOK, model.Response{Code: "1", Message: fmt.Sprintf("modify  plugin  error:%v!", err)})
+		return
+	}
 
 	context.JSON(http.StatusOK, model.Response{Code: "0", Message: fmt.Sprintf("import plugin  %s success!", pluginName)})
 

@@ -282,7 +282,7 @@ func (d *DeviceNodeTemplate) DeviceCustomCmd(
 
 func (d *DeviceNodeTemplate) AnalysisRx(sAddr string, properties []model.DeviceTSLPropertyTemplate, rxBuf []byte, rxBufCnt int, txBuf []byte) error {
 	if len(properties) <= 0 {
-		return fmt.Errorf("node %s properties type %s is not defined", d.Name, d.Type)
+		mylog.ZAPS.Warn("node %s properties type %s is not defined", d.Name, d.Type)
 	}
 	type LuaVariableTemplate struct {
 		Index   int
@@ -305,7 +305,10 @@ func (d *DeviceNodeTemplate) AnalysisRx(sAddr string, properties []model.DeviceT
 	template := DeviceTSLMap.Get(d.Type)
 
 	if template == nil {
-		return fmt.Errorf("no such device template %s", d.Type)
+		return fmt.Errorf("no such tsl template %s", d.Type)
+	}
+	if template.PluginTemplate == nil {
+		return fmt.Errorf("tsl template %s haven't init plugin template", template.Name)
 	}
 	state := template.PluginTemplate.LuaState
 	if state == nil {
