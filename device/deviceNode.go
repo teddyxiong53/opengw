@@ -6,7 +6,7 @@ import (
 	"goAdapter/httpServer/model"
 	"goAdapter/pkg/mylog"
 	"log"
-	"reflect"
+	"strconv"
 
 	"sync"
 	"time"
@@ -369,6 +369,7 @@ func (d *DeviceNodeTemplate) AnalysisRx(sAddr string, properties []model.DeviceT
 	var item float64
 VLOOP:
 	for _, lv := range LuaVariableMap.Variable {
+
 		if lv == nil {
 			mylog.ZAPS.Errorf("device %s variable is nil", d.Name)
 			continue
@@ -385,35 +386,33 @@ VLOOP:
 		value.Index = lv.Index
 		switch v.Type {
 		case PropertyTypeInt32:
-			item, ok = lv.Value.(float64)
-			if ok {
-				value.Value = (int32)(item)
-			} else {
-				mylog.ZAPS.Errorf("%v(%t) 不能转换为float64,将设置为NIL", lv.Value, reflect.TypeOf(lv.Value))
-				value.Value = "NIL"
+			val, err := convert(lv.Value)
+			if err != nil {
+				mylog.ZAPS.Errorf("convert property %s error:%v", v.Name, err)
 			}
+
+			item = val
 		case PropertyTypeUInt32:
-			item, ok = lv.Value.(float64)
-			if ok {
-				value.Value = (uint32)(item)
-			} else {
-				mylog.ZAPS.Errorf("%v(%t) 不能转换为float64,将设置为NIL", lv.Value, reflect.TypeOf(lv.Value))
-				value.Value = "NIL"
+			val, err := convert(lv.Value)
+			if err != nil {
+
+				mylog.ZAPS.Errorf("convert property %s error:%v", v.Name, err)
 			}
+
+			item = val
 		case PropertyTypeDouble:
-			item, ok = lv.Value.(float64)
-			if ok {
-				value.Value = item
-			} else {
-				mylog.ZAPS.Errorf("%v(%t) 不能转换为float64,将设置为NIL", lv.Value, reflect.TypeOf(lv.Value))
-				value.Value = "NIL"
+			val, err := convert(lv.Value)
+			if err != nil {
+				mylog.ZAPS.Errorf("convert property %s error:%v", v.Name, err)
 			}
+
+			item = val
 		case PropertyTypeString:
-			item, ok := lv.Value.(string)
+			s, ok := lv.Value.(string)
 			if ok {
-				value.Value = item
+				value.Value = s
 			} else {
-				mylog.ZAPS.Errorf("%v(%t) 不能转换为string,将设置为NIL", lv.Value, reflect.TypeOf(lv.Value))
+				mylog.ZAPS.Errorf("%v不能转换为string,将设置为NIL", lv.Value)
 				value.Value = "NIL"
 			}
 
@@ -451,23 +450,41 @@ VLOOP:
 				mylog.ZAPS.Errorf("运行表达式%s错误:%v", lv.Formula, err)
 				goto VLOOP
 			}
-			var endValue interface{}
+			var endValue float64
 			if d, ok := ret.(decimal.Decimal); ok {
 				v, exact := d.Float64()
 				if exact {
 					endValue = v
 				} else {
-					endValue = d.String()
+					pv, err := strconv.ParseFloat(d.String(), 64)
+					if err != nil {
+						mylog.ZAPS.Errorf("%s(%s) 不能转换为float64", lv.Label, d.String())
+					} else {
+						endValue = pv
+					}
 				}
 			} else {
 				mylog.ZAPS.Errorf("%s 不能转换为float64或者string", lv.Label)
 			}
-			value.Value = endValue
+			item = endValue
 
 		}
+		//小数位数
+		if v.Params.Decimals != "" {
+			bits, err := strconv.Atoi(v.Params.Decimals)
+			if err != nil {
+				mylog.ZAPS.Errorf("%s 小数位数%s 不能转换为int", lv.Label, v.Params.Decimals)
+			}
+			fv, err := SetFloat(item, bits)
+			if err != nil {
+				mylog.ZAPS.Errorf("设置%s 小数位数%s错误:%v", lv.Label, v.Params.Decimals, err)
 
+			}
+			item = fv
+		}
 		value.Explain = lv.Explain
 		value.TimeStamp = timeNowStr
+		value.Value = item
 
 		if len(v.Value) < 100 {
 			v.Value = append(v.Value, value)
@@ -478,4 +495,26 @@ VLOOP:
 	}
 
 	return nil
+}
+
+func convert(val interface{}) (item float64, err error) {
+	item, ok := val.(float64)
+	if ok {
+		return
+	}
+	v, ok := val.(int)
+	if ok {
+		return float64(v), nil
+	}
+	err = fmt.Errorf("%v is not float or int", val)
+	return
+}
+
+func SetFloat(value float64, n int) (float64, error) {
+	format := "%." + strconv.Itoa(n) + "f"
+	value, err := strconv.ParseFloat(fmt.Sprintf(format, value), 64)
+	if err != nil {
+		return 0, err
+	}
+	return value, nil
 }

@@ -49,7 +49,7 @@ func (fla *IndexParser) PreVarSet(variables []model.DeviceTSLPropertyTemplate) e
 		nodeVar := variables[i]
 
 		if len(nodeVar.Value) > 0 {
-			env.SetIntVariable(item, int64(nodeVar.Value[0].Value.(uint32)))
+			env.SetIntVariable(item, int64(nodeVar.Value[0].Value.(float64)))
 
 		} else {
 			return fmt.Errorf("基础值%s还未获取,values:%v", item, nodeVar.Value)

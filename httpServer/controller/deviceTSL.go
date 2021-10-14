@@ -344,6 +344,7 @@ func ModifyProperty(tslTemplate *model.DeviceTSLTemplate, property model.DeviceT
 			"plugin":   tslTemplate.Plugin,
 			"name":     property.Name,
 		})
+		device.DeviceTSLMap.SetChanged(true)
 	}
 
 	device.DeviceTSLMap.Unlock()

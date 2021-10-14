@@ -203,6 +203,7 @@ func writeCfg(cfg string) (err error) {
 	switch cfg {
 	case COMMJSON:
 		if CommunicationInterfaceMap.Changed() {
+			mylog.ZAP.Debug("comm 有变化,保存comm map到文件")
 			fp, err = os.OpenFile(fileDir, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0666)
 			if err != nil {
 				return err
@@ -212,6 +213,7 @@ func writeCfg(cfg string) (err error) {
 
 	case COLLINTERFACEJSON:
 		if CollectInterfaceMap.Changed {
+			mylog.ZAP.Debug("collect有变化,保存collect map到文件")
 			fp, err = os.OpenFile(fileDir, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0666)
 			if err != nil {
 				return err
@@ -221,6 +223,7 @@ func writeCfg(cfg string) (err error) {
 
 	case DEVICETSLJSON:
 		if DeviceTSLMap.Changed() {
+			mylog.ZAP.Debug("device tsl 有变化,保存tsl配置到文件")
 			fp, err = os.OpenFile(fileDir, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0666)
 			if err != nil {
 				return err
