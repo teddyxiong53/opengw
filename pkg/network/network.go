@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"encoding/hex"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"goAdapter/pkg/mylog"
 	"goAdapter/pkg/system"
@@ -14,6 +13,8 @@ import (
 	"path/filepath"
 	"runtime"
 	"strings"
+
+	"github.com/jackpal/gateway"
 )
 
 type NetworkNameListTemplate struct {
@@ -42,68 +43,38 @@ var NetworkParamList = &NetworkParamListTemplate{
 	NetworkParam: make([]*NetworkParamTemplate, 0),
 }
 
-func init() {
-	NetworkParaRead()
-	NetworkParamList.GetNetworkParam()
-}
-
 func (n *NetworkParamListTemplate) AddNetworkParam(param NetworkParamTemplate) error {
 
 	for _, v := range n.NetworkParam {
 		if v.Name == param.Name {
-			return errors.New("网络名已经存在")
+			return fmt.Errorf("network card %s already exists", v.Name)
 		}
+	}
+	if err := param.CmdSetStaticIP(); err != nil {
+		return err
 	}
 	n.NetworkParam = append(n.NetworkParam, &param)
-	NetworkParaWrite()
-	return nil
-}
-
-func (n *NetworkParamTemplate) GetNetworkStatus() {
-
-	//if runtime.GOOS == "linux" {
-	//	ethHandle, _ := ethtool.NewEthtool()
-	//	defer ethHandle.Close()
-	//
-	//	n.LinkStatus, _ = ethHandle.LinkState(n.Name)
-	//	mylog.Logger.Debugf("%v LinkStatus %v", n.Name, n.LinkStatus)
-	//}
-}
-
-//获取当前网络参数
-func (n *NetworkParamListTemplate) GetNetworkParam() {
-
-	for _, v := range n.NetworkParam {
-		ethInfo, err := GetNetInformation(v.Name)
-		if err != nil {
-			mylog.Logger.Errorf("getNetInfor err,%v\n", err)
-			break
-		}
-		v.IP = ethInfo.IP
-		v.Netmask = ethInfo.Netmask
-		v.Broadcast = ethInfo.Gateway
-		v.MAC = strings.ToUpper(ethInfo.MAC)
-		//mylog.Logger.Debugf("%v netFlags %v", v.Name, ethInfo.NetFlags)
-		if runtime.GOOS == "linux" {
-			v.GetNetworkStatus()
-		}
-	}
+	return NetworkParaWrite()
 }
 
 //设置网络参数
-func (n *NetworkParamListTemplate) ModifyNetworkParam(param NetworkParamTemplate) {
-
-	for k, v := range n.NetworkParam {
-		if v.Name == param.Name {
-			n.NetworkParam[k].DHCP = param.DHCP
-			n.NetworkParam[k].IP = param.IP
-			n.NetworkParam[k].Netmask = param.Netmask
-			n.NetworkParam[k].Gateway = param.Gateway
-
-			NetworkParaWrite()
+func (n *NetworkParamListTemplate) ModifyNetworkParam(param NetworkParamTemplate) error {
+	if err := param.CmdSetStaticIP(); err != nil {
+		return err
+	}
+	var index = -1
+	for i, n := range n.NetworkParam {
+		if n.Name == param.Name {
+			index = i
 		}
 	}
-
+	if index != -1 {
+		n.NetworkParam[index] = &param
+	} else {
+		//如果原来没有这个网卡在json中会添加进去
+		n.NetworkParam = append(n.NetworkParam, &param)
+	}
+	return NetworkParaWrite()
 }
 
 //删除网络参数
@@ -134,21 +105,39 @@ func (n *NetworkParamTemplate) CmdSetDHCP() {
 	mylog.Logger.Debugf(str)
 }
 
-func (n *NetworkParamTemplate) CmdSetStaticIP() {
+func (n *NetworkParamTemplate) CmdSetStaticIP() error {
+	fmt.Println("goos:", runtime.GOOS)
+	switch runtime.GOOS {
+	case "windows":
+		cmd := exec.Command("cmd", "/c", fmt.Sprintf("netsh interface ip set address %s static %s %s %s", n.Name, n.IP, n.Netmask, n.Gateway))
+		msg, err := cmd.CombinedOutput()
+		if err != nil {
+			return fmt.Errorf("set ip on %s error:%v", runtime.GOOS, msg)
+		}
+		return nil
 
-	strNetMask := "netmask " + n.Netmask
-	cmd := exec.Command("ifconfig",
-		n.Name,
-		n.IP,
-		strNetMask)
+	case "linux":
+		strNetMask := "netmask " + n.Netmask
+		cmd := exec.Command("ifconfig",
+			n.Name,
+			n.IP,
+			strNetMask)
 
-	var out bytes.Buffer
-	cmd.Stdout = &out
-	cmd.Start() //执行到此,直接往后执行
+		msg, err := cmd.CombinedOutput()
+		if err != nil {
+			return fmt.Errorf("ifconfig error:%s", msg)
+		}
 
-	cmd2 := exec.Command("/sbin/route", "add", "default", "gw", n.Broadcast)
-	cmd2.Stdout = &out
-	cmd2.Start() //执行到此,直接往后执行
+		cmd2 := exec.Command("/sbin/route", "add", "default", "gw", n.Gateway)
+		msg, err = cmd2.CombinedOutput()
+		if err != nil {
+			return fmt.Errorf("add default gw error:%s", msg)
+		}
+		return nil
+	default:
+		return fmt.Errorf("%s is not supported", runtime.GOOS)
+
+	}
 }
 
 func findNetCard(name string) (string, error) {
@@ -263,25 +252,96 @@ func NetworkParaRead() bool {
 	}
 }
 
-func NetworkParaWrite() {
+func NetworkParaWrite() error {
 
 	exeCurDir, _ := filepath.Abs(filepath.Dir(os.Args[0]))
 
 	fileDir := exeCurDir + "/selfpara/networkpara.json"
 
-	fp, err := os.OpenFile(fileDir, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0777)
+	fp, err := os.Create(fileDir)
 	if err != nil {
-		mylog.Logger.Warnf("open networkpara.json err,%v", err)
+		return fmt.Errorf("create networkpara.json err,%v", err)
 	}
 	defer fp.Close()
 
 	sJson, _ := json.Marshal(NetworkParamList)
-	mylog.Logger.Debugf(string(sJson))
-
 	_, err = fp.Write(sJson)
 	if err != nil {
-		mylog.Logger.Warnf("write networkpara.json err,%v", err)
+		return fmt.Errorf("write networkpara.json err,%v", err)
 	}
-	mylog.Logger.Debugf("write networkpara.json ok")
 	fp.Sync()
+	return nil
+
+}
+
+func ParseNetworks() ([]*NetworkParamTemplate, error) {
+	ifaces, err := net.Interfaces()
+	if err != nil {
+		return nil, err
+	}
+	networkParams := make([]*NetworkParamTemplate, 0)
+	for _, iface := range ifaces {
+		addrs, err := iface.Addrs()
+		if err != nil {
+			continue
+		}
+		for _, a := range addrs {
+			switch v := a.(type) {
+			case *net.IPAddr:
+				if v.IP.IsLoopback() || v.IP.To4() == nil {
+					continue
+				}
+				networkParam := NetworkParamTemplate{
+					MAC:      iface.HardwareAddr.String(),
+					Name:     iface.Name,
+					NetFlags: iface.Flags,
+					Netmask:  v.IP.DefaultMask().String(),
+					IP:       v.IP.String(),
+				}
+				gw, err := gateway.DiscoverGateway()
+				if err == nil {
+					networkParam.Gateway = gw.String()
+				} else {
+					fmt.Println(err)
+				}
+				mask, err := parseMask(v.IP.DefaultMask())
+				if err == nil {
+					networkParam.Netmask = mask
+				}
+				networkParams = append(networkParams, &networkParam)
+
+			case *net.IPNet:
+				if v.IP.IsLoopback() || v.IP.To4() == nil {
+					continue
+				}
+				networkParam := NetworkParamTemplate{
+					MAC:      iface.HardwareAddr.String(),
+					Name:     iface.Name,
+					NetFlags: iface.Flags,
+					IP:       v.IP.String(),
+				}
+				gw, err := gateway.DiscoverGateway()
+				if err == nil {
+					networkParam.Gateway = gw.String()
+				} else {
+					fmt.Println(err)
+				}
+				mask, err := parseMask(v.IP.DefaultMask())
+				if err == nil {
+					networkParam.Netmask = mask
+				}
+				networkParams = append(networkParams, &networkParam)
+
+			}
+
+		}
+	}
+	return networkParams, nil
+}
+
+func parseMask(mask net.IPMask) (string, error) {
+	if len(mask) != 4 {
+		return "", fmt.Errorf("not ipv4 mask type")
+	}
+	return fmt.Sprintf("%d.%d.%d.%d", mask[0], mask[1], mask[2], mask[3]), nil
 }

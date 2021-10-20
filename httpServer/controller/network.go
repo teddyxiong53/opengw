@@ -79,7 +79,14 @@ func ModifyNetwork(context *gin.Context) {
 		Gateway: networkParam.Gateway,
 	}
 
-	network.NetworkParamList.ModifyNetworkParam(param)
+	err = network.NetworkParamList.ModifyNetworkParam(param)
+	if err != nil {
+		context.JSON(http.StatusOK, model.Response{
+			Code:    "1",
+			Message: err.Error(),
+		})
+		return
+	}
 	context.JSON(http.StatusOK, model.Response{
 		Code:    "0",
 		Message: "",
@@ -103,7 +110,7 @@ func DeleteNetwork(context *gin.Context) {
 	}
 
 	status, _ := network.NetworkParamList.DeleteNetworkParam(networkParam.Name)
-	if status == true {
+	if status {
 		context.JSON(http.StatusOK, model.Response{
 			Code: "0",
 		})
@@ -117,9 +124,39 @@ func DeleteNetwork(context *gin.Context) {
 }
 
 func GetNetwork(context *gin.Context) {
+	data, err := network.ParseNetworks()
+	if err != nil {
+		context.JSON(http.StatusOK, model.Response{
+			Code:    "1",
+			Message: fmt.Sprintf("get networks error:%v", err),
+		})
+		return
+	}
+	var r = make([]*network.NetworkParamTemplate, 0)
+	for _, i := range data {
+		var matched bool
+		for _, j := range network.NetworkParamList.NetworkParam {
+			if i.Name == j.Name {
+				//以json文件为主
+				r = append(r, j)
+				matched = true
+				if err := j.CmdSetStaticIP(); err != nil {
+					mylog.ZAPS.Errorf("set network card %s error:%v", j.Name, err)
+				}
+				break
+			}
+		}
+		if !matched {
+			r = append(r, i)
+		}
+	}
+
+	list := network.NetworkParamListTemplate{
+		NetworkParam: r,
+	}
 	context.JSON(http.StatusOK, model.Response{
 		Code: "0",
-		Data: *network.NetworkParamList,
+		Data: list,
 	})
 }
 
