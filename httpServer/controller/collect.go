@@ -49,7 +49,7 @@ func AddInterface(context *gin.Context) {
 		return
 	}
 
-	nodeManage, _ := device.NewCollectInterface(&interfaceInfo)
+	nodeManage, _ := device.InitCollectInterface(&interfaceInfo)
 	device.CollectInterfaceMap.Add(nodeManage)
 	// 废弃
 	// device.CommunicationManage.Collectors <- &device.CollectInterfaceStatus{

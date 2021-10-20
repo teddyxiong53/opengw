@@ -159,7 +159,6 @@ func (c *CommunicationSerialTemplate) Bind(name string) {
 	if !alreadyExists {
 		c.Bindings = append(c.Bindings, name)
 	}
-	fmt.Printf("after bind:%v\n", c.Bindings)
 }
 
 func (c *CommunicationSerialTemplate) UnBind(name string) {
@@ -174,8 +173,6 @@ func (c *CommunicationSerialTemplate) UnBind(name string) {
 		}
 	}
 	c.Bindings = append(c.Bindings[:index], c.Bindings[index+1:]...)
-	fmt.Printf("after unbind :%v\n", c.Bindings)
-
 }
 
 func (c *CommunicationSerialTemplate) BindNames() []string {
@@ -183,7 +180,5 @@ func (c *CommunicationSerialTemplate) BindNames() []string {
 		c.Bindings = make([]string, 0)
 
 	}
-	fmt.Printf("get bindings:%v\n", c.Bindings)
-
 	return c.Bindings
 }

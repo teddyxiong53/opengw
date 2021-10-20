@@ -217,7 +217,9 @@ func (cim *CollectInterfaceManager) Init() error {
 		}
 
 		for _, node := range v.DeviceNodes {
-			v.InitDeviceNode(node)
+			if err:=v.InitDeviceNode(node);err!=nil{
+				return err
+			}
 		}
 
 		var param = &CollectInterfaceParamTemplate{
@@ -229,7 +231,7 @@ func (cim *CollectInterfaceManager) Init() error {
 			DeviceNodes:       v.DeviceNodes,
 		}
 
-		collect, err := NewCollectInterface(param)
+		collect, err := InitCollectInterface(param)
 		if err != nil {
 			return err
 		}
@@ -267,7 +269,7 @@ func NodeManageInit() (err error) {
 注意事项：
 日期    ：
 ********************************************************/
-func NewCollectInterface(coll *CollectInterfaceParamTemplate) (cit *CollectInterfaceTemplate, err error) {
+func InitCollectInterface(coll *CollectInterfaceParamTemplate) (cit *CollectInterfaceTemplate, err error) {
 
 	comm := CommunicationInterfaceMap.Get(coll.CommInterfaceName)
 
@@ -342,20 +344,10 @@ func (d *CollectInterfaceTemplate) AddDeviceNode(dName string, dType string, dAd
 }
 
 func (d *CollectInterfaceTemplate) InitDeviceNode(node *DeviceNodeTemplate) error {
-	tmps := DeviceTSLMap.GetAll()
-	var index = -1
-	for i, v := range tmps {
-		if v.Plugin == node.Type {
-			index = i
-			node.Properties = v.Properties
-			node.Services = v.Services
-		}
-	}
-	if index == -1 {
-		return fmt.Errorf("node %s type %s tls template  is not exists", node.Name, node.Type)
+	if err:=node.NewVariablesForTSL();err!=nil{
+		return fmt.Errorf("init device node %s of varriableforTSL %s error:%v", node.Name, node.Type,err)
 	}
 	node.CommStatus = OFFLINE
-
 	return nil
 }
 

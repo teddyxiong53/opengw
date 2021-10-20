@@ -41,32 +41,20 @@ type ValueTemplate struct {
 	TimeStamp string
 }
 
-//变量标签模版
-type VariableTemplate struct {
-	Index     int             `json:"index"`     //变量偏移量
-	Name      string          `json:"name"`      //变量名
-	Label     string          `json:"lable"`     //变量标签
-	Values    []ValueTemplate `json:"value"`     //变量值
-	Type      string          `json:"type"`      //变量类型
-	ChannelNo uint32          `json:"channelNo"` //通道号
-	Changed   bool            `json:"changed"`   //是否变化
-}
-
 //设备模板
 type DeviceNodeTemplate struct {
-	Index          int    `json:"Index"`          //设备偏移量
-	Name           string `json:"Name"`           //设备名称
-	Addr           string `json:"Addr"`           //设备地址
-	Type           string `json:"Type"`           //设备类型
-	LastCommRTC    string `json:"LastCommRTC"`    //最后一次通信时间戳
-	CommTotalCnt   int    `json:"CommTotalCnt"`   //通信总次数
-	CommSuccessCnt int    `json:"CommSuccessCnt"` //通信成功次数
-	CurCommFailCnt int    `json:"-"`              //当前通信失败次数
-	CommStatus     string `json:"CommStatus"`     //通信状态
-	//VariableMap    []*VariableTemplate                `json:"-"`              //变量列表
-	Properties []model.DeviceTSLPropertyTemplate `json:"-"` //属性列表
-	Services   []model.DeviceTSLServiceTempalte  `json:"-"` //服务
-	Parser     Parser                            `json:"-"` //表达式解析器
+	Index          int                               `json:"Index"`          //设备偏移量
+	Name           string                            `json:"Name"`           //设备名称
+	Addr           string                            `json:"Addr"`           //设备地址
+	Type           string                            `json:"Type"`           //设备类型
+	LastCommRTC    string                            `json:"LastCommRTC"`    //最后一次通信时间戳
+	CommTotalCnt   int                               `json:"CommTotalCnt"`   //通信总次数
+	CommSuccessCnt int                               `json:"CommSuccessCnt"` //通信成功次数
+	CurCommFailCnt int                               `json:"-"`              //当前通信失败次数
+	CommStatus     string                            `json:"CommStatus"`     //通信状态
+	Properties     []model.DeviceTSLPropertyTemplate `json:"-"`              //属性列表
+	Services       []model.DeviceTSLServiceTempalte  `json:"-"`              //服务
+	Parser         Parser                            `json:"-"`              //表达式解析器
 }
 
 func ClearPropertyValue(properties []model.DeviceTSLPropertyTemplate) {
@@ -76,86 +64,22 @@ func ClearPropertyValue(properties []model.DeviceTSLPropertyTemplate) {
 }
 
 func (d *DeviceNodeTemplate) NewVariablesForTSL() error {
-	tmps := DeviceTSLMap.GetAll()
-	for _, v := range tmps {
-		if v.Plugin == d.Type {
-			d.Properties = make([]model.DeviceTSLPropertyTemplate, len(v.Properties))
-			copy(d.Properties, v.Properties)
-			ClearPropertyValue(d.Properties)
-			d.Services = make([]model.DeviceTSLServiceTempalte, len(v.Services))
-			copy(d.Properties, v.Properties)
-			return nil
-		}
+	tmp := DeviceTSLMap.Get(d.Type)
+	if tmp == nil {
+		return fmt.Errorf("no such tsl template named %s", d.Type)
 	}
-	return fmt.Errorf("tsl template not bind plugin %s", d.Type)
-}
-
-func (d *DeviceNodeTemplate) NewVariables() (variables []*VariableTemplate, err error) {
-
-	type LuaVariableTemplate struct {
-		Index int
-		Name  string
-		Label string
-		Type  string
+	if tmp.Plugin == "" {
+		return fmt.Errorf("tsl template %s not bind any plugin", d.Type)
 	}
-
-	type LuaVariableMapTemplate struct {
-		Variable []*LuaVariableTemplate
+	if tmp.PluginTemplate == nil {
+		return fmt.Errorf("tsl template %s plugin %s not initialized", d.Type, tmp.Plugin)
 	}
-
-	lock.Lock()
-	defer lock.Unlock()
-	template, ok := DeviceTemplateMap[d.Type]
-	if !ok {
-		err = fmt.Errorf("未发现设备模板: %s", d.Name)
-		return
-	}
-	lState := template.LuaState
-	if lState == nil {
-		err = fmt.Errorf("device lua template is not initialized")
-		return
-	}
-
-	err = lState.CallByParam(lua.P{
-		Fn:      template.LuaState.GetGlobal(string(NewVariables)),
-		NRet:    1,
-		Protect: true,
-	})
-
-	if err != nil {
-		err = fmt.Errorf("NewVariables Err:%v", err)
-		return
-	}
-
-	//获取返回结果
-	ret := lState.Get(-1)
-	lState.Pop(1)
-	//setting.ZAPS.Debugf("DeviceTemplateLuaMap Get,%v", ret)
-
-	LuaVariableMap := LuaVariableMapTemplate{}
-
-	table, ok := ret.(*lua.LTable)
-	if !ok {
-		return nil, errors.New("ret is not lua LTable")
-	}
-
-	if err = gluamapper.Map(table, &LuaVariableMap); err != nil {
-		return
-	}
-
-	variables = make([]*VariableTemplate, 0, len(LuaVariableMap.Variable))
-
-	for _, v := range LuaVariableMap.Variable {
-		variable := &VariableTemplate{}
-		variable.Index = v.Index
-		variable.Name = v.Name
-		variable.Label = v.Label
-		variable.Type = v.Type
-
-		variable.Values = make([]ValueTemplate, 0, 100)
-		variables = append(variables, variable)
-	}
-	return
+	d.Properties = make([]model.DeviceTSLPropertyTemplate, len(tmp.Properties))
+	copy(d.Properties, tmp.Properties)
+	ClearPropertyValue(d.Properties)
+	d.Services = make([]model.DeviceTSLServiceTempalte, len(tmp.Services))
+	copy(d.Properties, tmp.Properties)
+	return nil
 }
 
 func (d *DeviceNodeTemplate) GenerateGetRealVariables(sAddr string, step int) (nBytes []byte, hasFrame bool, err error) {

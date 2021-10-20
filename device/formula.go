@@ -48,13 +48,23 @@ func (fla *IndexParser) PreVarSet(variables []model.DeviceTSLPropertyTemplate) e
 		}
 		nodeVar := variables[i]
 
-		if len(nodeVar.Value) > 0 {
-			env.SetIntVariable(item, int64(nodeVar.Value[0].Value.(float64)))
-
-		} else {
-			return fmt.Errorf("基础值%s还未获取,values:%v", item, nodeVar.Value)
+		if len(nodeVar.Value)<=0{
+			return  fmt.Errorf("此设备基础值%s还未获取,values:%v", item, nodeVar.Value)
 		}
 
+			last:=len(nodeVar.Value)-1
+			lastV:=nodeVar.Value[last].Value
+			if lastV==nil{
+				return fmt.Errorf("设备基础值%s为nil",item)
+			}
+			fval,ok:=lastV.(float64)
+			if !ok{
+				return fmt.Errorf("参与计算公式的【%s】【%v】不能转换为float64",item,lastV)
+			}
+
+			if err=env.SetFloatVariable(item,fval);err!=nil{
+				return fmt.Errorf("set float val error:%v",err)
+			}
 	}
 	return nil
 }

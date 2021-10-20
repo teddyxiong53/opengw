@@ -50,7 +50,7 @@ func AddNode(context *gin.Context) {
 		if node.Addr == nodeInfo.DAddr {
 			context.JSON(200, model.Response{
 				Code:    "1",
-				Message: fmt.Sprintf("设备 %s 地址冲突:%s!", nodeInfo.DName, nodeInfo.DAddr),
+				Message: fmt.Sprintf("设备地址与已存在设备【%s】冲突!",node.Name),
 			})
 			return
 		}

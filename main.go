@@ -3,7 +3,7 @@
 @Author: Linn
 @Date: 2021-09-15 15:48:28
 @LastEditors: WalkMiao
-@LastEditTime: 2021-10-07 23:07:02
+@LastEditTime: 2021-10-19 12:56:49
 @FilePath: /goAdapter-Raw/main.go
 */
 package main
@@ -68,21 +68,14 @@ func main() {
 
 	go func() {
 		signal.Notify(sigChan, syscall.SIGINT, syscall.SIGTERM, syscall.SIGABRT)
-		for {
-			select {
-			case <-sigChan:
-				if err := device.WriteAllCfg(); err != nil {
-					mylog.ZAP.Error("保存配置错误", zap.Error(err))
-				}
-				if err := server.Shutdown(context.Background()); err != nil {
-					log.Println(color.RedString("shutdown server error:%v", err))
-				}
-				quitChan <- struct{}{}
-				return
-
-			}
+		<-sigChan
+		if err := device.WriteAllCfg(); err != nil {
+			mylog.ZAP.Error("保存配置错误", zap.Error(err))
 		}
-
+		if err := server.Shutdown(context.Background()); err != nil {
+			log.Println(color.RedString("shutdown server error:%v", err))
+		}
+		quitChan <- struct{}{}
 	}()
 
 	if err := server.ListenAndServe(); err != http.ErrServerClosed {

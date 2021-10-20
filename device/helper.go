@@ -3,7 +3,7 @@
 @Author: Linn
 @Date: 2021-09-13 11:28:56
 @LastEditors: WalkMiao
-@LastEditTime: 2021-10-08 08:11:55
+@LastEditTime: 2021-10-19 17:20:33
 @FilePath: /goAdapter-Raw/device/helper.go
 */
 package device
@@ -21,6 +21,7 @@ import (
 	"goAdapter/httpServer/model"
 	"goAdapter/pkg/luautils"
 	"goAdapter/pkg/mylog"
+	"goAdapter/pkg/network"
 
 	"github.com/fatih/color"
 	"github.com/gin-gonic/gin"
@@ -44,11 +45,12 @@ const (
 	PLUGINPATH        = "./plugin"
 	SELFPARAPATH      = "./selfpara"
 	COMMJSON          = "commInterface.json"
-	NETWORKJSON       = "commTcpClientInterface.json"
+	TCPCLIENTJSON     = "commTcpClientInterface.json"
 	IOINJSON          = "commIoInInterface.json"
 	IOOUTJSON         = "commIoOutInterface.json"
 	COLLINTERFACEJSON = "collInterface.json"
 	DEVICETSLJSON     = "deviceTSLParam.json"
+	NETWORKJSON       = "networkpara.json"
 )
 
 const (
@@ -287,6 +289,10 @@ func loadCfg(cfg string) error {
 				return err
 			}
 			if err = CollectInterfaceMap.Init(); err != nil {
+				return err
+			}
+		case NETWORKJSON:
+			if err := json.Unmarshal(data, network.NetworkParamList); err != nil {
 				return err
 			}
 

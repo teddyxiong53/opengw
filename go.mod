@@ -12,6 +12,7 @@ require (
 	github.com/gin-gonic/gin v1.7.1
 	github.com/go-ole/go-ole v1.2.5 // indirect
 	github.com/goburrow/serial v0.1.0
+	github.com/jackpal/gateway v1.0.7
 	github.com/jacobsa/go-serial v0.0.0-20180131005756-15cf729a72d4
 	github.com/jasonlvhit/gocron v0.0.1
 	github.com/jonboulle/clockwork v0.2.2 // indirect
