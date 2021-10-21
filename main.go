@@ -10,6 +10,7 @@ package main
 
 import (
 	"context"
+	"embed"
 	"goAdapter/config"
 	"goAdapter/device"
 	"goAdapter/httpServer"
@@ -24,10 +25,55 @@ import (
 	"syscall"
 
 	"github.com/fatih/color"
+	"github.com/gin-gonic/gin"
 	"github.com/jasonlvhit/gocron"
 	"go.uber.org/zap"
 )
 
+var (
+	//go:embed webroot/static
+	static embed.FS
+	//go:embed webroot/layui
+	layui embed.FS
+	//go:embed webroot/serialHelper
+	serialHelper embed.FS
+	//go:embed webroot/index.html
+	indexTpl embed.FS
+	//go:embed webroot/serverConfig.json
+	serverConfig []byte
+)
+
+func embedOpts()httpServer.Option{
+	return httpServer.WithEmbedFS(
+		httpServer.EmbedFS{
+		Fs:     static,
+		FsPath: "/static",
+		SubPath: "webroot/static",
+
+	},
+	httpServer.EmbedFS{
+			Fs: layui,
+			FsPath: "/layui",
+			SubPath: "webroot/layui",
+	},
+	httpServer.EmbedFS{
+			Fs: serialHelper,
+			FsPath: "/serialHelper",
+			SubPath: "webroot/serialHelper",
+	},
+	httpServer.EmbedFS{
+			Fs: indexTpl,
+			FsPath: "/",
+			SubPath: "webroot/index.html",
+			Type: httpServer.HTMLType,
+	},
+	httpServer.EmbedFS{
+			Data: serverConfig,
+			Type:    httpServer.FileType,
+			FsPath: "/serverConfig.json",
+	},
+	)
+}
 func main() {
 
 	/**************初始化配置以及日志***********************/
@@ -59,7 +105,7 @@ func main() {
 	schedule.Start()
 	defer schedule.Clear()
 
-	router := httpServer.Router()
+	router := httpServer.RouterWithOpts(httpServer.WithMode(gin.ReleaseMode), embedOpts())
 	server := http.Server{
 		Addr:    ":" + config.Cfg.ServerCfg.Port,
 		Handler: router,

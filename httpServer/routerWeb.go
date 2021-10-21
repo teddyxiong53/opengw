@@ -1,28 +1,60 @@
 package httpServer
 
 import (
+	"github.com/gin-gonic/gin"
 	"goAdapter/httpServer/controller"
 	"goAdapter/httpServer/middleware"
-	"os"
-	"path/filepath"
-
-	"github.com/gin-gonic/gin"
+	"html/template"
+	"io/fs"
+	"net/http"
 )
 
-func Router() *gin.Engine {
+func setStatic(engine *gin.Engine, emFS []EmbedFS) error {
+	for _,f:=range emFS{
+		switch f.Type{
+		case HTMLType:
+			indexTemp, err := template.ParseFS(f.Fs, f.SubPath)
+			if err != nil {
+				return err
+			}
+			engine.GET(f.FsPath, func(context *gin.Context) {
+				indexTemp.Execute(context.Writer,nil)
+			})
 
-	gin.SetMode(gin.ReleaseMode)
-	router := gin.Default()
+		case NormalType:
+			subFs,err:=fs.Sub(f.Fs,f.SubPath)
+			if err!=nil{
+				return err
+			}
+			engine.StaticFS(f.FsPath,http.FS(subFs))
+		case FileType:
+			engine.GET(f.FsPath, func(context *gin.Context) {
+				context.String(200,string(f.Data))
+			})
 
-	exeCurDir, _ := filepath.Abs(filepath.Dir(os.Args[0]))
-	router.Static("/static", exeCurDir+"/webroot/static")
-	router.Static("/plugin", exeCurDir+"/plugin/")
-	router.Static("/layui", exeCurDir+"/webroot/layui")
+		}
 
-	router.StaticFile("/", exeCurDir+"/webroot/index.html")
-	router.StaticFile("/favicon.ico", exeCurDir+"/webroot/favicon.ico")
-	router.StaticFile("/serverConfig.json", exeCurDir+"/webroot/serverConfig.json")
-	router.Static("/serialHelper", exeCurDir+"/webroot/serialHelper")
+	}
+	return nil
+
+}
+
+func RouterWithOpts(opts ...Option) *gin.Engine {
+	engineOpt := DefaultEngineOption
+	engineOpt.Apply(opts...)
+	router := engineOpt.engine
+	// exeCurDir, _ := filepath.Abs(filepath.Dir(os.Args[0]))
+	// router.Static("/static", exeCurDir+"/webroot/static")
+	// router.Static("/plugin", exeCurDir+"/plugin/")
+	// router.Static("/layui", exeCurDir+"/webroot/layui")
+
+	// router.StaticFile("/", exeCurDir+"/webroot/index.html")
+	// router.StaticFile("/favicon.ico", exeCurDir+"/webroot/favicon.ico")
+	// router.StaticFile("/serverConfig.json", exeCurDir+"/webroot/serverConfig.json")
+	// router.Static("/serialHelper", exeCurDir+"/webroot/serialHelper")
+	if err:=setStatic(router, engineOpt.embedFS);err!=nil{
+		panic(err)
+	}
 
 	loginRouter := router.Group("/api/v1/system/")
 	{
