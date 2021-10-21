@@ -22,6 +22,7 @@ func Router() *gin.Engine {
 	router.StaticFile("/", exeCurDir+"/webroot/index.html")
 	router.StaticFile("/favicon.ico", exeCurDir+"/webroot/favicon.ico")
 	router.StaticFile("/serverConfig.json", exeCurDir+"/webroot/serverConfig.json")
+	router.Static("/serialHelper", exeCurDir+"/webroot/serialHelper")
 
 	loginRouter := router.Group("/api/v1/system/")
 	{
@@ -99,6 +100,8 @@ func Router() *gin.Engine {
 		{
 			//获取所有接口信息
 			deviceRouter.GET("/allInterface", controller.GetAllInterfaceInfo)
+			//向采集接口发送透传数据
+			deviceRouter.POST("/interface/directData", controller.SendDirectDataToCollInterface)
 			//采集接口
 			collInterfaceGroup := deviceRouter.Group("/interface")
 			{

@@ -196,7 +196,7 @@ func NewJSONLogger(opts ...Option) (*zap.Logger, error) {
 			enc.AppendString(t.Format(timeLayout))
 		},
 		EncodeDuration: zapcore.MillisDurationEncoder,
-		//EncodeCaller:   zapcore.ShortCallerEncoder, // 全路径编码器
+		EncodeCaller:   zapcore.ShortCallerEncoder, // 全路径编码器
 	}
 
 	jsonEncoder := zapcore.NewJSONEncoder(encoderConfig)

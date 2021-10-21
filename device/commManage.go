@@ -32,14 +32,26 @@ type CommunicationRxTemplate struct {
 	RxBuf []byte
 }
 
+//透传model
+type CommunicationDirectDataReqTemplate struct {
+	CollInterfaceName string //采集接口名称
+	Data              []byte
+}
+type CommunicationDirectDataAckTemplate struct {
+	CollInterfaceName string //采集接口名称
+	Error             error
+	Data              []byte
+}
 type CommunicationManageTemplate struct {
-	EmergencyRequestChan chan CommunicationCmdTemplate
-	CommonRequestChan    chan CommunicationCmdTemplate
-	EmergencyAckChan     chan CommunicationRxTemplate
-	CollInterface        *CollectInterfaceTemplate
-	PacketChan           chan []byte
-	Signal               chan struct{}
-	Ready                chan struct{}
+	EmergencyRequestChan  chan CommunicationCmdTemplate
+	CommonRequestChan     chan CommunicationCmdTemplate
+	EmergencyAckChan      chan CommunicationRxTemplate
+	DirectDataRequestChan chan CommunicationDirectDataReqTemplate
+	DirectDataAckChan     chan CommunicationDirectDataAckTemplate
+	CollInterface         *CollectInterfaceTemplate
+	PacketChan            chan []byte
+	Signal                chan struct{}
+	Ready                 chan struct{}
 }
 
 type State uint8
@@ -57,13 +69,15 @@ const (
 func NewCommunicationManageTemplate(coll *CollectInterfaceTemplate) *CommunicationManageTemplate {
 
 	template := &CommunicationManageTemplate{
-		EmergencyRequestChan: make(chan CommunicationCmdTemplate, 1),
-		CommonRequestChan:    make(chan CommunicationCmdTemplate, 100),
-		EmergencyAckChan:     make(chan CommunicationRxTemplate, 1),
-		PacketChan:           make(chan []byte, 100), //最多连续接收100帧数据
-		CollInterface:        coll,
-		Ready:                make(chan struct{}, 1),
-		Signal:               make(chan struct{}, 1),
+		EmergencyRequestChan:  make(chan CommunicationCmdTemplate, 1),
+		CommonRequestChan:     make(chan CommunicationCmdTemplate, 100),
+		EmergencyAckChan:      make(chan CommunicationRxTemplate, 1),
+		DirectDataRequestChan: make(chan CommunicationDirectDataReqTemplate, 10),
+		DirectDataAckChan:     make(chan CommunicationDirectDataAckTemplate, 10),
+		PacketChan:            make(chan []byte, 100), //最多连续接收100帧数据
+		CollInterface:         coll,
+		Ready:                 make(chan struct{}, 1),
+		Signal:                make(chan struct{}, 1),
 	}
 	coll.CommunicationManager = template
 	if coll.CommInterface.Error() == nil {
@@ -620,6 +634,71 @@ OUT:
 
 }
 
+//设备透传报文
+func (c *CommunicationManageTemplate) SendDirectData(req CommunicationDirectDataReqTemplate, commInterface CommunicationInterface) (ack CommunicationDirectDataAckTemplate) {
+
+	if commInterface == nil {
+		ack.Error = fmt.Errorf("comminterface is nil")
+		return ack
+	}
+	var state = Send //初始状态
+
+	for {
+		switch state {
+		case Send:
+			{ //---------------发送-------------------------
+				//判断是否是串口采集
+				_, err := c.CollInterface.CommInterface.Write(req.Data)
+				//如果写入错误很有可能是串口关闭了
+				if err != nil {
+					ack.Error = fmt.Errorf("write data to comm %v error:%v", c.CollInterface.CommInterfaceName, err)
+					return ack
+				}
+				c.CommunicationManageMessageAdd("send", req.Data)
+				c.Ready <- struct{}{}
+				state = Wait
+
+			}
+
+		case Wait:
+			{
+				var (
+					rxBuf         []byte
+					rxTotalBuf    []byte
+					rxBufCnt      int
+					rxTotalBufCnt int
+				)
+
+				select {
+				//是否接收超时
+				case <-time.After(time.Second * 3):
+					{
+						ack.Error = fmt.Errorf("read from  comm %s timeout", commInterface.GetName())
+						return
+
+					}
+
+				//继续接收数据
+				case rxBuf = <-c.PacketChan:
+					{
+						rxBufCnt = len(rxBuf)
+						rxTotalBufCnt += rxBufCnt
+						//追加接收的数据到接收缓冲区
+						rxTotalBuf = append(rxTotalBuf, rxBuf[:rxBufCnt]...)
+						c.CommunicationManageMessageAdd("receive", rxTotalBuf)
+						ack.Data = rxTotalBuf
+						return
+					}
+
+				}
+
+			}
+
+		}
+	}
+
+}
+
 func (c *CommunicationManageTemplate) CommunicationManageDel() {
 
 	for {
@@ -641,7 +720,8 @@ func (c *CommunicationManageTemplate) CommunicationManageDel() {
 			if err := rxData.Err; err != nil {
 				mylog.ZAPS.Debugf("get data from common request chan  error:%v", err)
 			}
-
+		case req := <-c.DirectDataRequestChan:
+			c.DirectDataAckChan <- c.SendDirectData(req, c.CollInterface.CommInterface)
 		}
 	}
 }
