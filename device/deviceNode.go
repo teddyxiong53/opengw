@@ -8,7 +8,6 @@ import (
 	"log"
 	"strconv"
 
-	"sync"
 	"time"
 
 	"github.com/5anthosh/chili/parser"
@@ -25,7 +24,6 @@ var env *environment.Environment
 var eval *evaluator.Evaluator
 
 var MaxDeviceNodeCnt int = 50
-var lock sync.Mutex
 
 func initializeEval() {
 	log.Println("初始化表达式....")
@@ -89,7 +87,6 @@ func (d *DeviceNodeTemplate) GenerateGetRealVariables(sAddr string, step int) (n
 		Variable []*byte
 	}
 
-	lock.Lock()
 	template, ok := DeviceTemplateMap[d.Type]
 	if !ok {
 		err = fmt.Errorf("设备模板【%s】未安装", d.Name)
@@ -134,7 +131,6 @@ func (d *DeviceNodeTemplate) GenerateGetRealVariables(sAddr string, step int) (n
 			hasFrame = true
 		}
 	}
-	lock.Unlock()
 	return
 }
 
@@ -146,8 +142,6 @@ func (d *DeviceNodeTemplate) DeviceCustomCmd(
 		Variable []*byte `json:"Variable"`
 	}
 
-	lock.Lock()
-	defer lock.Unlock()
 	template, ok := DeviceTemplateMap[d.Type]
 	if !ok {
 		err = fmt.Errorf("no such device template %s", d.Type)
@@ -224,8 +218,6 @@ func (d *DeviceNodeTemplate) AnalysisRx(sAddr string, properties []model.DeviceT
 		Variable  []*LuaVariableTemplate
 	}
 
-	lock.Lock()
-	defer lock.Unlock()
 	template := DeviceTSLMap.Get(d.Type)
 
 	if template == nil {
