@@ -26,6 +26,7 @@ import (
 	"github.com/fatih/color"
 	"github.com/gin-gonic/gin"
 	lua "github.com/yuin/gopher-lua"
+	"go.uber.org/zap"
 )
 
 type LUAFUNC string
@@ -99,7 +100,7 @@ func disPatchCommonFunction(state *lua.LState) {
 func parseJson(jsonFile string, index int) (err error) {
 	fp, err := os.Open(jsonFile)
 	if err != nil {
-		return fmt.Errorf("open json config file %s Err:%v", jsonFile, err)
+		return fmt.Errorf("open json config file %s error:%v", jsonFile, err)
 	}
 	defer fp.Close()
 	data, err := ioutil.ReadAll(fp)
@@ -126,7 +127,8 @@ func parseLua(luaFile string, masterFile string) (err error) {
 	}
 	t, ok := DeviceTemplateMap[tName[0]]
 	if !ok {
-		return fmt.Errorf("template %s haven't reload from json", tName[0])
+		DeviceTemplateMap[tName[0]] = &model.PluginTemplate{Type: tName[0]}
+		//return fmt.Errorf("template %s haven't reload from json", tName[0])
 	}
 	if luaFile == masterFile {
 		state, err := luautils.LuaOpenFile(luaFile)
@@ -351,7 +353,7 @@ func ReadPlugins(plugPath string) error {
 			}
 			if f, ok := priorityMap[-1]; ok {
 				if err = parseJson(f, index); err != nil {
-					return err
+					mylog.ZAP.Error("lua parse json error", zap.Error(err))
 				}
 			}
 			if f, ok := priorityMap[-2]; ok {
