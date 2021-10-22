@@ -17,6 +17,7 @@ import (
 	"path"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"goAdapter/httpServer/model"
 	"goAdapter/pkg/luautils"
@@ -54,8 +55,8 @@ const (
 	NETWORKJSON       = "networkpara.json"
 )
 
-const (
-	BACKUPZIP = "./config.bak.zip"
+var (
+	BACKUPZIP = fmt.Sprintf("./openGW-BAK(%s).zip",time.Now().Format("2006-01-02"))
 )
 
 const (

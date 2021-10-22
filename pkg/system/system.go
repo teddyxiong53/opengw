@@ -6,6 +6,9 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"runtime"
+	"strconv"
+	"syscall"
 	"time"
 
 	"github.com/shirou/gopsutil/v3/disk"
@@ -66,14 +69,16 @@ var (
 	DevicePacketLossDataStream = NewDataStreamTemplate("通信丢包率")
 )
 
-func SystemReboot() {
-	cmd := exec.Command("reboot")
-	var out bytes.Buffer
-	cmd.Stdout = &out
-	cmd.Start()
-
-	str := out.String()
-	fmt.Println(str)
+func SmoothReStart()error {
+	if runtime.GOOS=="windows"{
+		return fmt.Errorf("windows soft restart is not supported")
+	}
+	cmd := exec.Command("kill","-1",strconv.Itoa(syscall.Getpid()))
+	_,err:=cmd.CombinedOutput()
+	if err!=nil{
+		return fmt.Errorf("excute command %s error:%v",cmd.String(),err)
+	}
+	return nil
 }
 
 func SystemSetRTC(rtc string) {

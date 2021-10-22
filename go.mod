@@ -9,6 +9,7 @@ require (
 	github.com/dgrijalva/jwt-go v3.2.0+incompatible
 	github.com/eclipse/paho.mqtt.golang v1.3.3
 	github.com/fatih/color v1.12.0
+	github.com/fvbock/endless v0.0.0-20170109170031-447134032cb6
 	github.com/gin-gonic/gin v1.7.1
 	github.com/go-ole/go-ole v1.2.5 // indirect
 	github.com/goburrow/serial v0.1.0
@@ -25,7 +26,6 @@ require (
 	github.com/shopspring/decimal v1.2.0
 	github.com/sirupsen/logrus v1.8.1
 	github.com/spf13/viper v1.8.1
-	github.com/tarm/serial v0.0.0-20180830185346-98f6abe2eb07
 	github.com/thinkgos/gomodbus/v2 v2.2.2
 	github.com/walkmiao/chili v0.0.5
 	github.com/yuin/gluamapper v0.0.0-20150323120927-d836955830e7

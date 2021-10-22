@@ -9,8 +9,8 @@
 package main
 
 import (
-	"context"
 	"embed"
+	"github.com/fvbock/endless"
 	"goAdapter/config"
 	"goAdapter/device"
 	"goAdapter/httpServer"
@@ -20,8 +20,6 @@ import (
 	"goAdapter/pkg/system"
 	"log"
 	"net/http"
-	"os"
-	"os/signal"
 	"syscall"
 
 	"github.com/fatih/color"
@@ -106,28 +104,25 @@ func main() {
 	defer schedule.Clear()
 
 	router := httpServer.RouterWithOpts(httpServer.WithMode(gin.ReleaseMode), embedOpts())
-	server := http.Server{
-		Addr:    ":" + config.Cfg.ServerCfg.Port,
-		Handler: router,
-	}
-	sigChan := make(chan os.Signal, 1)
+	addr:= ":" + config.Cfg.ServerCfg.Port
+	startServer(addr,router,quitChan)
 
-	go func() {
-		signal.Notify(sigChan, syscall.SIGINT, syscall.SIGTERM, syscall.SIGABRT)
-		<-sigChan
-		if err := device.WriteAllCfg(); err != nil {
-			mylog.ZAP.Error("保存配置错误", zap.Error(err))
+}
+
+func startServer(addr string,h http.Handler,quitChan chan struct{}){
+	server := endless.NewServer(addr, h)
+	defer func() {
+		if err:=device.WriteAllCfg();err!=nil{
+			mylog.ZAP.Error("服务关闭时,保存配置错误", zap.Error(err))
 		}
-		if err := server.Shutdown(context.Background()); err != nil {
-			log.Println(color.RedString("shutdown server error:%v", err))
-		}
-		quitChan <- struct{}{}
+		quitChan<- struct{}{}
 	}()
-
-	if err := server.ListenAndServe(); err != http.ErrServerClosed {
-		mylog.ZAPS.Debugf("server listen and serve error:%v", err)
-		return
+	server.BeforeBegin = func(add string) {
+		mylog.ZAPS.Debugf("current pid is %d", syscall.Getpid())
 	}
 
-	mylog.ZAPS.Debug("服务器正常退出....")
+	if err := server.ListenAndServe();err!=nil {
+		log.Println(color.RedString("Server ListenAndServe err: %v", err))
+	}
+	mylog.ZAPS.Debugf("服务器(PID=%d)正常退出....",syscall.Getpid())
 }

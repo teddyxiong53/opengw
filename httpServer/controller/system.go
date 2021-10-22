@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"syscall"
 
 	"goAdapter/device"
 	"goAdapter/httpServer/middleware"
@@ -18,11 +19,18 @@ import (
 )
 
 func SystemReboot(context *gin.Context) {
+	mylog.ZAPS.Infof("开始执行软重启命令PID【%d】",syscall.Getpid())
+	if err:=system.SmoothReStart();err!=nil{
+		context.JSON(http.StatusOK, model.Response{
+			Code: "1",
+			Message: err.Error(),
+		})
+		return
+	}
 	context.JSON(http.StatusOK, model.Response{
 		Code: "0",
+		Message: fmt.Sprintf("软重启成功(PID=%d)",syscall.Getpid()),
 	})
-
-	system.SystemReboot()
 }
 
 func GetSystemStatus(context *gin.Context) {
@@ -240,6 +248,6 @@ func SystemUpdate(context *gin.Context) {
 			Message: "",
 			Data:    "",
 		})
-		system.SystemReboot()
+		system.SmoothReStart()
 	}
 }
